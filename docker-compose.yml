@@ -13,6 +13,7 @@ services:
       # Mapeamos el script para corrección de permisos en tiempo de ejecución
       - ./docker/apache/fix-permissions.sh:/entrypoint.sh
     entrypoint: ["/bin/bash", "/entrypoint.sh"]
+    command: ["apache2-foreground"]
     # entrypoint: ["/usr/local/bin/fix-permissions.sh"]
     environment:
       # Configuración de red y proxy (Traefik / Nginx Proxy)
