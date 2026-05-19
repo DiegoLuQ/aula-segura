@@ -1,4 +1,6 @@
-const API_URL = isLocal ? 'http://127.0.0.1:8000' : window.location.origin;
+const API_URL = window.location.origin.includes('127.0.0.1') || window.location.origin.includes('localhost') || window.location.origin.startsWith('file://')
+    ? 'http://127.0.0.1:8000'
+    : window.location.origin + '/api';
 let currentUser = null;
 
 // Initialization
