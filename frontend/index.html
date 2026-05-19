@@ -37,8 +37,8 @@
 
     <script>
         const API_URL = window.location.origin.includes('127.0.0.1') || window.location.origin.includes('localhost') || window.location.origin.startsWith('file://')
-            ? 'http://127.0.0.1:8010'
-            : window.location.origin;
+            ? 'http://127.0.0.1:8000'
+            : window.location.origin + '/api';
 
         // Redirigir si ya está logueado
         async function checkSession() {
@@ -85,7 +85,7 @@
                     errorEl.classList.remove('hidden');
                 }
             } catch (e) {
-                errorEl.innerText = 'No se pudo conectar con el servidor (Puerto 8010)';
+                errorEl.innerText = 'No se pudo conectar con el servidor';
                 errorEl.classList.remove('hidden');
             }
         });

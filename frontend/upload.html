@@ -9,10 +9,14 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans">
     <script>
+        const API_URL = window.location.origin.includes('127.0.0.1') || window.location.origin.includes('localhost') || window.location.origin.startsWith('file://')
+            ? 'http://127.0.0.1:8000'
+            : window.location.origin + '/api';
+
         (async function() {
             const token = localStorage.getItem('token');
             if (!token) window.location.href = 'index.html';
-            const resp = await fetch('http://127.0.0.1:8010/me', { headers: { 'Authorization': `Bearer ${token}` }});
+            const resp = await fetch(`${API_URL}/me`, { headers: { 'Authorization': `Bearer ${token}` }});
             if (!resp.ok) { window.location.href = 'index.html'; return; }
             const user = await resp.json();
             if (user.rol !== 'lawyer') { window.location.href = 'dashboard.html'; return; }
@@ -97,10 +101,6 @@
     </main>
 
     <script>
-        const API_URL = window.location.origin.includes('127.0.0.1') || window.location.origin.includes('localhost') || window.location.origin.startsWith('file://')
-            ? 'http://127.0.0.1:8010'
-            : window.location.origin;
-
         document.getElementById('excel-file').addEventListener('change', (e) => {
             const name = e.target.files[0]?.name;
             if (name) {

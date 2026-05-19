@@ -1,6 +1,9 @@
 # /backend/Dockerfile
 FROM my-python-fastapi:1.1
 
+# Establecemos el directorio de trabajo en /app
+WORKDIR /app
+
 # Copiamos solo el código de tu proyecto
 COPY . /app
 
