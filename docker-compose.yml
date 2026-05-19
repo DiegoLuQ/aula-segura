@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  web:
+    image: my-python-fastapi:0.128  # Apunta directo a la imagen base
+    container_name: ${APP_NAME:-aula-segura}
+    restart: always
+    volumes:
+      # Mapeamos la carpeta del backend (FastAPI) a la raíz de ejecución del contenedor
+      - ./backend:/var/www/html/
+      # Mapeamos la carpeta del frontend (HTML/JS) para que Apache lo sirva estáticamente bajo /frontend/
+      - ./frontend:/var/www/html/frontend/
+      # Mapeamos el script para corrección de permisos en tiempo de ejecución
+      - ./docker/apache/fix-permissions.sh:/entrypoint.sh
+    entrypoint: ["/bin/bash", "/entrypoint.sh"]
+    # entrypoint: ["/usr/local/bin/fix-permissions.sh"]
+    environment:
+      # Configuración de red y proxy (Traefik / Nginx Proxy)
+      - VIRTUAL_HOST=${DOMAIN}
+      - LETSENCRYPT_HOST=${DOMAIN}
+      - LETSENCRYPT_EMAIL=${LETSENCRYPT_EMAIL}
+      
+      # Variables de entorno del backend (Aula Segura)
+      - DATABASE_URL=${DATABASE_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
+      - PORT=80
+    expose:
+      - "80"
+    networks:
+      - red_produccion
+
+networks:
+  red_produccion:
+    external: true

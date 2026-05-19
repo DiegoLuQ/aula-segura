@@ -1,0 +1,42 @@
+# Entornos virtuales de Python
+venv/
+.venv/
+env/
+ENV/
+bin/
+lib/
+include/
+otros_docs/
+# Caché de Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Variables de entorno y credenciales (Muy importante para la seguridad)
+.env
+.env.*
+*.env
+
+# Archivos subidos por usuarios (PDFs temporales y definitivos)
+backend/uploads/
+uploads/
+
+# Archivos del sistema operativo
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Archivos de editores y desarrollo
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*~
+
+# Archivos temporales de Office (por los Excel que se suben)
+~$*.xlsx
+~$*.xls

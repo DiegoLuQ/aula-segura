@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro Alumno - Aula Segura</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            display: none;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 font-sans">
+    <script>
+        (async function () {
+            const token = localStorage.getItem('token');
+            if (!token) window.location.href = 'index.html';
+            const resp = await fetch('http://127.0.0.1:8010/me', { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!resp.ok) { window.location.href = 'index.html'; return; }
+            const user = await resp.json();
+            if (user.rol !== 'lawyer' && user.rol !== 'admin') { window.location.href = 'dashboard.html'; return; }
+            document.body.style.display = 'block';
+        })();
+    </script>
+
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-4">
+            <h1 class="text-xl font-bold text-indigo-900">Aula Segura</h1>
+            <span class="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs font-bold rounded uppercase">Editor</span>
+        </div>
+        <nav class="flex gap-4">
+            <a href="dashboard.html" class="text-slate-500 hover:text-indigo-600 transition">Registros</a>
+            <a href="otras_medidas.html" class="text-slate-500 hover:text-indigo-600 transition">Otras Medidas</a>
+            <a href="upload.html" class="text-slate-500 hover:text-indigo-600 transition">Subir Excel</a>
+        </nav>
+        <div class="flex items-center gap-6">
+            <span id="user-info" class="text-sm font-medium text-slate-600"></span>
+            <button onclick="logout()" class="text-slate-400 hover:text-red-600 transition">Salir</button>
+        </div>
+    </header>
+
+    <main class="p-6 lg:p-10 max-w-4xl mx-auto w-full">
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold" id="page-title">Nuevo Registro de Alumno</h2>
+            <p class="text-slate-500">Complete todos los campos necesarios para el proceso.</p>
+        </div>
+
+        <form id="registro-form"
+            class="bg-white p-8 rounded-xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">RUT</label>
+                <input type="text" id="rut" placeholder="12.123.456-7" oninput="formatRUT(this)" required
+                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre Completo del
+                    Estudiante</label>
+                <input type="text" id="nombre_estudiante" required
+                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Curso</label>
+                <select id="curso" required
+                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white">
+                    <option value="">Seleccione un curso...</option>
+                    <option value="PKºA">PKºA</option>
+                    <option value="PKºB">PKºB</option>
+                    <option value="KºA">KºA</option>
+                    <option value="KºB">KºB</option>
+                    <option value="1ºA">1ºA</option>
+                    <option value="1ºB">1ºB</option>
+                    <option value="1ºC">1ºC</option>
+                    <option value="2ºA">2ºA</option>
+                    <option value="2ºB">2ºB</option>
+                    <option value="2ºC">2ºC</option>
+                    <option value="3ºA">3ºA</option>
+                    <option value="3ºB">3ºB</option>
+                    <option value="3ºC">3ºC</option>
+                    <option value="4ºA">4ºA</option>
+                    <option value="4ºB">4ºB</option>
+                    <option value="4ºC">4ºC</option>
+                    <option value="5ºA">5ºA</option>
+                    <option value="5ºB">5ºB</option>
+                    <option value="5ºC">5ºC</option>
+                    <option value="6ºA">6ºA</option>
+                    <option value="6ºB">6ºB</option>
+                    <option value="6ºC">6ºC</option>
+                    <option value="7ºA">7ºA</option>
+                    <option value="7ºB">7ºB</option>
+                    <option value="7ºC">7ºC</option>
+                    <option value="8ºA">8ºA</option>
+                    <option value="8ºB">8ºB</option>
+                    <option value="8ºC">8ºC</option>
+                    <option value="1ºM A">1ºM A</option>
+                    <option value="1ºM B">1ºM B</option>
+                    <option value="1ºM C">1ºM C</option>
+                    <option value="2ºM A">2ºM A</option>
+                    <option value="2ºM B">2ºM B</option>
+                    <option value="2ºM C">2ºM C</option>
+                    <option value="3ºM A">3ºM A</option>
+                    <option value="3ºM B">3ºM B</option>
+                    <option value="3ºM C">3ºM C</option>
+                    <option value="4ºM A">4ºM A</option>
+                    <option value="4ºM B">4ºM B</option>
+                    <option value="4ºM C">4ºM C</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Colegio</label>
+                <select id="id_colegio" required
+                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                    <!-- Dinámico -->
+                </select>
+            </div>
+
+            <div class="md:col-span-2">
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Causa</label>
+                <textarea id="causa" required rows="2"
+                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"></textarea>
+            </div>
+
+            <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="md:col-span-3">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Descargos</label>
+                    <textarea id="descargos" rows="2"
+                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"></textarea>
+                </div>
+                <div>
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="block text-xs font-bold text-slate-500 uppercase">Fecha Descargados</label>
+                        <label
+                            class="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase cursor-pointer">
+                            <input type="checkbox" id="no_descargados"
+                                onchange="toggleDate('fecha_descargados', this.checked)"> No registra
+                        </label>
+                    </div>
+                    <input type="date" id="fecha_descargados" class="w-full px-4 py-2 border rounded-lg">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha Inicio Proceso</label>
+                <input type="date" id="fecha_inicio_proceso" class="w-full px-4 py-2 border rounded-lg">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha Notificación Medida</label>
+                <input type="date" id="fecha_notificacion_medida" class="w-full px-4 py-2 border rounded-lg">
+            </div>
+
+
+
+            <div>
+                <div class="flex justify-between items-center mb-1">
+                    <label class="block text-xs font-bold text-slate-500 uppercase">Fecha Recepción CARTA
+                        Apelación</label>
+                    <label
+                        class="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase cursor-pointer">
+                        <input type="checkbox" id="no_apelacion"
+                            onchange="toggleDate('fecha_recepcion_apelacion', this.checked)"> No registra
+                    </label>
+                </div>
+                <input type="date" id="fecha_recepcion_apelacion" class="w-full px-4 py-2 border rounded-lg">
+            </div>
+
+            <div>
+                <div class="flex justify-between items-center mb-1">
+                    <label class="block text-xs font-bold text-slate-500 uppercase">Fecha Consejo Profesores</label>
+                    <label
+                        class="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase cursor-pointer">
+                        <input type="checkbox" id="no_consejo"
+                            onchange="toggleDate('fecha_consejo_profesores', this.checked)"> No registra
+                    </label>
+                </div>
+                <input type="date" id="fecha_consejo_profesores" class="w-full px-4 py-2 border rounded-lg">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha Notificación Final
+                    "MEDIDA"</label>
+                <input type="date" id="fecha_notificacion_final" class="w-full px-4 py-2 border rounded-lg">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha Envío ANTECEDENTES
+                    SIE</label>
+                <input type="date" id="fecha_envio_sie" class="w-full px-4 py-2 border rounded-lg">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Medida Aplicada</label>
+                <select id="medida" class="w-full px-4 py-2 border rounded-lg">
+                    <option value="EXPULSIÓN">EXPULSIÓN</option>
+                    <option value="CANCELACIÓN DE MATRÍCULA">CANCELACIÓN DE MATRÍCULA</option>
+                </select>
+            </div>
+
+
+            <div class="md:col-span-2">
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Resultado Revisión EXPEDIENTE
+                    MEDIDA</label>
+                <textarea id="resultado_revision" rows="2"
+                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"></textarea>
+            </div>
+
+            <!-- SECCIÓN DE DOCUMENTACIÓN (SOLO EDICIÓN) -->
+            <div id="doc-section" class="hidden md:col-span-2 mt-8 border-t pt-8">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13">
+                            </path>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-800">Expediente Digital (PDF)</h3>
+                </div>
+
+                <div class="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100 mb-8">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
+                        <div class="md:col-span-6">
+                            <label
+                                class="block text-[10px] font-bold text-indigo-600 uppercase mb-2 tracking-wider">Tipo
+                                de Documento</label>
+                            <select id="doc-type"
+                                class="w-full px-4 py-2.5 bg-white border border-indigo-100 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 transition-all outline-none">
+                                <option value="Fecha Notificacion Final MEDIDA">Fecha Notificación Final "MEDIDA"
+                                </option>
+                                <option value="Resultado Revision EXPEDIENTE MEDIDA">Resultado Revisión EXPEDIENTE
+                                    MEDIDA</option>
+                            </select>
+                        </div>
+                        <div class="md:col-span-3">
+                            <label
+                                class="block text-[10px] font-bold text-indigo-600 uppercase mb-2 tracking-wider">Archivo
+                                PDF</label>
+                            <label
+                                class="flex items-center justify-center w-full px-4 py-2 bg-white border border-dashed border-indigo-200 rounded-xl cursor-pointer hover:bg-indigo-50 transition-all group">
+                                <span id="file-name-label"
+                                    class="text-[10px] text-indigo-400 group-hover:text-indigo-600 truncate">Seleccionar
+                                    PDF...</span>
+                                <input type="file" id="doc-file" accept=".pdf" class="hidden"
+                                    onchange="document.getElementById('file-name-label').innerText = this.files[0] ? this.files[0].name : 'Seleccionar PDF...'">
+                            </label>
+                        </div>
+                        <div class="md:col-span-3">
+                            <button type="button" onclick="uploadFile()"
+                                class="w-full bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                                    </path>
+                                </svg>
+                                Subir y Comprimir
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="doc-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Lista de archivos -->
+                </div>
+            </div>
+
+            <!-- MODAL PREVIEW PDF -->
+            <div id="modal-preview"
+                class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm hidden z-[100] flex items-center justify-center p-4">
+                <div class="bg-white w-full max-w-5xl h-[90vh] rounded-3xl overflow-hidden flex flex-col shadow-2xl">
+                    <div class="p-4 border-b flex justify-between items-center bg-slate-50">
+                        <h4 id="modal-title" class="font-bold text-slate-800">Vista Previa</h4>
+                        <button onclick="closePreview()"
+                            class="p-2 hover:bg-slate-200 rounded-full transition-all text-slate-500">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="flex-1 bg-slate-200">
+                        <iframe id="preview-iframe" class="w-full h-full border-none"></iframe>
+                    </div>
+                </div>
+            </div>
+
+            <div class="md:col-span-2 flex justify-end gap-3 mt-4 border-t pt-6">
+                <button type="button" onclick="window.location.href='dashboard.html'"
+                    class="px-6 py-2 text-slate-500 font-bold hover:bg-slate-100 rounded-lg transition">Cancelar</button>
+                <button type="submit" id="btn-save"
+                    class="px-10 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg">Guardar
+                    Registro</button>
+            </div>
+        </form>
+
+        <!-- Modal de Error -->
+        <div id="error-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-[100] p-4">
+            <div
+                class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+                <div class="p-6 bg-red-50 border-b border-red-100 flex items-center gap-4">
+                    <div
+                        class="w-10 h-10 bg-red-100 text-red-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-red-900">Datos Faltantes o Inválidos</h3>
+                        <p class="text-xs text-red-600 font-medium">Por favor corrija los siguientes campos:</p>
+                    </div>
+                </div>
+                <div class="p-6">
+                    <ul id="error-list" class="space-y-2 mb-6">
+                        <!-- Errores dinámicos -->
+                    </ul>
+                    <button onclick="closeErrorModal()"
+                        class="w-full py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition shadow-lg">Entendido</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_URL = window.location.origin.includes('127.0.0.1') || window.location.origin.includes('localhost') || window.location.origin.startsWith('file://')
+            ? 'http://127.0.0.1:8010'
+            : window.location.origin;
+        const urlParams = new URLSearchParams(window.location.search);
+        const studentId = urlParams.get('id');
+
+        function normalizarCurso(str) {
+            if (!str) return "";
+            let clean = str.toString().trim().toUpperCase();
+            
+            // Reemplazar grados/ordinales por un caracter unificado "º"
+            clean = clean.replace(/[°º]/g, "º");
+            
+            // Quitar espacios repetidos
+            clean = clean.replace(/\s+/g, " ");
+            
+            // Normalizar Romanos / Medio
+            clean = clean.replace(/IV\s*º?\s*(M|MEDIO)/g, "4ºM");
+            clean = clean.replace(/III\s*º?\s*(M|MEDIO)/g, "3ºM");
+            clean = clean.replace(/II\s*º?\s*(M|MEDIO)/g, "2ºM");
+            clean = clean.replace(/I\s*º?\s*(M|MEDIO)/g, "1ºM");
+            
+            // Asegurar formato de espacio antes de la letra en enseñanza media (ej: "1ºM A" en lugar de "1ºMA" o "1ºM  A")
+            clean = clean.replace(/(1|2|3|4)ºM\s*([A-C])/g, "$1ºM $2");
+            
+            // Tambien puede haber "5º A" con espacio entre el grado y la letra, quitar el espacio
+            clean = clean.replace(/(\d)º\s+([A-C])/g, "$1º$2");
+            
+            return clean;
+        }
+
+        async function init() {
+            const token = localStorage.getItem('token');
+            if (!token) window.location.href = 'login.html';
+
+            const resp = await fetch(`${API_URL}/me`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const user = await resp.json();
+            if (user.rol !== 'lawyer' && user.rol !== 'admin') window.location.href = 'dashboard.html';
+
+            document.getElementById('user-info').innerText = user.nombre;
+            await loadColegios();
+
+            if (studentId) {
+                document.getElementById('page-title').innerText = 'Editar Registro de Alumno';
+                document.getElementById('btn-save').innerText = 'Actualizar Registro';
+                document.getElementById('doc-section').classList.remove('hidden');
+                loadStudentData();
+                loadDocuments();
+            }
+        }
+
+        async function loadColegios() {
+            const resp = await fetch(`${API_URL}/colegios`);
+            const colegios = await resp.json();
+            document.getElementById('id_colegio').innerHTML = colegios.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+        }
+
+        function formatRUT(input) {
+            let value = input.value.replace(/\./g, '').replace('-', '');
+            if (value.length <= 1) return;
+            let dv = value.slice(-1);
+            let rut = value.slice(0, -1);
+            let formatted = rut.replace(/\B(?=(\d{3})+(?!\d))/g, ".") + '-' + dv;
+            input.value = formatted.toUpperCase();
+        }
+
+        function toggleDate(id, isDisabled) {
+            const el = document.getElementById(id);
+            if (isDisabled) {
+                el.value = "";
+                el.disabled = true;
+                el.classList.add('bg-slate-100', 'text-slate-400');
+            } else {
+                el.disabled = false;
+                el.classList.remove('bg-slate-100', 'text-slate-400');
+            }
+        }
+
+        async function loadStudentData() {
+            const token = localStorage.getItem('token');
+            const resp = await fetch(`${API_URL}/estudiantes`, { headers: { 'Authorization': `Bearer ${token}` } });
+            const students = await resp.json();
+            const s = students.find(x => x.id == studentId);
+
+            if (s) {
+                const fields = ["rut", "nombre_estudiante", "curso", "id_colegio", "causa", "fecha_inicio_proceso", "fecha_notificacion_medida", "descargos", "fecha_recepcion_apelacion", "fecha_consejo_profesores", "fecha_notificacion_final", "fecha_envio_sie", "medida", "resultado_revision", "fecha_descargados"];
+                fields.forEach(f => {
+                    if (document.getElementById(f)) {
+                        if (f === "curso") {
+                            const valOriginal = s[f] || "";
+                            const valNorm = normalizarCurso(valOriginal);
+                            const selectEl = document.getElementById("curso");
+                            let matched = false;
+                            for (let i = 0; i < selectEl.options.length; i++) {
+                                if (normalizarCurso(selectEl.options[i].value) === valNorm) {
+                                    selectEl.selectedIndex = i;
+                                    matched = true;
+                                    break;
+                                }
+                            }
+                            if (!matched) {
+                                selectEl.value = valOriginal;
+                            }
+                        } else {
+                            let val = s[f] || "";
+                            if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(val.trim())) {
+                                val = val.trim().split(' ')[0];
+                            }
+                            document.getElementById(f).value = val;
+                        }
+                    }
+                });
+
+                // Checks especiales para fechas nulas
+                if (!s.fecha_recepcion_apelacion) {
+                    document.getElementById('no_apelacion').checked = true;
+                    toggleDate('fecha_recepcion_apelacion', true);
+                }
+                if (!s.fecha_consejo_profesores) {
+                    document.getElementById('no_consejo').checked = true;
+                    toggleDate('fecha_consejo_profesores', true);
+                }
+                if (!s.fecha_descargados) {
+                    document.getElementById('no_descargados').checked = true;
+                    toggleDate('fecha_descargados', true);
+                }
+            }
+        }
+
+        document.getElementById('registro-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const token = localStorage.getItem('token');
+            const payload = {};
+            const fields = ["rut", "nombre_estudiante", "curso", "id_colegio", "causa", "fecha_inicio_proceso", "fecha_notificacion_medida", "descargos", "fecha_recepcion_apelacion", "fecha_consejo_profesores", "fecha_notificacion_final", "fecha_envio_sie", "medida", "resultado_revision", "fecha_descargados"];
+
+            fields.forEach(f => {
+                let val = document.getElementById(f).value;
+                if (f === "id_colegio") val = parseInt(val);
+                if (val === "") val = null;
+                payload[f] = val;
+            });
+
+            const method = studentId ? 'PUT' : 'POST';
+            const url = studentId ? `${API_URL}/estudiantes/${studentId}` : `${API_URL}/estudiantes`;
+
+            try {
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    window.location.href = 'dashboard.html';
+                } else if (response.status === 422) {
+                    const errorData = await response.json();
+                    showErrorModal(errorData.detail);
+                } else {
+                    alert('Error al guardar el registro');
+                }
+            } catch (e) {
+                alert('Error de conexión');
+            }
+        });
+
+        function showErrorModal(details) {
+            const list = document.getElementById('error-list');
+            list.innerHTML = '';
+
+            details.forEach(err => {
+                const field = err.loc[err.loc.length - 1];
+                const msg = err.msg;
+                const li = document.createElement('li');
+                li.className = 'flex items-start gap-2 text-sm text-slate-600 bg-slate-50 p-2 rounded-lg border border-slate-100';
+                li.innerHTML = `
+                    <span class="w-1.5 h-1.5 bg-red-400 rounded-full mt-1.5 flex-shrink-0"></span>
+                    <span><strong class="uppercase text-[10px] text-slate-400 block">${field}</strong> ${msg}</span>
+                `;
+                list.appendChild(li);
+            });
+
+            const modal = document.getElementById('error-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeErrorModal() {
+            const modal = document.getElementById('error-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+        }
+
+        async function loadDocuments() {
+            const token = localStorage.getItem('token');
+            const resp = await fetch(`${API_URL}/estudiantes/${studentId}/documentos`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const docs = await resp.json();
+            const list = document.getElementById('doc-list');
+
+            if (docs.length === 0) {
+                list.innerHTML = '<p class="text-xs text-slate-400 italic">No hay documentos subidos para este alumno.</p>';
+                return;
+            }
+
+            list.innerHTML = docs.map(d => `
+                <div class="flex items-center gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm hover:border-indigo-200 transition-all group cursor-pointer" onclick="openPreview(${d.id}, '${d.tipo}')">
+                    <div class="w-12 h-12 bg-red-50 text-red-500 rounded-xl flex items-center justify-center group-hover:bg-red-500 group-hover:text-white transition-all">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">${d.tipo}</p>
+                        <p class="text-sm font-bold text-slate-700 truncate">${d.nombre_archivo}</p>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-bold uppercase">${d.tamanio || 'N/A'}</span>
+                            <span class="text-[10px] text-slate-300 font-medium">${new Date(d.fecha_subida).toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1.5" onclick="event.stopPropagation()">
+                        <a href="${API_URL}/documentos/${d.id}/download?token=${token}" target="_blank" class="p-2.5 bg-slate-50 text-slate-400 hover:bg-indigo-600 hover:text-white rounded-xl transition-all" title="Descargar">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        </a>
+                        <button type="button" onclick="deleteDocument(${d.id})" class="p-2.5 bg-slate-50 text-slate-400 hover:bg-red-600 hover:text-white rounded-xl transition-all" title="Eliminar">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function uploadFile() {
+            const fileInput = document.getElementById('doc-file');
+            const type = document.getElementById('doc-type').value;
+            const token = localStorage.getItem('token');
+
+            if (!fileInput.files[0]) {
+                alert('Seleccione un archivo PDF');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.innerText = 'Subiendo...';
+            btn.disabled = true;
+
+            try {
+                const resp = await fetch(`${API_URL}/estudiantes/${studentId}/upload?tipo=${type}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+
+                if (resp.ok) {
+                    alert('Documento subido y comprimido correctamente');
+                    fileInput.value = '';
+                    loadDocuments();
+                } else {
+                    const err = await resp.json();
+                    alert('Error: ' + (err.detail || 'No se pudo subir el archivo'));
+                }
+            } catch (e) {
+                alert('Error de conexión');
+            } finally {
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function deleteDocument(docId) {
+            if (!confirm('¿Está seguro de eliminar este documento? Esta acción no se puede deshacer.')) return;
+
+            const token = localStorage.getItem('token');
+            try {
+                const resp = await fetch(`${API_URL}/documentos/${docId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (resp.ok) {
+                    loadDocuments();
+                } else {
+                    const err = await resp.json();
+                    alert('Error: ' + (err.detail || 'No se pudo eliminar el documento'));
+                }
+            } catch (e) {
+                alert('Error de conexión');
+            }
+        }
+
+        function openPreview(docId, title) {
+            const token = localStorage.getItem('token');
+            const url = `${API_URL}/documentos/${docId}/view?token=${token}`;
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('preview-iframe').src = url;
+            document.getElementById('modal-preview').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePreview() {
+            document.getElementById('modal-preview').classList.add('hidden');
+            document.getElementById('preview-iframe').src = '';
+            document.body.style.overflow = 'auto';
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalles - Otras Medidas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>body { display: none; }</style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans p-4 lg:p-8">
+    <script>
+        const API_URL = window.location.origin.includes('127.0.0.1') || window.location.origin.includes('localhost') || window.location.origin.startsWith('file://')
+            ? 'http://127.0.0.1:8010'
+            : window.location.origin;
+
+        (async function() {
+            const token = localStorage.getItem('token');
+            if (!token) window.location.href = 'index.html';
+            const resp = await fetch(`${API_URL}/me`, { headers: { 'Authorization': `Bearer ${token}` }});
+            if (!resp.ok) window.location.href = 'index.html';
+            document.body.style.display = 'block';
+        })();
+    </script>
+
+    <div class="max-w-4xl mx-auto">
+        <button onclick="window.location.href='otras_medidas.html'" class="text-indigo-600 hover:underline flex items-center gap-2 mb-6 text-sm font-bold">
+            ← Volver a Otras Medidas
+        </button>
+
+        <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 mb-8">
+            <h1 class="text-2xl font-bold text-slate-900 mb-6 border-b pb-4">Detalles del Proceso</h1>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Estudiante</p>
+                    <p id="nombre_estudiante" class="text-xl font-bold text-indigo-900">-</p>
+                    <p id="rut" class="text-xs font-mono text-slate-500">-</p>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Curso</p>
+                    <p id="curso" class="text-xl font-bold text-slate-700">-</p>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Fecha Inicio</p>
+                    <p id="fecha_inicio" class="font-bold text-slate-700">-</p>
+                </div>
+                <div>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Medida</p>
+                    <p id="medida" class="font-bold text-amber-600">-</p>
+                </div>
+                <div class="md:col-span-2">
+                    <p class="text-[10px] font-bold text-slate-400 uppercase">Causa</p>
+                    <p id="causa" class="text-slate-600 bg-slate-50 p-4 rounded-xl border italic">-</p>
+                </div>
+            </div>
+        </div>
+
+        <section class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
+            <h2 class="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                <svg class="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                Documentación Adjunta
+            </h2>
+            
+            <div class="bg-indigo-50 p-6 rounded-xl mb-8 flex flex-wrap gap-4 items-end">
+                <div class="flex-1 min-w-[200px]">
+                    <label class="block text-[10px] font-bold text-indigo-600 uppercase mb-1">Tipo de Documento</label>
+                    <input type="text" id="doc-type" placeholder="Ej: Citación, Resolución" class="w-full px-4 py-2 rounded-lg border-indigo-100 outline-none">
+                </div>
+                <div class="flex-1 min-w-[200px]">
+                    <label class="block text-[10px] font-bold text-indigo-600 uppercase mb-1">Archivo PDF</label>
+                    <input type="file" id="doc-file" accept=".pdf" class="w-full text-xs">
+                </div>
+                <button onclick="uploadDoc()" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold text-sm">Subir</button>
+            </div>
+
+            <div id="doc-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <p class="text-slate-400 italic text-sm">Cargando documentos...</p>
+            </div>
+        </section>
+    </div>
+
+    <!-- PREVIEW MODAL -->
+    <div id="modal-preview" class="fixed inset-0 bg-black/80 hidden z-[100] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-5xl h-[90vh] rounded-2xl overflow-hidden flex flex-col">
+            <div class="p-4 border-b flex justify-between items-center">
+                <span id="preview-title" class="font-bold"></span>
+                <button onclick="closePreview()" class="text-slate-500 text-xl">✕</button>
+            </div>
+            <iframe id="preview-iframe" class="flex-1 w-full"></iframe>
+        </div>
+    </div>
+
+    <script>
+        // API_URL ya definida arriba
+        const params = new URLSearchParams(window.location.search);
+        const omId = params.get('id');
+        const token = localStorage.getItem('token');
+
+        async function init() {
+            if (!omId) window.location.href = 'otras_medidas.html';
+            const resp = await fetch(`${API_URL}/otras-medidas/${omId}`, { headers: { 'Authorization': `Bearer ${token}` }});
+            const data = await resp.json();
+            
+            document.getElementById('nombre_estudiante').innerText = data.nombre_estudiante;
+            document.getElementById('rut').innerText = data.rut || 'Sin RUT';
+            document.getElementById('curso').innerText = data.curso;
+            document.getElementById('fecha_inicio').innerText = data.fecha_inicio;
+            document.getElementById('medida').innerText = data.medida;
+            document.getElementById('causa').innerText = data.causa;
+            
+            loadDocs();
+        }
+
+        async function loadDocs() {
+            const resp = await fetch(`${API_URL}/otras-medidas/${omId}/documentos`, { headers: { 'Authorization': `Bearer ${token}` }});
+            const docs = await resp.json();
+            const list = document.getElementById('doc-list');
+            if (docs.length === 0) {
+                list.innerHTML = '<p class="text-slate-400 italic text-sm">No hay documentos adjuntos.</p>';
+                return;
+            }
+            list.innerHTML = docs.map(d => `
+                <div class="flex items-center gap-3 p-4 border rounded-xl hover:bg-slate-50 transition cursor-pointer" onclick="openPreview(${d.id}, '${d.tipo}')">
+                    <div class="w-10 h-10 bg-red-50 text-red-500 rounded flex items-center justify-center">PDF</div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase">${d.tipo}</p>
+                        <p class="text-sm font-medium truncate">${d.nombre_archivo}</p>
+                    </div>
+                    <div class="flex gap-2" onclick="event.stopPropagation()">
+                        <button onclick="deleteDoc(${d.id})" class="text-red-500 hover:text-red-700">✕</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function uploadDoc() {
+            const file = document.getElementById('doc-file').files[0];
+            const type = document.getElementById('doc-type').value;
+            if (!file || !type) { alert('Complete todos los campos'); return; }
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            const resp = await fetch(`${API_URL}/otras-medidas/${omId}/upload?tipo=${type}`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: formData
+            });
+            if (resp.ok) { loadDocs(); document.getElementById('doc-file').value = ''; document.getElementById('doc-type').value = ''; }
+            else alert('Error al subir');
+        }
+
+        async function deleteDoc(id) {
+            if (!confirm('¿Seguro?')) return;
+            await fetch(`${API_URL}/documentos-om/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }});
+            loadDocs();
+        }
+
+        function openPreview(id, title) {
+            document.getElementById('preview-title').innerText = title;
+            document.getElementById('preview-iframe').src = `${API_URL}/documentos-om/${id}/view?token=${token}`;
+            document.getElementById('modal-preview').classList.remove('hidden');
+        }
+
+        function closePreview() { document.getElementById('modal-preview').classList.add('hidden'); }
+
+        init();
+    </script>
+</body>
+</html>

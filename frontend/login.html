@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Aula Segura</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4 font-sans">
+    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-200">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-indigo-900">Aula Segura</h1>
+            <p class="text-slate-500 mt-2">Acceso al Sistema de Gestión</p>
+        </div>
+        <form id="login-form" class="space-y-6">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Usuario</label>
+                <input type="text" id="username" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Contraseña</label>
+                <input type="password" id="password" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+            </div>
+            <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 transition">
+                Entrar
+            </button>
+        </form>
+        <p id="login-error" class="text-red-500 text-sm mt-4 hidden text-center"></p>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin.includes('127.0.0.1') || window.location.origin.includes('localhost') || window.location.origin.startsWith('file://')
+            ? 'http://127.0.0.1:8010'
+            : window.location.origin;
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nombre = document.getElementById('username').value;
+            const clave = document.getElementById('password').value;
+            const errorEl = document.getElementById('login-error');
+
+            try {
+                const response = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, clave })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('token', data.access_token);
+                    window.location.href = 'dashboard.html';
+                } else {
+                    const err = await response.json();
+                    errorEl.innerText = err.detail || 'Error al iniciar sesión';
+                    errorEl.classList.remove('hidden');
+                }
+            } catch (e) {
+                errorEl.innerText = 'No se pudo conectar con el servidor';
+                errorEl.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

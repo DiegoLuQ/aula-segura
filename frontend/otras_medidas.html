@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Otras Medidas - Aula Segura</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { display: none; }
+        .table-container { width: 100% !important; max-width: 100vw; overflow-x: auto; }
+        table { width: 100%; min-width: 1000px; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans">
+    <script>
+        (async function() {
+            const token = localStorage.getItem('token');
+            if (!token) window.location.href = 'index.html';
+            const resp = await fetch('http://127.0.0.1:8010/me', { headers: { 'Authorization': `Bearer ${token}` }});
+            if (!resp.ok) window.location.href = 'index.html';
+            document.body.style.display = 'block';
+        })();
+    </script>
+    
+    <header class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+        <div class="flex items-center gap-4">
+            <h1 class="text-xl font-bold text-indigo-900">Aula Segura</h1>
+            <span id="user-role-badge" class="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs font-bold rounded uppercase"></span>
+        </div>
+        <nav class="flex gap-4">
+            <a href="dashboard.html" class="text-slate-500 hover:text-indigo-600 transition">Registros</a>
+            <a href="otras_medidas.html" class="text-indigo-600 font-bold border-b-2 border-indigo-600 pb-1">Otras Medidas</a>
+            <a href="upload.html" id="nav-upload" class="hidden text-slate-500 hover:text-indigo-600 transition">Subir Excel</a>
+            <a href="admin.html" id="nav-admin" class="hidden text-slate-500 hover:text-indigo-600 transition">Usuarios</a>
+        </nav>
+        <div class="flex items-center gap-6">
+            <div class="flex flex-col items-end">
+                <span id="user-info" class="text-sm font-medium text-slate-600"></span>
+            </div>
+            <button onclick="logout()" class="text-slate-400 hover:text-red-600 transition">Salir</button>
+        </div>
+    </header>
+
+    <main class="p-4 lg:p-6 w-full">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+            <div>
+                <h2 class="text-2xl font-bold">Listado de Otras Medidas</h2>
+                <p class="text-slate-500">Gestión de procesos adicionales</p>
+            </div>
+            <div id="lawyer-actions" class="hidden flex flex-wrap gap-3 justify-end">
+                <button onclick="downloadTemplate()" class="bg-white text-indigo-600 border border-indigo-600 px-4 py-2 rounded-lg font-bold hover:bg-indigo-50 transition text-sm flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                    Descargar Plantilla
+                </button>
+                <button onclick="window.location.href='upload.html?type=otras_medidas'" class="bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-2 rounded-lg font-bold hover:bg-indigo-100 transition text-sm flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Subir Masivamente
+                </button>
+                <button onclick="window.location.href='registro_otras_medidas.html'" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700 transition shadow-lg">
+                    + Nuevo proceso con otra medida
+                </button>
+            </div>
+        </div>
+
+        <!-- FILTROS -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Buscar (Nombre o RUT)</label>
+                <input type="text" id="filter-search" oninput="renderTable()" placeholder="Ej: Juan Perez..." class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Año</label>
+                <select id="filter-year" class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500"></select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Colegio</label>
+                <select id="filter-colegio" class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="">Todos los colegios</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Desde</label>
+                <input type="date" id="filter-desde" class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Hasta</label>
+                <input type="date" id="filter-hasta" class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden w-full">
+            <div class="table-container">
+                <table id="main-table" class="text-sm">
+                    <thead>
+                        <tr class="bg-indigo-50 text-indigo-700 uppercase text-xs">
+                            <th class="px-4 py-3 text-left">RUT</th>
+                            <th class="px-4 py-3 text-left">NOMBRE ESTUDIANTE</th>
+                            <th class="px-4 py-3 text-left">CURSO</th>
+                            <th class="px-4 py-3 text-left">FECHA INICIO</th>
+                            <th class="px-4 py-3 text-left">CAUSA</th>
+                            <th class="px-4 py-3 text-left">MEDIDA</th>
+                            <th class="px-4 py-3 text-right">ACCIONES</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" class="divide-y divide-slate-100"></tbody>
+                </table>
+            </div>
+            <div id="loading-state" class="p-10 text-center text-slate-400">Cargando...</div>
+        </div>
+    </main>
+
+    <script>
+        const API_URL = window.location.origin.includes('127.0.0.1') || window.location.origin.includes('localhost') || window.location.origin.startsWith('file://')
+            ? 'http://127.0.0.1:8010'
+            : window.location.origin;
+        let currentUser = null;
+        let omsData = [];
+
+        async function init() {
+            const select = document.getElementById('filter-year');
+            for (let year = 2024; year <= 2035; year++) {
+                const opt = document.createElement('option');
+                opt.value = year;
+                opt.innerText = year;
+                select.appendChild(opt);
+            }
+            const currentYear = new Date().getFullYear();
+            select.value = currentYear;
+
+            const token = localStorage.getItem('token');
+            const resp = await fetch(`${API_URL}/me`, { headers: { 'Authorization': `Bearer ${token}` }});
+            if (!resp.ok) logout();
+            currentUser = await resp.json();
+            
+            document.getElementById('user-info').innerText = currentUser.nombre;
+            document.getElementById('user-role-badge').innerText = currentUser.rol;
+            
+            if (currentUser.rol === 'lawyer' || currentUser.rol === 'admin') {
+                document.getElementById('nav-upload').classList.remove('hidden');
+                document.getElementById('lawyer-actions').classList.remove('hidden');
+                if (currentUser.rol === 'admin') document.getElementById('nav-admin').classList.remove('hidden');
+            }
+            
+            await loadColegios();
+            loadOMs();
+
+            ['filter-search', 'filter-colegio', 'filter-desde', 'filter-hasta', 'filter-year'].forEach(id => {
+                document.getElementById(id).addEventListener('change', renderTable);
+                if (id === 'filter-search') document.getElementById(id).addEventListener('input', renderTable);
+            });
+        }
+
+        async function loadColegios() {
+            const resp = await fetch(`${API_URL}/colegios`);
+            const colegios = await resp.json();
+            document.getElementById('filter-colegio').innerHTML += colegios.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+        }
+
+        async function loadOMs() {
+            const token = localStorage.getItem('token');
+            const resp = await fetch(`${API_URL}/otras-medidas`, { headers: { 'Authorization': `Bearer ${token}` }});
+            omsData = await resp.json();
+            document.getElementById('loading-state').classList.add('hidden');
+            renderTable();
+        }
+
+        function renderTable() {
+            const search = document.getElementById('filter-search').value.toLowerCase();
+            const year = document.getElementById('filter-year').value;
+            const colegio = document.getElementById('filter-colegio').value;
+            const desde = document.getElementById('filter-desde').value;
+            const hasta = document.getElementById('filter-hasta').value;
+
+            const filtered = omsData.filter(item => {
+                const date = new Date(item.fecha_inicio);
+                const matchesYear = date.getFullYear().toString() === year;
+                const matchesSearch = (item.nombre_estudiante && item.nombre_estudiante.toLowerCase().includes(search)) || (item.rut && item.rut.toLowerCase().includes(search));
+                const matchesColegio = !colegio || item.id_colegio == colegio;
+                const matchesDesde = !desde || item.fecha_inicio >= desde;
+                const matchesHasta = !hasta || item.fecha_inicio <= hasta;
+                return matchesYear && matchesSearch && matchesColegio && matchesDesde && matchesHasta;
+            });
+
+            const tbody = document.getElementById('table-body');
+            const loader = document.getElementById('loading-state');
+            
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-slate-400 italic">No hay registros que coincidan.</td></tr>`;
+                loader.style.display = 'none';
+                return;
+            }
+            
+            loader.style.display = 'none';
+            tbody.innerHTML = filtered.map(item => `
+                    <tr class="hover:bg-slate-50 transition border-b border-slate-50">
+                        <td class="px-4 py-4 font-mono text-xs text-slate-500">${item.rut || '-'}</td>
+                        <td class="px-4 py-4 font-medium text-indigo-900">${item.nombre_estudiante}</td>
+                        <td class="px-4 py-4 text-slate-500">${item.curso || '-'}</td>
+                        <td class="px-4 py-4 text-slate-500 text-sm">${item.fecha_inicio || '-'}</td>
+                        <td class="px-4 py-4 text-slate-500 text-xs max-w-xs truncate">${item.causa || '-'}</td>
+                        <td class="px-4 py-4">
+                            <span class="px-2 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold rounded uppercase">${item.medida || '-'}</span>
+                        </td>
+                        <td class="px-4 py-4 text-right flex gap-2 justify-end items-center">
+                            <a href="detalles_otras_medidas.html?id=${item.id}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-slate-700 hover:bg-slate-200 rounded-lg font-bold text-xs transition-all shadow-sm border border-slate-200">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                Ver
+                            </a>
+                            ${currentUser.rol !== 'viewer' ? `
+                                <a href="registro_otras_medidas.html?id=${item.id}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white rounded-lg font-bold text-xs transition-all shadow-sm border border-indigo-100">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                    Editar
+                                </a>
+                                ${currentUser.rol === 'lawyer' || currentUser.rol === 'admin' ? `
+                                    <button onclick="deleteOM(${item.id})" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-lg font-bold text-xs transition-all shadow-sm border border-red-100">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        Eliminar
+                                    </button>
+                                ` : ''}
+                            ` : ''}
+                        </td>
+                    </tr>
+                `).join('');
+        }
+
+        async function deleteOM(id) {
+            if (!confirm('¿Seguro?')) return;
+            const token = localStorage.getItem('token');
+            const resp = await fetch(`${API_URL}/otras-medidas/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (resp.ok) loadOMs();
+        }
+
+        async function downloadTemplate() {
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/otras-medidas/template`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) {
+                    const err = await response.json();
+                    alert('Error al descargar: ' + (err.detail || 'Servidor no respondió correctamente'));
+                    return;
+                }
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'plantilla_otras_medidas.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            } catch (e) { 
+                console.error(e);
+                alert('Error de conexión al descargar la plantilla'); 
+            }
+        }
+
+        function logout() { localStorage.removeItem('token'); window.location.href = 'login.html'; }
+        init();
+    </script>
+</body>
+</html>
