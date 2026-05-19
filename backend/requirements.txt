@@ -10,3 +10,4 @@ python-multipart==0.0.9
 python-dotenv==1.0.1
 pandas==2.2.0
 openpyxl==3.1.2
+pikepdf==10.5.1

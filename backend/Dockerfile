@@ -7,6 +7,9 @@ WORKDIR /app
 # Copiamos solo el código de tu proyecto
 COPY . /app
 
+# Instalamos las dependencias del proyecto
+RUN pip install --no-cache-dir -r requirements.txt
+
 # Exponemos el puerto de FastAPI
 EXPOSE 8000
 
