@@ -52,7 +52,7 @@
                 <h2 class="text-2xl font-bold">Listado de Alumnos</h2>
                 <p class="text-slate-500">Gestión de procesos de Aula Segura</p>
             </div>
-            <div id="lawyer-actions" class="hidden flex flex-wrap gap-3 justify-end">
+            <div class="flex flex-wrap gap-3 justify-end">
                 <div class="relative">
                     <button onclick="toggleColumnsDropdown(event)" class="bg-white text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-50 transition border border-slate-200">
                         ⚙ Columnas
@@ -64,12 +64,14 @@
                         </div>
                     </div>
                 </div>
-                <button onclick="window.location.href='upload.html'" class="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg font-bold hover:bg-indigo-100 transition border border-indigo-200">
-                    ⬆ Carga Masiva
-                </button>
-                <button onclick="window.location.href='registro.html'" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700 transition shadow-lg">
-                    + Agregar Alumno
-                </button>
+                <div id="lawyer-actions" class="hidden flex gap-3">
+                    <button onclick="window.location.href='upload.html'" class="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg font-bold hover:bg-indigo-100 transition border border-indigo-200">
+                        ⬆ Carga Masiva
+                    </button>
+                    <button onclick="window.location.href='registro.html'" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700 transition shadow-lg">
+                        + Agregar Alumno
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -163,6 +165,10 @@
         let visibleColumns = JSON.parse(localStorage.getItem('visible_columns')) || 
                              ALL_COLUMNS.filter(c => c.default).map(c => c.id);
 
+        if (!visibleColumns.includes('acciones')) {
+            visibleColumns.push('acciones');
+        }
+
         // Asegurar que el orden inicial sea el correcto según ALL_COLUMNS
         visibleColumns.sort((a, b) => {
             const indexA = ALL_COLUMNS.findIndex(c => c.id === a);
@@ -181,10 +187,11 @@
             document.getElementById('user-info').innerText = currentUser.nombre;
             document.getElementById('user-role-badge').innerText = currentUser.rol;
             
+            setupColumnToggles();
+            
             if (currentUser.rol === 'lawyer' || currentUser.rol === 'admin') {
                 document.getElementById('nav-upload').classList.remove('hidden');
                 document.getElementById('lawyer-actions').classList.remove('hidden');
-                setupColumnToggles();
                 
                 // Filtro por año actual por defecto para Lawyer/Admin
                 const currentYear = new Date().getFullYear();
@@ -193,12 +200,11 @@
                 if (currentUser.rol === 'admin') {
                     document.getElementById('nav-admin').classList.remove('hidden');
                 }
-            } else if (currentUser.rol === 'super_viewer') {
-                // Super Viewer ve solo columnas básicas
-                visibleColumns = ['rut', 'nombre_estudiante', 'curso', 'fecha_inicio_proceso', 'fecha_envio_sie', 'medida'];
             } else {
-                // Viewer normal ve solo columnas básicas
-                visibleColumns = ['rut', 'nombre_estudiante', 'curso', 'fecha_inicio_proceso', 'fecha_envio_sie', 'medida'];
+                if (!localStorage.getItem('visible_columns')) {
+                    visibleColumns = ['rut', 'nombre_estudiante', 'curso', 'fecha_inicio_proceso', 'fecha_envio_sie', 'medida', 'acciones'];
+                    setupColumnToggles();
+                }
             }
             setupYearSelect();
             await loadColegios();
@@ -367,17 +373,18 @@
                     if (colId === 'acciones') {
                         css = 'px-4 py-4 text-right flex gap-2 justify-end items-center';
                         content = `
-                        <a href="detalles.html?id=${s.id}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-slate-700 hover:bg-slate-200 rounded-lg font-bold text-xs transition-all shadow-sm border border-slate-200">
+                        <button onclick="openDetallesModal(${s.id})" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-slate-700 hover:bg-slate-200 rounded-lg font-bold text-xs transition-all shadow-sm border border-slate-200">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                             Ver
-                        </a>
-                        <a href="registro.html?id=${s.id}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white rounded-lg font-bold text-xs transition-all shadow-sm border border-indigo-100">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                            Editar
-                        </a>`;
+                        </button>`;
                         
                         if (currentUser && currentUser.rol === 'lawyer') {
-                            content += `<button onclick="deleteStudent(${s.id})" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-lg font-bold text-xs transition-all shadow-sm border border-red-100">
+                            content += `
+                            <a href="registro.html?id=${s.id}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white rounded-lg font-bold text-xs transition-all shadow-sm border border-indigo-100">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                Editar
+                            </a>
+                            <button onclick="deleteStudent(${s.id})" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-lg font-bold text-xs transition-all shadow-sm border border-red-100">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                 Eliminar
                             </button>`;
@@ -420,7 +427,243 @@
             window.location.href = 'login.html';
         }
 
+        async function openDetallesModal(id) {
+            const token = localStorage.getItem('token');
+            try {
+                const resp = await fetch(`${API_URL}/estudiantes/${id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!resp.ok) throw new Error('No se pudo cargar la información del alumno');
+                const s = await resp.json();
+
+                const respCol = await fetch(`${API_URL}/colegios`);
+                const colegios = await respCol.json();
+                const colegio = colegios.find(c => c.id == s.id_colegio);
+
+                const cleanDate = (val) => {
+                    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(val.trim())) {
+                        return val.trim().split(' ')[0];
+                    }
+                    return val || 'No registra';
+                };
+
+                const setVal = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerText = val;
+                    else console.warn(`Elemento con ID ${id} no encontrado en el DOM`);
+                };
+
+                setVal('det-nombre', s.nombre_estudiante || 'No registrado');
+                setVal('det-rut', s.rut || 'No registrado');
+                setVal('det-curso', s.curso || 'No registrado');
+                setVal('det-colegio', colegio ? colegio.nombre : 'No asignado');
+                setVal('det-causa', s.causa || 'Sin causa registrada');
+                
+                setVal('det-fecha-inicio', cleanDate(s.fecha_inicio_proceso));
+                setVal('det-fecha-notif', cleanDate(s.fecha_notificacion_medida));
+                
+                const medida = s.medida || 'SIN MEDIDA';
+                const mBadge = document.getElementById('det-medida');
+                if (mBadge) {
+                    mBadge.innerText = medida;
+                    mBadge.className = `inline-block px-3 py-1 rounded font-bold text-xs ${medida === 'EXPULSIÓN' ? 'bg-red-500 text-white' : 'bg-amber-500 text-white'}`;
+                }
+                
+                setVal('det-resultado', s.resultado_revision || 'Pendiente de revisión');
+                
+                setVal('det-fecha-descargados', cleanDate(s.fecha_descargados));
+                setVal('det-descargos-obs', s.descargos || 'Sin descargos registrados');
+                
+                setVal('det-fecha-apelacion', cleanDate(s.fecha_recepcion_apelacion));
+                setVal('det-fecha-consejo', cleanDate(s.fecha_consejo_profesores));
+                setVal('det-fecha-notif-final', cleanDate(s.fecha_notificacion_final));
+                setVal('det-fecha-sie', cleanDate(s.fecha_envio_sie));
+
+                const respDocs = await fetch(`${API_URL}/estudiantes/${id}/documentos`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const docs = await respDocs.json();
+                const docList = document.getElementById('det-doc-list');
+                
+                if (docs.length > 0) {
+                    docList.innerHTML = docs.map(d => `
+                        <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100 hover:border-indigo-100 transition-all cursor-pointer" onclick="openPreview(${d.id}, '${d.tipo}')">
+                            <div class="w-10 h-10 bg-red-50 text-red-500 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-[9px] font-black text-indigo-900 uppercase tracking-tighter truncate">${d.tipo}</p>
+                                <p class="text-[10px] text-slate-500 truncate">${d.tamanio || 'N/A'}</p>
+                            </div>
+                            <a href="${API_URL}/documentos/${d.id}/download?token=${token}" target="_blank" class="p-2 bg-white border rounded-lg hover:bg-indigo-600 hover:text-white text-indigo-600 transition-all shadow-sm" onclick="event.stopPropagation()">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            </a>
+                        </div>
+                    `).join('');
+                } else {
+                    docList.innerHTML = '<p class="text-xs text-slate-400 italic col-span-2">No hay documentos adjuntos en este expediente.</p>';
+                }
+
+                document.getElementById('modal-detalles').classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            } catch (e) {
+                alert('Error al cargar expediente: ' + e.message);
+            }
+        }
+
+        function closeDetallesModal() {
+            document.getElementById('modal-detalles').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        function openPreview(docId, title) {
+            const token = localStorage.getItem('token');
+            const url = `${API_URL}/documentos/${docId}/view?token=${token}`;
+            document.getElementById('preview-title').innerText = title;
+            document.getElementById('preview-iframe').src = url;
+            document.getElementById('modal-preview').classList.remove('hidden');
+        }
+
+        function closePreview() {
+            document.getElementById('modal-preview').classList.add('hidden');
+            document.getElementById('preview-iframe').src = '';
+        }
+
         init();
     </script>
+
+    <!-- MODAL DETALLES ALUMNO -->
+    <div id="modal-detalles" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-[100] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl overflow-y-auto flex flex-col shadow-2xl">
+            <div class="p-6 border-b flex justify-between items-center bg-slate-50 sticky top-0 z-10">
+                <div>
+                    <h3 class="text-xl font-bold text-indigo-900">Expediente de Alumno (Sólo Lectura)</h3>
+                    <p class="text-xs text-slate-500">Visualización de toda la información y documentos adjuntos</p>
+                </div>
+                <button onclick="closeDetallesModal()" class="p-2 hover:bg-slate-200 rounded-full transition text-slate-500">
+                    ✕
+                </button>
+            </div>
+            <div class="p-6 space-y-6 flex-1">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase">Nombre Completo</p>
+                        <p id="det-nombre" class="text-sm font-bold text-indigo-900">-</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase">RUT</p>
+                        <p id="det-rut" class="text-sm font-mono text-slate-700">-</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase">Curso</p>
+                        <p id="det-curso" class="text-sm font-bold text-slate-700">-</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase">Colegio</p>
+                        <p id="det-colegio" class="text-sm font-bold text-slate-700">-</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="md:col-span-2 space-y-4">
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Causa del Proceso</p>
+                            <div id="det-causa" class="bg-white p-4 rounded-xl border border-slate-200 text-xs italic text-slate-700 leading-relaxed max-h-32 overflow-y-auto">
+                                -
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase">Inicio Proceso</p>
+                                <p id="det-fecha-inicio" class="text-xs font-bold text-slate-700">-</p>
+                            </div>
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase">Notificación Medida</p>
+                                <p id="det-fecha-notif" class="text-xs font-bold text-slate-700">-</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-indigo-950 text-white p-5 rounded-2xl flex flex-col justify-between border border-indigo-900 shadow-lg">
+                        <div>
+                            <p class="text-[9px] font-bold text-indigo-300 uppercase mb-2">Medida Aplicada</p>
+                            <span id="det-medida" class="inline-block px-3 py-1 rounded font-bold text-sm bg-indigo-800 text-indigo-100">
+                                -
+                            </span>
+                        </div>
+                        <div class="mt-4">
+                            <p class="text-[9px] font-bold text-indigo-300 uppercase mb-1">Resultado Revisión</p>
+                            <p id="det-resultado" class="text-[11px] text-indigo-200 leading-tight">
+                                -
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-3">
+                        <h4 class="text-xs font-bold text-slate-800 border-b pb-2 mb-2">Descargos</h4>
+                        <div class="flex justify-between items-center">
+                            <p class="text-[10px] font-bold text-slate-400 uppercase">Fecha Descargos</p>
+                            <p id="det-fecha-descargos" class="text-xs font-bold text-slate-700">-</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Observación Descargos</p>
+                            <div id="det-descargos-obs" class="text-xs text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100 max-h-24 overflow-y-auto italic">
+                                -
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 space-y-3">
+                        <h4 class="text-xs font-bold text-slate-800 border-b pb-2 mb-2">Hitos del Proceso</h4>
+                        <div class="grid grid-cols-2 gap-y-3 gap-x-4 text-xs">
+                            <div>
+                                <p class="text-[9px] font-bold text-slate-400 uppercase">Recepción Apelación</p>
+                                <p id="det-fecha-apelacion" class="font-bold text-slate-700">-</p>
+                            </div>
+                            <div>
+                                <p class="text-[9px] font-bold text-slate-400 uppercase">Consejo Profesores</p>
+                                <p id="det-fecha-consejo" class="font-bold text-slate-700">-</p>
+                            </div>
+                            <div>
+                                <p class="text-[9px] font-bold text-slate-400 uppercase">Notif. Final Medida</p>
+                                <p id="det-fecha-notif-final" class="font-bold text-slate-700">-</p>
+                            </div>
+                            <div>
+                                <p class="text-[9px] font-bold text-slate-400 uppercase">Envío SIE</p>
+                                <p id="det-fecha-sie" class="font-bold text-slate-700">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-slate-200">
+                    <h4 class="text-xs font-bold text-indigo-900 uppercase tracking-wider mb-4 border-b pb-2">Documentación Adjunta (Sólo Visualización)</h4>
+                    <div id="det-doc-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <p class="text-xs text-slate-400 italic">No hay documentos adjuntos en este expediente.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 border-t flex justify-end bg-slate-50 sticky bottom-0">
+                <button onclick="closeDetallesModal()" class="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-sm transition">
+                    Cerrar Vista
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PREVIEW MODAL -->
+    <div id="modal-preview" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm hidden z-[110] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-5xl h-[90vh] rounded-3xl overflow-hidden flex flex-col shadow-2xl">
+            <div class="p-4 border-b flex justify-between items-center bg-slate-50">
+                <span id="preview-title" class="font-bold text-indigo-900"></span>
+                <button onclick="closePreview()" class="p-2 hover:bg-slate-200 rounded-full transition text-slate-500">
+                    ✕
+                </button>
+            </div>
+            <iframe id="preview-iframe" class="flex-1 w-full border-none"></iframe>
+        </div>
+    </div>
 </body>
 </html>

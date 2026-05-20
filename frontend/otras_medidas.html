@@ -51,18 +51,31 @@
                 <h2 class="text-2xl font-bold">Listado de Otras Medidas</h2>
                 <p class="text-slate-500">Gestión de procesos adicionales</p>
             </div>
-            <div id="lawyer-actions" class="hidden flex flex-wrap gap-3 justify-end">
-                <button onclick="downloadTemplate()" class="bg-white text-indigo-600 border border-indigo-600 px-4 py-2 rounded-lg font-bold hover:bg-indigo-50 transition text-sm flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                    Descargar Plantilla
-                </button>
-                <button onclick="window.location.href='upload.html?type=otras_medidas'" class="bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-2 rounded-lg font-bold hover:bg-indigo-100 transition text-sm flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                    Subir Masivamente
-                </button>
-                <button onclick="window.location.href='registro_otras_medidas.html'" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700 transition shadow-lg">
-                    + Nuevo proceso con otra medida
-                </button>
+            <div class="flex flex-wrap gap-3 justify-end">
+                <div class="relative" id="columns-dropdown-container">
+                    <button onclick="toggleColumnsDropdown(event)" class="bg-white text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-50 transition border border-slate-200 text-sm flex items-center gap-2">
+                        ⚙ Columnas
+                    </button>
+                    <div id="columns-dropdown" class="absolute right-0 top-full mt-2 w-64 bg-white border rounded-xl shadow-xl p-4 hidden z-[60]">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase mb-3">Mostrar Columnas</h4>
+                        <div id="column-toggles" class="space-y-2 max-h-64 overflow-y-auto text-sm">
+                            <!-- Checkboxes dinámicos -->
+                        </div>
+                    </div>
+                </div>
+                <div id="lawyer-actions" class="hidden flex flex-wrap gap-3 justify-end">
+                    <button onclick="downloadTemplate()" class="bg-white text-indigo-600 border border-indigo-600 px-4 py-2 rounded-lg font-bold hover:bg-indigo-50 transition text-sm flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                        Descargar Plantilla
+                    </button>
+                    <button onclick="window.location.href='upload.html?type=otras_medidas'" class="bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-2 rounded-lg font-bold hover:bg-indigo-100 transition text-sm flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        Subir Masivamente
+                    </button>
+                    <button onclick="window.location.href='registro_otras_medidas.html'" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700 transition shadow-lg text-sm">
+                        + Nuevo proceso con otra medida
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -96,14 +109,8 @@
             <div class="table-container">
                 <table id="main-table" class="text-sm">
                     <thead>
-                        <tr class="bg-indigo-50 text-indigo-700 uppercase text-xs">
-                            <th class="px-4 py-3 text-left">RUT</th>
-                            <th class="px-4 py-3 text-left">NOMBRE ESTUDIANTE</th>
-                            <th class="px-4 py-3 text-left">CURSO</th>
-                            <th class="px-4 py-3 text-left">FECHA INICIO</th>
-                            <th class="px-4 py-3 text-left">CAUSA</th>
-                            <th class="px-4 py-3 text-left">MEDIDA</th>
-                            <th class="px-4 py-3 text-right">ACCIONES</th>
+                        <tr id="table-header" class="bg-indigo-50 text-indigo-700 uppercase text-xs">
+                            <!-- Cabeceras dinámicas -->
                         </tr>
                     </thead>
                     <tbody id="table-body" class="divide-y divide-slate-100"></tbody>
@@ -116,6 +123,29 @@
     <script>
         let currentUser = null;
         let omsData = [];
+
+        const ALL_COLUMNS = [
+            { id: 'rut', label: 'RUT', default: true },
+            { id: 'nombre_estudiante', label: 'NOMBRE ESTUDIANTE', default: true },
+            { id: 'curso', label: 'CURSO', default: true },
+            { id: 'fecha_inicio', label: 'FECHA INICIO', default: true },
+            { id: 'causa', label: 'CAUSA', default: true },
+            { id: 'medida', label: 'MEDIDA', default: true },
+            { id: 'acciones', label: 'ACCIONES', default: true }
+        ];
+
+        let visibleColumns = JSON.parse(localStorage.getItem('otras_medidas_columnas')) || 
+                             ALL_COLUMNS.filter(c => c.default).map(c => c.id);
+
+        if (!visibleColumns.includes('acciones')) {
+            visibleColumns.push('acciones');
+        }
+
+        visibleColumns.sort((a, b) => {
+            const indexA = ALL_COLUMNS.findIndex(c => c.id === a);
+            const indexB = ALL_COLUMNS.findIndex(c => c.id === b);
+            return indexA - indexB;
+        });
 
         async function init() {
             const select = document.getElementById('filter-year');
@@ -136,20 +166,65 @@
             document.getElementById('user-info').innerText = currentUser.nombre;
             document.getElementById('user-role-badge').innerText = currentUser.rol;
             
-            if (currentUser.rol === 'lawyer' || currentUser.rol === 'admin') {
+            setupColumnToggles();
+
+            if (currentUser.rol === 'lawyer') {
                 document.getElementById('nav-upload').classList.remove('hidden');
                 document.getElementById('lawyer-actions').classList.remove('hidden');
-                if (currentUser.rol === 'admin') document.getElementById('nav-admin').classList.remove('hidden');
+            }
+            if (currentUser.rol === 'admin') {
+                document.getElementById('nav-admin').classList.remove('hidden');
+            }
+            
+            if (currentUser.rol !== 'lawyer' && currentUser.rol !== 'admin') {
+                if (!localStorage.getItem('otras_medidas_columnas')) {
+                    visibleColumns = ['rut', 'nombre_estudiante', 'curso', 'fecha_inicio', 'medida', 'acciones'];
+                    setupColumnToggles();
+                }
             }
             
             await loadColegios();
             loadOMs();
-
-            ['filter-search', 'filter-colegio', 'filter-desde', 'filter-hasta', 'filter-year'].forEach(id => {
-                document.getElementById(id).addEventListener('change', renderTable);
-                if (id === 'filter-search') document.getElementById(id).addEventListener('input', renderTable);
-            });
         }
+
+        function setupColumnToggles() {
+            const container = document.getElementById('column-toggles');
+            container.innerHTML = ALL_COLUMNS.map(col => `
+                <label class="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded">
+                    <input type="checkbox" value="${col.id}" ${visibleColumns.includes(col.id) ? 'checked' : ''} 
+                           onchange="toggleColumn('${col.id}')" class="rounded text-indigo-600">
+                    <span>${col.label}</span>
+                </label>
+            `).join('');
+        }
+
+        function toggleColumn(columnId) {
+            if (visibleColumns.includes(columnId)) {
+                visibleColumns = visibleColumns.filter(id => id !== columnId);
+            } else {
+                visibleColumns.push(columnId);
+            }
+            visibleColumns.sort((a, b) => {
+                const indexA = ALL_COLUMNS.findIndex(c => c.id === a);
+                const indexB = ALL_COLUMNS.findIndex(c => c.id === b);
+                return indexA - indexB;
+            });
+            localStorage.setItem('otras_medidas_columnas', JSON.stringify(visibleColumns));
+            renderTable();
+        }
+
+        function toggleColumnsDropdown(e) {
+            e.stopPropagation();
+            document.getElementById('columns-dropdown').classList.toggle('hidden');
+        }
+
+        window.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('columns-dropdown');
+            if (dropdown && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
 
         async function loadColegios() {
             const resp = await fetch(`${API_URL}/colegios`);
@@ -182,46 +257,72 @@
                 return matchesYear && matchesSearch && matchesColegio && matchesDesde && matchesHasta;
             });
 
+            const headerRow = document.getElementById('table-header');
             const tbody = document.getElementById('table-body');
             const loader = document.getElementById('loading-state');
             
+            headerRow.innerHTML = visibleColumns.map(colId => {
+                const col = ALL_COLUMNS.find(c => c.id === colId);
+                return `<th class="px-4 py-3 text-left text-[10px] leading-tight font-bold text-indigo-900 uppercase">${col.label}</th>`;
+            }).join('');
+
             if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-10 text-center text-slate-400 italic">No hay registros que coincidan.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="${visibleColumns.length}" class="p-10 text-center text-slate-400 italic">No hay registros que coincidan.</td></tr>`;
                 loader.style.display = 'none';
                 return;
             }
             
             loader.style.display = 'none';
-            tbody.innerHTML = filtered.map(item => `
-                    <tr class="hover:bg-slate-50 transition border-b border-slate-50">
-                        <td class="px-4 py-4 font-mono text-xs text-slate-500">${item.rut || '-'}</td>
-                        <td class="px-4 py-4 font-medium text-indigo-900">${item.nombre_estudiante}</td>
-                        <td class="px-4 py-4 text-slate-500">${item.curso || '-'}</td>
-                        <td class="px-4 py-4 text-slate-500 text-sm">${item.fecha_inicio || '-'}</td>
-                        <td class="px-4 py-4 text-slate-500 text-xs max-w-xs truncate">${item.causa || '-'}</td>
-                        <td class="px-4 py-4">
-                            <span class="px-2 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold rounded uppercase">${item.medida || '-'}</span>
-                        </td>
-                        <td class="px-4 py-4 text-right flex gap-2 justify-end items-center">
-                            <a href="detalles_otras_medidas.html?id=${item.id}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-slate-700 hover:bg-slate-200 rounded-lg font-bold text-xs transition-all shadow-sm border border-slate-200">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                Ver
+            tbody.innerHTML = filtered.map(item => {
+                let rowHtml = '<tr class="hover:bg-slate-50 transition border-b border-slate-50">';
+                visibleColumns.forEach(colId => {
+                    let content = '';
+                    let css = 'px-4 py-4 text-slate-500';
+                    
+                    if (colId === 'rut') {
+                        content = item.rut || '-';
+                        css += ' font-mono text-xs';
+                    } else if (colId === 'nombre_estudiante') {
+                        content = item.nombre_estudiante || '-';
+                        css = 'px-4 py-4 font-medium text-indigo-900';
+                    } else if (colId === 'curso') {
+                        content = item.curso || '-';
+                    } else if (colId === 'fecha_inicio') {
+                        content = item.fecha_inicio || '-';
+                        if (typeof content === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(content.trim())) {
+                            content = content.trim().split(' ')[0];
+                        }
+                    } else if (colId === 'causa') {
+                        content = item.causa || '-';
+                        css += ' max-w-xs truncate text-xs';
+                    } else if (colId === 'medida') {
+                        const val = item.medida || '-';
+                        content = `<span class="px-2 py-1 bg-amber-50 text-amber-700 text-[10px] font-bold rounded uppercase">${val}</span>`;
+                    } else if (colId === 'acciones') {
+                        css = 'px-4 py-4 text-right flex gap-2 justify-end items-center';
+                        content = `
+                        <button onclick="openDetallesOMModal(${item.id})" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-slate-700 hover:bg-slate-200 rounded-lg font-bold text-xs transition-all shadow-sm border border-slate-200">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                            Ver
+                        </button>`;
+                        
+                        if (currentUser && currentUser.rol === 'lawyer') {
+                            content += `
+                            <a href="registro_otras_medidas.html?id=${item.id}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white rounded-lg font-bold text-xs transition-all shadow-sm border border-indigo-100">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                Editar
                             </a>
-                            ${currentUser.rol !== 'viewer' ? `
-                                <a href="registro_otras_medidas.html?id=${item.id}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white rounded-lg font-bold text-xs transition-all shadow-sm border border-indigo-100">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                    Editar
-                                </a>
-                                ${currentUser.rol === 'lawyer' || currentUser.rol === 'admin' ? `
-                                    <button onclick="deleteOM(${item.id})" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-lg font-bold text-xs transition-all shadow-sm border border-red-100">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                        Eliminar
-                                    </button>
-                                ` : ''}
-                            ` : ''}
-                        </td>
-                    </tr>
-                `).join('');
+                            <button onclick="deleteOM(${item.id})" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-lg font-bold text-xs transition-all shadow-sm border border-red-100">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                Eliminar
+                            </button>`;
+                        }
+                    }
+                    rowHtml += `<td class="${css}">${content}</td>`;
+                });
+                rowHtml += '</tr>';
+                return rowHtml;
+            }).join('');
         }
 
         async function deleteOM(id) {
@@ -260,7 +361,165 @@
         }
 
         function logout() { localStorage.removeItem('token'); window.location.href = 'login.html'; }
+
+        async function openDetallesOMModal(id) {
+            const token = localStorage.getItem('token');
+            try {
+                const resp = await fetch(`${API_URL}/otras-medidas/${id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!resp.ok) throw new Error('No se pudo cargar la información de la medida');
+                const item = await resp.json();
+
+                const cleanDate = (val) => {
+                    if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(val.trim())) {
+                        return val.trim().split(' ')[0];
+                    }
+                    return val || 'No registra';
+                };
+
+                const setVal = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerText = val;
+                    else console.warn(`Elemento con ID ${id} no encontrado en el DOM`);
+                };
+
+                setVal('det-om-nombre', item.nombre_estudiante || 'No registrado');
+                setVal('det-om-rut', item.rut || 'No registrado');
+                setVal('det-om-curso', item.curso || 'No registrado');
+                setVal('det-om-fecha', cleanDate(item.fecha_inicio));
+                setVal('det-om-medida', item.medida || 'SIN MEDIDA');
+                setVal('det-om-causa', item.causa || 'Sin causa registrada');
+
+                const respDocs = await fetch(`${API_URL}/otras-medidas/${id}/documentos`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const docs = await respDocs.json();
+                const docList = document.getElementById('det-om-doc-list');
+                
+                if (docs.length > 0) {
+                    docList.innerHTML = docs.map(d => `
+                        <div class="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100 hover:border-indigo-100 transition-all cursor-pointer" onclick="openPreview(${d.id}, '${d.tipo}')">
+                            <div class="w-10 h-10 bg-red-50 text-red-500 rounded-lg flex items-center justify-center">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-[9px] font-black text-indigo-900 uppercase tracking-tighter truncate">${d.tipo}</p>
+                                <p class="text-[10px] text-slate-500 truncate">${d.tamanio || 'N/A'}</p>
+                            </div>
+                            <a href="${API_URL}/documentos/${d.id}/download?token=${token}" target="_blank" class="p-2 bg-white border rounded-lg hover:bg-indigo-600 hover:text-white text-indigo-600 transition-all shadow-sm" onclick="event.stopPropagation()">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            </a>
+                        </div>
+                    `).join('');
+                } else {
+                    docList.innerHTML = '<p class="text-xs text-slate-400 italic col-span-2">No hay documentos adjuntos en este proceso.</p>';
+                }
+
+                document.getElementById('modal-detalles-om').classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+            } catch (e) {
+                alert('Error al cargar detalles de la medida: ' + e.message);
+            }
+        }
+
+        function closeDetallesOMModal() {
+            document.getElementById('modal-detalles-om').classList.add('hidden');
+            document.body.style.overflow = 'auto';
+        }
+
+        function openPreview(docId, title) {
+            const token = localStorage.getItem('token');
+            const url = `${API_URL}/documentos/${docId}/view?token=${token}`;
+            document.getElementById('preview-title').innerText = title;
+            document.getElementById('preview-iframe').src = url;
+            document.getElementById('modal-preview').classList.remove('hidden');
+        }
+
+        function closePreview() {
+            document.getElementById('modal-preview').classList.add('hidden');
+            document.getElementById('preview-iframe').src = '';
+        }
+
+        // Suscribir los listeners de filtros
+        ['filter-search', 'filter-colegio', 'filter-desde', 'filter-hasta', 'filter-year'].forEach(id => {
+            document.getElementById(id).addEventListener('change', renderTable);
+            if (id === 'filter-search') document.getElementById(id).addEventListener('input', renderTable);
+        });
+
         init();
     </script>
+
+    <!-- MODAL DETALLES OTRA MEDIDA -->
+    <div id="modal-detalles-om" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-[100] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-3xl max-h-[90vh] rounded-3xl overflow-y-auto flex flex-col shadow-2xl">
+            <div class="p-6 border-b flex justify-between items-center bg-slate-50 sticky top-0 z-10">
+                <div>
+                    <h3 class="text-xl font-bold text-indigo-900">Detalles del Proceso (Sólo Lectura)</h3>
+                    <p class="text-xs text-slate-500">Visualización de información y documentos adjuntos</p>
+                </div>
+                <button onclick="closeDetallesOMModal()" class="p-2 hover:bg-slate-200 rounded-full transition text-slate-500">
+                    ✕
+                </button>
+            </div>
+            <div class="p-6 space-y-6 flex-1">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 p-5 rounded-2xl border border-slate-100">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase">Estudiante</p>
+                        <p id="det-om-nombre" class="text-sm font-bold text-indigo-900">-</p>
+                        <p id="det-om-rut" class="text-[10px] font-mono text-slate-500">-</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase">Curso</p>
+                        <p id="det-om-curso" class="text-sm font-bold text-slate-700">-</p>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase">Fecha Inicio</p>
+                        <p id="det-om-fecha" class="text-sm font-bold text-slate-700">-</p>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Medida Aplicada</p>
+                        <span id="det-om-medida" class="inline-block px-3 py-1 rounded font-bold text-xs bg-amber-50 text-amber-700 border border-amber-200 uppercase">
+                            -
+                        </span>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Causa</p>
+                        <div id="det-om-causa" class="bg-white p-4 rounded-xl border border-slate-200 text-xs italic text-slate-700 leading-relaxed max-h-32 overflow-y-auto">
+                            -
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-slate-200">
+                    <h4 class="text-xs font-bold text-indigo-900 uppercase tracking-wider mb-4 border-b pb-2">Documentación Adjunta (Sólo Visualización)</h4>
+                    <div id="det-om-doc-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <p class="text-xs text-slate-400 italic">No hay documentos adjuntos en este proceso.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 border-t flex justify-end bg-slate-50 sticky bottom-0">
+                <button onclick="closeDetallesOMModal()" class="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-sm transition">
+                    Cerrar Vista
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PREVIEW MODAL -->
+    <div id="modal-preview" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm hidden z-[110] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-5xl h-[90vh] rounded-3xl overflow-hidden flex flex-col shadow-2xl">
+            <div class="p-4 border-b flex justify-between items-center bg-slate-50">
+                <span id="preview-title" class="font-bold text-indigo-900"></span>
+                <button onclick="closePreview()" class="p-2 hover:bg-slate-200 rounded-full transition text-slate-500">
+                    ✕
+                </button>
+            </div>
+            <iframe id="preview-iframe" class="flex-1 w-full border-none"></iframe>
+        </div>
+    </div>
 </body>
 </html>
