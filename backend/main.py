@@ -77,6 +77,7 @@ def _ensure_columns():
         "ALTER TABLE pro_aula_segura_notificaciones ADD COLUMN hora_envio VARCHAR(5) NULL",
         "ALTER TABLE pro_aula_segura_notificaciones ADD COLUMN asunto_personalizado VARCHAR(255) NULL",
         "ALTER TABLE pro_aula_segura_envios_programados ADD COLUMN asunto VARCHAR(255) NULL",
+        "ALTER TABLE pro_aula_segura_estudiantes ADD COLUMN consejo_confirmado BOOLEAN NULL",
     ]
     for s in stmts:
         try:
