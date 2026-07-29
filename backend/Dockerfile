@@ -1,5 +1,5 @@
 # /backend/Dockerfile
-FROM my-python-fastapi:1.1
+FROM python:3.11-slim
 
 # Establecemos el directorio de trabajo en /app
 WORKDIR /app
