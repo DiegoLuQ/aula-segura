@@ -10,9 +10,14 @@ import shutil
 import uuid
 import pikepdf
 from datetime import datetime
-import models, schemas, auth, database
+import models, schemas, auth, database, notifications
 
 app = FastAPI(title="Sistema Aula Segura API")
+
+@app.on_event("startup")
+def _startup():
+    # Inicia el hilo que envía los recordatorios programados
+    notifications.iniciar_scheduler()
 
 @app.get("/estudiantes/template")
 def get_template(db: Session = Depends(database.get_db)):
@@ -64,6 +69,23 @@ app.add_middleware(
 
 # Crear tablas al iniciar (si no existen)
 models.Base.metadata.create_all(bind=database.engine)
+
+# Migraciones ligeras: agregar columnas nuevas a tablas existentes (ignora si ya existen)
+def _ensure_columns():
+    from sqlalchemy import text
+    stmts = [
+        "ALTER TABLE pro_aula_segura_notificaciones ADD COLUMN hora_envio VARCHAR(5) NULL",
+        "ALTER TABLE pro_aula_segura_notificaciones ADD COLUMN asunto_personalizado VARCHAR(255) NULL",
+        "ALTER TABLE pro_aula_segura_envios_programados ADD COLUMN asunto VARCHAR(255) NULL",
+    ]
+    for s in stmts:
+        try:
+            with database.engine.begin() as conn:
+                conn.execute(text(s))
+        except Exception:
+            pass  # la columna ya existe u otra causa no crítica
+
+_ensure_columns()
 
 @app.post("/login", response_model=schemas.Token)
 def login(request: schemas.LoginRequest, db: Session = Depends(database.get_db)):
@@ -667,3 +689,567 @@ def update_user(
 
     db.commit()
     return {"message": "Usuario actualizado"}
+
+# --- DESTINATARIOS DE NOTIFICACIONES ---
+
+def _require_editor(current_user):
+    if current_user["rol"] not in ["lawyer", "admin"]:
+        raise HTTPException(status_code=403, detail="No tiene permisos para esta acción")
+
+def _grupos_de_destinatario(db, dest_id):
+    rows = (
+        db.query(models.Grupo)
+        .join(models.DestinatarioGrupo, models.DestinatarioGrupo.grupo_id == models.Grupo.id)
+        .filter(models.DestinatarioGrupo.destinatario_id == dest_id)
+        .all()
+    )
+    return [{"id": g.id, "nombre": g.nombre} for g in rows]
+
+def _dest_dict(db, d):
+    return {
+        "id": d.id,
+        "nombre": d.nombre,
+        "email": d.email,
+        "id_colegio": d.id_colegio,
+        "todos_colegios": d.todos_colegios,
+        "estado": d.estado,
+        "grupos": _grupos_de_destinatario(db, d.id),
+    }
+
+def _set_grupos(db, dest_id, grupo_ids):
+    """Reemplaza la membresía de grupos de un destinatario."""
+    db.query(models.DestinatarioGrupo).filter(
+        models.DestinatarioGrupo.destinatario_id == dest_id
+    ).delete()
+    for gid in set(grupo_ids or []):
+        db.add(models.DestinatarioGrupo(destinatario_id=dest_id, grupo_id=gid))
+    db.commit()
+
+@app.get("/destinatarios", response_model=List[schemas.Destinatario])
+def list_destinatarios(
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    _require_editor(current_user)
+    return [_dest_dict(db, d) for d in db.query(models.Destinatario).all()]
+
+@app.post("/destinatarios", response_model=schemas.Destinatario)
+def create_destinatario(
+    data: schemas.DestinatarioCreate,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    _require_editor(current_user)
+    payload = data.dict()
+    grupo_ids = payload.pop("grupo_ids", None)
+    db_dest = models.Destinatario(**payload)
+    db.add(db_dest)
+    db.commit()
+    db.refresh(db_dest)
+    if grupo_ids:
+        _set_grupos(db, db_dest.id, grupo_ids)
+    return _dest_dict(db, db_dest)
+
+@app.put("/destinatarios/{dest_id}", response_model=schemas.Destinatario)
+def update_destinatario(
+    dest_id: int,
+    data: schemas.DestinatarioUpdate,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    _require_editor(current_user)
+    db_dest = db.query(models.Destinatario).filter(models.Destinatario.id == dest_id).first()
+    if not db_dest:
+        raise HTTPException(status_code=404, detail="Destinatario no encontrado")
+    for key, value in data.dict(exclude_unset=True).items():
+        setattr(db_dest, key, value)
+    db.commit()
+    db.refresh(db_dest)
+    return _dest_dict(db, db_dest)
+
+@app.post("/destinatarios/{dest_id}/grupos", response_model=schemas.Destinatario)
+def set_grupos_destinatario(
+    dest_id: int,
+    data: schemas.GrupoIds,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    _require_editor(current_user)
+    db_dest = db.query(models.Destinatario).filter(models.Destinatario.id == dest_id).first()
+    if not db_dest:
+        raise HTTPException(status_code=404, detail="Destinatario no encontrado")
+    _set_grupos(db, dest_id, data.grupo_ids)
+    return _dest_dict(db, db_dest)
+
+@app.delete("/destinatarios/{dest_id}")
+def delete_destinatario(
+    dest_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    _require_editor(current_user)
+    db_dest = db.query(models.Destinatario).filter(models.Destinatario.id == dest_id).first()
+    if not db_dest:
+        raise HTTPException(status_code=404, detail="Destinatario no encontrado")
+    db.query(models.DestinatarioGrupo).filter(
+        models.DestinatarioGrupo.destinatario_id == dest_id
+    ).delete()
+    db.delete(db_dest)
+    db.commit()
+    return {"message": "Destinatario eliminado"}
+
+@app.get("/estudiantes/{id}/destinatarios", response_model=List[schemas.Destinatario])
+def destinatarios_de_estudiante(
+    id: int,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    """Lista a quiénes se enviaría la notificación de este estudiante (por defecto)."""
+    _require_editor(current_user)
+    estudiante = db.query(models.Estudiante).filter(models.Estudiante.id == id).first()
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    dests = (
+        db.query(models.Destinatario)
+        .filter(
+            (models.Destinatario.id_colegio == estudiante.id_colegio)
+            | (models.Destinatario.todos_colegios == True)
+        )
+        .all()
+    )
+    return [_dest_dict(db, d) for d in dests]
+
+# --- GRUPOS DE DESTINATARIOS ---
+
+@app.get("/grupos", response_model=List[schemas.Grupo])
+def list_grupos(
+    id_colegio: Optional[int] = None,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    _require_editor(current_user)
+    q = db.query(models.Grupo).filter(models.Grupo.estado == True)
+    if id_colegio is not None:
+        q = q.filter(models.Grupo.id_colegio == id_colegio)
+    return q.all()
+
+@app.post("/grupos", response_model=schemas.Grupo)
+def create_grupo(
+    data: schemas.GrupoCreate,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    _require_editor(current_user)
+    db_grupo = models.Grupo(nombre=data.nombre, id_colegio=data.id_colegio, estado=True)
+    db.add(db_grupo)
+    db.commit()
+    db.refresh(db_grupo)
+    return db_grupo
+
+@app.put("/grupos/{grupo_id}", response_model=schemas.Grupo)
+def update_grupo(
+    grupo_id: int,
+    data: schemas.GrupoUpdate,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    _require_editor(current_user)
+    db_grupo = db.query(models.Grupo).filter(models.Grupo.id == grupo_id).first()
+    if not db_grupo:
+        raise HTTPException(status_code=404, detail="Grupo no encontrado")
+    for key, value in data.dict(exclude_unset=True).items():
+        setattr(db_grupo, key, value)
+    db.commit()
+    db.refresh(db_grupo)
+    return db_grupo
+
+@app.delete("/grupos/{grupo_id}")
+def delete_grupo(
+    grupo_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    _require_editor(current_user)
+    db_grupo = db.query(models.Grupo).filter(models.Grupo.id == grupo_id).first()
+    if not db_grupo:
+        raise HTTPException(status_code=404, detail="Grupo no encontrado")
+    db.query(models.DestinatarioGrupo).filter(
+        models.DestinatarioGrupo.grupo_id == grupo_id
+    ).delete()
+    db.delete(db_grupo)
+    db.commit()
+    return {"message": "Grupo eliminado"}
+
+# --- PLANTILLAS DE CORREO (CUERPOS TIPO POR FASE) ---
+
+@app.get("/plantillas", response_model=List[schemas.PlantillaCorreo])
+def list_plantillas(
+    etapa: Optional[str] = None,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    _require_editor(current_user)
+    q = db.query(models.PlantillaCorreo).filter(models.PlantillaCorreo.estado == True)
+    if etapa:
+        q = q.filter(models.PlantillaCorreo.etapa == etapa)
+    return q.order_by(models.PlantillaCorreo.titulo.asc()).all()
+
+@app.post("/plantillas", response_model=schemas.PlantillaCorreo)
+def create_plantilla(
+    data: schemas.PlantillaCorreoCreate,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    _require_editor(current_user)
+    if not data.titulo.strip() or not data.cuerpo.strip():
+        raise HTTPException(status_code=400, detail="El título y el cuerpo son obligatorios")
+    db_pl = models.PlantillaCorreo(
+        titulo=data.titulo.strip(),
+        etapa=data.etapa or "inicio_proceso",
+        cuerpo=data.cuerpo,
+        estado=True,
+    )
+    db.add(db_pl)
+    db.commit()
+    db.refresh(db_pl)
+    return db_pl
+
+@app.put("/plantillas/{plantilla_id}", response_model=schemas.PlantillaCorreo)
+def update_plantilla(
+    plantilla_id: int,
+    data: schemas.PlantillaCorreoUpdate,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    _require_editor(current_user)
+    db_pl = db.query(models.PlantillaCorreo).filter(models.PlantillaCorreo.id == plantilla_id).first()
+    if not db_pl:
+        raise HTTPException(status_code=404, detail="Plantilla no encontrada")
+    for key, value in data.dict(exclude_unset=True).items():
+        setattr(db_pl, key, value)
+    db.commit()
+    db.refresh(db_pl)
+    return db_pl
+
+@app.delete("/plantillas/{plantilla_id}")
+def delete_plantilla(
+    plantilla_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    _require_editor(current_user)
+    db_pl = db.query(models.PlantillaCorreo).filter(models.PlantillaCorreo.id == plantilla_id).first()
+    if not db_pl:
+        raise HTTPException(status_code=404, detail="Plantilla no encontrada")
+    db_pl.estado = False  # soft delete
+    db.commit()
+    return {"message": "Plantilla eliminada"}
+
+@app.get("/estudiantes/{id}/grupos", response_model=List[schemas.Grupo])
+def grupos_de_estudiante(
+    id: int,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    """Grupos disponibles para notificar a este estudiante (los de su colegio)."""
+    _require_editor(current_user)
+    estudiante = db.query(models.Estudiante).filter(models.Estudiante.id == id).first()
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    return (
+        db.query(models.Grupo)
+        .filter(
+            models.Grupo.estado == True,
+            models.Grupo.id_colegio == estudiante.id_colegio,
+        )
+        .all()
+    )
+
+# --- NOTIFICACIONES (RECORDATORIOS) ---
+
+MODOS_VALIDOS = {
+    "una_vez":        {"intervalo": 1, "max": 1},
+    "paulatino":      {"intervalo": 1, "max": None},
+    "cada_3_dias":    {"intervalo": 3, "max": 3},
+    "fecha_indicada": {"intervalo": 1, "max": 1},
+    "dias_habiles":   {"intervalo": 1, "max": None},
+}
+
+@app.post("/estudiantes/{id}/notificar")
+def crear_notificacion(
+    id: int,
+    data: schemas.NotificacionCreate,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    _require_editor(current_user)
+    estudiante = db.query(models.Estudiante).filter(models.Estudiante.id == id).first()
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+
+    if data.modo not in MODOS_VALIDOS:
+        raise HTTPException(status_code=400, detail="Modo de envío inválido")
+
+    if data.modo == "fecha_indicada" and not data.fecha_programada:
+        raise HTTPException(status_code=400, detail="Debe indicar la fecha de envío")
+
+    if data.modo == "dias_habiles" and (not data.dias_habiles_total or not data.dias_habiles_envio):
+        raise HTTPException(status_code=400, detail="Debe indicar el plazo total y los días de envío para el modo días hábiles")
+
+    etapa = data.etapa or "inicio_proceso"
+
+    # No duplicar: misma fase + misma fecha de envío/programación.
+    # Inmediato/días hábiles -> hoy; 'fecha_indicada' -> la fecha programada.
+    # Solo bloquean las notificaciones activas o completadas (las canceladas liberan la fase).
+    fecha_nueva = data.fecha_programada if data.modo == "fecha_indicada" else datetime.now().date()
+    existentes = (
+        db.query(models.Notificacion)
+        .filter(
+            models.Notificacion.estudiante_id == id,
+            models.Notificacion.etapa == etapa,
+            models.Notificacion.estado.in_(["activo", "completado"]),
+        )
+        .all()
+    )
+    for ex in existentes:
+        if ex.fecha_programada:
+            f_ex = ex.fecha_programada
+        elif ex.fecha_creacion:
+            f_ex = ex.fecha_creacion.date() if hasattr(ex.fecha_creacion, "date") else ex.fecha_creacion
+        else:
+            f_ex = None
+        if f_ex == fecha_nueva:
+            raise HTTPException(
+                status_code=409,
+                detail="Ya existe una notificación de esta fase para esa fecha. Cancélala si necesitas enviarla de nuevo.",
+            )
+
+    # En la etapa 'medida' se guarda el estado elegido en el campo del estudiante
+    if etapa == "medida" and data.medida:
+        estudiante.medida = data.medida
+        db.commit()
+
+    grupo_ids_str = ",".join(str(g) for g in data.grupo_ids) if data.grupo_ids else None
+
+    cfg = MODOS_VALIDOS[data.modo]
+    notif = models.Notificacion(
+        estudiante_id=id,
+        id_usuario=current_user["id"],
+        modo=data.modo,
+        etapa=etapa,
+        estado="activo",
+        grupo_ids=grupo_ids_str,
+        intervalo_dias=cfg["intervalo"],
+        max_envios=cfg["max"],
+        veces_enviado=0,
+        fecha_programada=data.fecha_programada if data.modo == "fecha_indicada" else None,
+        proximo_envio=datetime.now() if data.modo != "fecha_indicada" else None,
+        cuerpo_personalizado=data.cuerpo_personalizado,
+        asunto_personalizado=data.asunto_personalizado,
+        dias_habiles_total=data.dias_habiles_total if data.modo == "dias_habiles" else None,
+        dias_habiles_envio=data.dias_habiles_envio if data.modo == "dias_habiles" else None,
+        hora_envio=data.hora_envio if data.modo == "dias_habiles" else None,
+    )
+    db.add(notif)
+    db.commit()
+    db.refresh(notif)
+
+    # Los modos inmediatos envían el primer correo al instante; 'fecha_indicada' y 'dias_habiles'
+    # quedan a cargo del scheduler.
+    if data.modo == "fecha_indicada":
+        return {
+            "message": "Notificación programada",
+            "notificacion_id": notif.id,
+            "programada": True,
+            "fecha_programada": str(data.fecha_programada),
+        }
+
+    if data.modo == "dias_habiles":
+        # Materializar cada día de envío como una tarea en envios_programados
+        # (día 1 = hoy + los días de la lista). Snapshot de destinatarios incluido.
+        notifications.programar_envios_dias_habiles(db, notif, estudiante)
+        # Enviar de inmediato los que ya estén vencidos (p. ej. el día 1 = hoy si pasó la hora).
+        enviados, fallidos = notifications.enviar_programados_vencidos(db, notif.id)
+        # Reflejar el próximo envío pendiente (o completar) en el registro del job.
+        notifications._actualizar_notificacion_padre(db, notif.id)
+        return {
+            "message": "Notificación por días hábiles programada",
+            "notificacion_id": notif.id,
+            "programada": True,
+            "dias_envio": data.dias_habiles_envio,
+            "enviados": enviados,
+            "fallidos": fallidos,
+        }
+
+    enviados, fallidos = notifications.procesar_notificacion(db, notif)
+    return {
+        "message": "Notificación enviada",
+        "notificacion_id": notif.id,
+        "enviados": enviados,
+        "fallidos": fallidos,
+    }
+
+@app.get("/estudiantes/{id}/notificaciones", response_model=List[schemas.Notificacion])
+def notificaciones_de_estudiante(
+    id: int,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    _require_editor(current_user)
+    return (
+        db.query(models.Notificacion)
+        .filter(models.Notificacion.estudiante_id == id)
+        .order_by(models.Notificacion.id.desc())
+        .all()
+    )
+
+@app.post("/notificaciones/{notif_id}/cancelar")
+def cancelar_notificacion(
+    notif_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    _require_editor(current_user)
+    notif = db.query(models.Notificacion).filter(models.Notificacion.id == notif_id).first()
+    if not notif:
+        raise HTTPException(status_code=404, detail="Notificación no encontrada")
+    notif.estado = "cancelado"
+    notif.proximo_envio = None
+    # Cancelar los envíos programados pendientes de esta notificación.
+    db.query(models.EnvioProgramado).filter(
+        models.EnvioProgramado.notificacion_id == notif_id,
+        models.EnvioProgramado.estado == "pendiente",
+    ).update({models.EnvioProgramado.estado: "cancelado"})
+    db.commit()
+    return {"message": "Notificación cancelada"}
+
+@app.delete("/notificaciones/{notif_id}")
+def eliminar_notificacion(
+    notif_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    """Elimina una notificación del historial (y sus logs/envíos). Libera la fase para volver a enviar."""
+    _require_editor(current_user)
+    notif = db.query(models.Notificacion).filter(models.Notificacion.id == notif_id).first()
+    if not notif:
+        raise HTTPException(status_code=404, detail="Notificación no encontrada")
+    db.query(models.NotificacionLog).filter(
+        models.NotificacionLog.notificacion_id == notif_id
+    ).delete()
+    db.query(models.EnvioProgramado).filter(
+        models.EnvioProgramado.notificacion_id == notif_id
+    ).delete()
+    db.delete(notif)
+    db.commit()
+    return {"message": "Notificación eliminada"}
+
+@app.get("/notificaciones/{notif_id}/envios", response_model=List[schemas.EnvioProgramado])
+def envios_programados_de_notificacion(
+    notif_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    """Lista los envíos programados (una fila por día) de una notificación días hábiles."""
+    _require_editor(current_user)
+    return (
+        db.query(models.EnvioProgramado)
+        .filter(models.EnvioProgramado.notificacion_id == notif_id)
+        .order_by(models.EnvioProgramado.fecha.asc())
+        .all()
+    )
+
+@app.get("/notificaciones/{notif_id}/logs", response_model=List[schemas.NotificacionLog])
+def logs_de_notificacion(
+    notif_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    _require_editor(current_user)
+    return (
+        db.query(models.NotificacionLog)
+        .filter(models.NotificacionLog.notificacion_id == notif_id)
+        .order_by(models.NotificacionLog.id.desc())
+        .all()
+    )
+
+# --- CONSEJO DE PROFESORES ---
+
+@app.get("/estudiantes/{id}/consejo")
+def estado_consejo(
+    id: int,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    """Estado de confirmación del Consejo de Profesores y si ya se notificó."""
+    _require_editor(current_user)
+    estudiante = db.query(models.Estudiante).filter(models.Estudiante.id == id).first()
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+
+    enviada = (
+        db.query(models.Notificacion)
+        .filter(
+            models.Notificacion.estudiante_id == id,
+            models.Notificacion.etapa == "consejo",
+            models.Notificacion.veces_enviado > 0,
+        )
+        .order_by(models.Notificacion.id.desc())
+        .first()
+    )
+    return {
+        "confirmado": estudiante.consejo_confirmado,
+        "fecha": estudiante.fecha_consejo_profesores,
+        "correo_enviado": enviada is not None,
+        "fecha_envio": enviada.ultimo_envio if enviada else None,
+    }
+
+@app.post("/estudiantes/{id}/consejo")
+def registrar_consejo(
+    id: int,
+    data: schemas.ConsejoConfirmar,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    """Registra la confirmación/cancelación del Consejo de Profesores.
+    Opcionalmente envía un correo a los destinatarios (deja registro)."""
+    _require_editor(current_user)
+    estudiante = db.query(models.Estudiante).filter(models.Estudiante.id == id).first()
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+
+    estudiante.consejo_confirmado = data.confirmado
+    if data.fecha is not None:
+        estudiante.fecha_consejo_profesores = data.fecha
+    db.commit()
+
+    correo_enviado = False
+    enviados, fallidos = 0, 0
+
+    if data.enviar_correo:
+        grupo_ids_str = ",".join(str(g) for g in data.grupo_ids) if data.grupo_ids else None
+        notif = models.Notificacion(
+            estudiante_id=id,
+            id_usuario=current_user["id"],
+            modo="una_vez",
+            etapa="consejo",
+            estado="activo",
+            grupo_ids=grupo_ids_str,
+            intervalo_dias=1,
+            max_envios=1,
+            veces_enviado=0,
+            proximo_envio=datetime.now(),
+        )
+        db.add(notif)
+        db.commit()
+        db.refresh(notif)
+        enviados, fallidos = notifications.procesar_notificacion(db, notif)
+        correo_enviado = True
+
+    return {
+        "message": "Consejo registrado",
+        "confirmado": data.confirmado,
+        "correo_enviado": correo_enviado,
+        "enviados": enviados,
+        "fallidos": fallidos,
+    }

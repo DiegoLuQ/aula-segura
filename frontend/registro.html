@@ -38,6 +38,7 @@
         <nav class="flex gap-4">
             <a href="dashboard.html" class="text-slate-500 hover:text-indigo-600 transition">Registros</a>
             <a href="otras_medidas.html" class="text-slate-500 hover:text-indigo-600 transition">Otras Medidas</a>
+            <a href="plantillas.html" class="text-slate-500 hover:text-indigo-600 transition">Plantillas</a>
             <a href="upload.html" class="text-slate-500 hover:text-indigo-600 transition">Subir Excel</a>
         </nav>
         <div class="flex items-center gap-6">
@@ -52,8 +53,35 @@
             <p class="text-slate-500">Complete todos los campos necesarios para el proceso.</p>
         </div>
 
-        <form id="registro-form"
-            class="bg-white p-8 rounded-xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <form id="registro-form" novalidate
+            class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+
+            <!-- BARRA DE FASES -->
+            <div class="flex flex-wrap border-b border-slate-200 bg-slate-50">
+                <button type="button" onclick="formPhaseGoto(1)" data-tab="1"
+                    class="form-tab px-5 py-4 text-sm font-bold border-b-2 border-transparent text-slate-500 transition">1.
+                    Datos del Estudiante</button>
+                <button type="button" onclick="formPhaseGoto(2)" data-tab="2" id="tab-proceso"
+                    class="form-tab px-5 py-4 text-sm font-bold border-b-2 border-transparent text-slate-500 transition flex items-center gap-1.5">
+                    <svg id="lock-proceso" class="w-3.5 h-3.5 hidden" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z">
+                        </path>
+                    </svg>
+                    2. Proceso y Notificaciones</button>
+                <button type="button" onclick="formPhaseGoto(3)" data-tab="3" id="tab-expediente"
+                    class="form-tab hidden px-5 py-4 text-sm font-bold border-b-2 border-transparent text-slate-500 transition">3.
+                    Expediente Digital</button>
+            </div>
+
+            <div class="p-8">
+            <!-- ============ FASE 1: DATOS DEL ESTUDIANTE ============ -->
+            <div class="form-phase" data-phase="1">
+            <!-- GRUPO: DATOS DEL ESTUDIANTE -->
+            <div class="border border-slate-200 rounded-2xl p-6 bg-slate-50/40">
+                <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wide mb-5">Datos del Estudiante</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">RUT</label>
                 <input type="text" id="rut" placeholder="12.123.456-7" oninput="formatRUT(this)" required
@@ -128,69 +156,183 @@
                 <textarea id="causa" required rows="2"
                     class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"></textarea>
             </div>
-
-            <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div class="md:col-span-3">
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Descargos</label>
-                    <textarea id="descargos" rows="2"
-                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"></textarea>
                 </div>
-                <div>
-                    <div class="flex justify-between items-center mb-1">
-                        <label class="block text-xs font-bold text-slate-500 uppercase">Fecha Descargados</label>
-                        <label
-                            class="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase cursor-pointer">
-                            <input type="checkbox" id="no_descargados"
-                                onchange="toggleDate('fecha_descargados', this.checked)"> No registra
-                        </label>
+            </div>
+            <!-- FIN GRUPO DATOS DEL ESTUDIANTE -->
+
+            <!-- BOTONES GUARDAR / CANCELAR (dentro de la fase de datos) -->
+            <div class="flex justify-end gap-3 mt-6 border-t pt-6">
+                <button type="button" onclick="window.location.href='dashboard.html'"
+                    class="px-6 py-2 text-slate-500 font-bold hover:bg-slate-100 rounded-lg transition">Cancelar</button>
+                <button type="submit"
+                    class="js-btn-save px-10 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg">Guardar
+                    Registro</button>
+            </div>
+            </div>
+            <!-- ============ FASE 2: PROCESO Y NOTIFICACIONES ============ -->
+            <div class="form-phase hidden space-y-6" data-phase="2">
+
+            <!-- GRUPO: NOTIFICACIÓN INICIO PROCESO -->
+            <div class="md:col-span-2 border border-indigo-200 rounded-2xl p-6 bg-indigo-50/40">
+                <div class="flex flex-col md:flex-row md:items-end gap-4">
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-indigo-700 uppercase mb-1">Fecha Notificación
+                            Inicio Proceso</label>
+                        <input type="date" id="fecha_inicio_proceso"
+                            class="w-full px-4 py-2 border border-indigo-200 rounded-lg bg-white">
                     </div>
-                    <input type="date" id="fecha_descargados" class="w-full px-4 py-2 border rounded-lg">
+                    <button type="button" onclick="openNotifModal()"
+                        class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                            </path>
+                        </svg>
+                        Enviar Notificación
+                    </button>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-2">Los recordatorios se envían a los destinatarios del
+                    colegio del estudiante (más los que tengan el privilegio <strong>todos_colegios</strong>). Guarde
+                    el registro antes de notificar.</p>
+            </div>
+            <!-- FIN GRUPO NOTIFICACIÓN -->
+
+            <!-- GRUPO: DESCARGOS -->
+            <div class="md:col-span-2 border border-slate-200 rounded-2xl p-6 bg-slate-50/40">
+                <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wide mb-5">Descargos</h3>
+                <div class="grid grid-cols-1 gap-5">
+                    <div>
+                        <div class="flex justify-between items-center mb-1 md:max-w-xs">
+                            <label class="block text-xs font-bold text-slate-500 uppercase">Fecha Descargados</label>
+                            <label
+                                class="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase cursor-pointer">
+                                <input type="checkbox" id="no_descargados"
+                                    onchange="toggleDate('fecha_descargados', this.checked)"> No registra
+                            </label>
+                        </div>
+                        <input type="date" id="fecha_descargados"
+                            class="w-full md:max-w-xs px-4 py-2 border rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Descargos</label>
+                        <textarea id="descargos" rows="3"
+                            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"></textarea>
+                    </div>
                 </div>
             </div>
+            <!-- FIN GRUPO DESCARGOS -->
 
-            <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha Inicio Proceso</label>
-                <input type="date" id="fecha_inicio_proceso" class="w-full px-4 py-2 border rounded-lg">
-            </div>
-
-            <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha Notificación Medida</label>
-                <input type="date" id="fecha_notificacion_medida" class="w-full px-4 py-2 border rounded-lg">
-            </div>
-
-
-
-            <div>
-                <div class="flex justify-between items-center mb-1">
-                    <label class="block text-xs font-bold text-slate-500 uppercase">Fecha Recepción CARTA
-                        Apelación</label>
-                    <label
-                        class="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase cursor-pointer">
-                        <input type="checkbox" id="no_apelacion"
-                            onchange="toggleDate('fecha_recepcion_apelacion', this.checked)"> No registra
-                    </label>
+            <!-- GRUPO: NOTIFICACIÓN MEDIDA Y APELACIÓN -->
+            <div class="md:col-span-2 border border-indigo-200 rounded-2xl p-6 bg-indigo-50/40">
+                <div class="flex flex-col md:flex-row md:items-end gap-4">
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-indigo-700 uppercase mb-1">Fecha Notificación
+                            Medida y Apelación</label>
+                        <input type="date" id="fecha_notificacion_medida"
+                            class="w-full px-4 py-2 border border-indigo-200 rounded-lg bg-white">
+                    </div>
+                    <button type="button" onclick="openNotifModal('medida')"
+                        class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Cierre del Proceso
+                    </button>
                 </div>
-                <input type="date" id="fecha_recepcion_apelacion" class="w-full px-4 py-2 border rounded-lg">
+                <p class="text-[11px] text-slate-400 mt-2">Abre el modal para elegir el estado del proceso (medida) y
+                    enviar la notificación a los destinatarios. Guarde el registro antes de notificar.</p>
             </div>
+            <!-- FIN GRUPO NOTIFICACIÓN MEDIDA -->
 
-            <div>
-                <div class="flex justify-between items-center mb-1">
-                    <label class="block text-xs font-bold text-slate-500 uppercase">Fecha Consejo Profesores</label>
-                    <label
-                        class="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase cursor-pointer">
-                        <input type="checkbox" id="no_consejo"
-                            onchange="toggleDate('fecha_consejo_profesores', this.checked)"> No registra
-                    </label>
+            <!-- GRUPO: NOTIFICACIÓN RECEPCIÓN CARTA APELACIÓN -->
+            <div class="md:col-span-2 border border-indigo-200 rounded-2xl p-6 bg-indigo-50/40">
+                <div class="flex flex-col md:flex-row md:items-end gap-4">
+                    <div class="flex-1">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-xs font-bold text-indigo-700 uppercase">Fecha Recepción CARTA
+                                Apelación</label>
+                            <label
+                                class="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase cursor-pointer">
+                                <input type="checkbox" id="no_apelacion"
+                                    onchange="toggleDate('fecha_recepcion_apelacion', this.checked)"> No registra
+                            </label>
+                        </div>
+                        <input type="date" id="fecha_recepcion_apelacion"
+                            class="w-full px-4 py-2 border border-indigo-200 rounded-lg bg-white">
+                    </div>
+                    <button type="button" onclick="openNotifModal('apelacion')"
+                        class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                            </path>
+                        </svg>
+                        Enviar Notificación
+                    </button>
                 </div>
-                <input type="date" id="fecha_consejo_profesores" class="w-full px-4 py-2 border rounded-lg">
+                <p class="text-[11px] text-slate-400 mt-2">Los recordatorios se envían a los destinatarios del
+                    colegio del estudiante (más los que tengan el privilegio <strong>todos_colegios</strong>). Guarde
+                    el registro antes de notificar.</p>
             </div>
+            <!-- FIN GRUPO NOTIFICACIÓN APELACIÓN -->
 
-            <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha Notificación Final
-                    "MEDIDA"</label>
-                <input type="date" id="fecha_notificacion_final" class="w-full px-4 py-2 border rounded-lg">
+            <!-- GRUPO: CONSEJO DE PROFESORES -->
+            <div class="md:col-span-2 border border-indigo-200 rounded-2xl p-6 bg-indigo-50/40">
+                <div class="flex flex-col md:flex-row md:items-end gap-4">
+                    <div class="flex-1">
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-xs font-bold text-indigo-700 uppercase">Fecha Consejo
+                                Profesores</label>
+                            <label
+                                class="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase cursor-pointer">
+                                <input type="checkbox" id="no_consejo"
+                                    onchange="toggleDate('fecha_consejo_profesores', this.checked)"> No registra
+                            </label>
+                        </div>
+                        <input type="date" id="fecha_consejo_profesores"
+                            class="w-full px-4 py-2 border border-indigo-200 rounded-lg bg-white">
+                    </div>
+                    <button type="button" onclick="openConsejoModal()"
+                        class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Registrar Consejo
+                    </button>
+                </div>
+                <p id="consejo-estado-label" class="text-[11px] text-slate-400 mt-2">Registre si el Consejo de
+                    Profesores se confirma. Opcionalmente puede enviar correo a los destinatarios.</p>
             </div>
+            <!-- FIN GRUPO CONSEJO DE PROFESORES -->
 
+            <!-- GRUPO: NOTIFICACIÓN FINAL "MEDIDA" -->
+            <div class="md:col-span-2 border border-indigo-200 rounded-2xl p-6 bg-indigo-50/40">
+                <div class="flex flex-col md:flex-row md:items-end gap-4">
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-indigo-700 uppercase mb-1">Fecha Notificación
+                            Final "MEDIDA"</label>
+                        <input type="date" id="fecha_notificacion_final"
+                            class="w-full px-4 py-2 border border-indigo-200 rounded-lg bg-white">
+                    </div>
+                    <button type="button" onclick="openNotifModal('final_medida')"
+                        class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 whitespace-nowrap">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                            </path>
+                        </svg>
+                        Enviar Notificación
+                    </button>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-2">Los recordatorios se envían a los destinatarios del
+                    colegio del estudiante (más los que tengan el privilegio <strong>todos_colegios</strong>). Guarde
+                    el registro antes de notificar.</p>
+            </div>
+            <!-- FIN GRUPO NOTIFICACIÓN FINAL MEDIDA -->
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha Envío ANTECEDENTES
                     SIE</label>
@@ -200,21 +342,35 @@
             <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Medida Aplicada</label>
                 <select id="medida" class="w-full px-4 py-2 border rounded-lg">
+                    <option value="EXPULSIÓN O CANCELACIÓN DE MATRÍCULA">EXPULSIÓN O CANCELACIÓN DE MATRÍCULA</option>
+                    <option value="CONDICIONALIDAD EXTREMA DE LA MEDIDA">CONDICIONALIDAD EXTREMA DE LA MEDIDA</option>
+                    <option value="OTRA MEDIDA">OTRA MEDIDA</option>
                     <option value="EXPULSIÓN">EXPULSIÓN</option>
                     <option value="CANCELACIÓN DE MATRÍCULA">CANCELACIÓN DE MATRÍCULA</option>
                 </select>
             </div>
+            </div>
 
 
-            <div class="md:col-span-2">
+            <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Resultado Revisión EXPEDIENTE
                     MEDIDA</label>
                 <textarea id="resultado_revision" rows="2"
                     class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"></textarea>
             </div>
 
+            <!-- BOTONES GUARDAR / CANCELAR -->
+            <div class="flex justify-end gap-3 mt-6 border-t pt-6">
+                <button type="button" onclick="window.location.href='dashboard.html'"
+                    class="px-6 py-2 text-slate-500 font-bold hover:bg-slate-100 rounded-lg transition">Cancelar</button>
+                <button type="submit"
+                    class="js-btn-save px-10 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg">Guardar
+                    Registro</button>
+            </div>
+            </div>
+            <!-- ============ FASE 3: EXPEDIENTE DIGITAL ============ -->
             <!-- SECCIÓN DE DOCUMENTACIÓN (SOLO EDICIÓN) -->
-            <div id="doc-section" class="hidden md:col-span-2 mt-8 border-t pt-8">
+            <div id="doc-section" class="form-phase hidden" data-phase="3">
                 <div class="flex items-center gap-3 mb-6">
                     <div class="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -269,9 +425,19 @@
                 <div id="doc-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Lista de archivos -->
                 </div>
+
+                <!-- BOTONES GUARDAR / CANCELAR -->
+                <div class="flex justify-end gap-3 mt-8 border-t pt-6">
+                    <button type="button" onclick="window.location.href='dashboard.html'"
+                        class="px-6 py-2 text-slate-500 font-bold hover:bg-slate-100 rounded-lg transition">Cancelar</button>
+                    <button type="submit"
+                        class="js-btn-save px-10 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg">Guardar
+                        Registro</button>
+                </div>
+            </div>
             </div>
 
-            <!-- MODAL PREVIEW PDF -->
+            <!-- MODAL PREVIEW PDF (fuera de las fases) -->
             <div id="modal-preview"
                 class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm hidden z-[100] flex items-center justify-center p-4">
                 <div class="bg-white w-full max-w-5xl h-[90vh] rounded-3xl overflow-hidden flex flex-col shadow-2xl">
@@ -289,14 +455,6 @@
                         <iframe id="preview-iframe" class="w-full h-full border-none"></iframe>
                     </div>
                 </div>
-            </div>
-
-            <div class="md:col-span-2 flex justify-end gap-3 mt-4 border-t pt-6">
-                <button type="button" onclick="window.location.href='dashboard.html'"
-                    class="px-6 py-2 text-slate-500 font-bold hover:bg-slate-100 rounded-lg transition">Cancelar</button>
-                <button type="submit" id="btn-save"
-                    class="px-10 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg">Guardar
-                    Registro</button>
             </div>
         </form>
 
@@ -323,6 +481,428 @@
                     </ul>
                     <button onclick="closeErrorModal()"
                         class="w-full py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition shadow-lg">Entendido</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL NOTIFICACIÓN -->
+        <div id="notif-modal"
+            class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm hidden z-[110] items-center justify-center p-4">
+            <div class="bg-white w-full max-w-3xl max-h-[92vh] rounded-3xl overflow-hidden flex flex-col shadow-2xl">
+                <div class="p-5 border-b flex justify-between items-center bg-slate-50">
+                    <div>
+                        <h4 id="notif-modal-title" class="font-bold text-slate-800 text-lg">Enviar Notificación</h4>
+                        <p id="notif-modal-subtitle" class="text-xs text-slate-500">Recordatorio de inicio de proceso
+                            a los destinatarios</p>
+                    </div>
+                    <button type="button" onclick="closeNotifModal()"
+                        class="p-2 hover:bg-slate-200 rounded-full transition text-slate-500">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- STEPPER / INDICADOR DE FASES -->
+                <div class="px-6 py-3 border-b bg-white flex items-center gap-2 text-xs font-bold select-none">
+                    <button type="button" onclick="notifStepGoto(1)" class="flex items-center gap-2 text-slate-500">
+                        <span class="notif-step-dot w-6 h-6 rounded-full flex items-center justify-center bg-slate-200 text-slate-500 transition" data-dot="1">1</span>
+                        <span class="hidden sm:inline">Mensaje</span>
+                    </button>
+                    <span class="flex-1 h-px bg-slate-200"></span>
+                    <button type="button" onclick="notifStepGoto(2)" class="flex items-center gap-2 text-slate-500">
+                        <span class="notif-step-dot w-6 h-6 rounded-full flex items-center justify-center bg-slate-200 text-slate-500 transition" data-dot="2">2</span>
+                        <span class="hidden sm:inline">Programación</span>
+                    </button>
+                    <span class="flex-1 h-px bg-slate-200"></span>
+                    <button type="button" onclick="notifStepGoto(3)" class="flex items-center gap-2 text-slate-500">
+                        <span class="notif-step-dot w-6 h-6 rounded-full flex items-center justify-center bg-slate-200 text-slate-500 transition" data-dot="3">3</span>
+                        <span class="hidden sm:inline">Destinatarios</span>
+                    </button>
+                </div>
+
+                <div id="notif-body" class="flex-1 overflow-y-auto p-6">
+                    <!-- ============ PASO 1: MENSAJE ============ -->
+                    <div class="notif-step space-y-8" data-step="1">
+                    <!-- ESTADO DEL PROCESO (solo etapa medida) -->
+                    <section id="notif-estado-section" class="hidden">
+                        <h5 class="text-xs font-bold text-slate-500 uppercase mb-3">Estado del proceso</h5>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <label
+                                class="flex items-center gap-2 p-3 border rounded-xl cursor-pointer hover:border-indigo-400 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+                                <input type="radio" name="notif-estado" value="EXPULSIÓN O CANCELACIÓN DE MATRÍCULA" checked>
+                                <span class="text-sm font-bold text-slate-700">Expulsión o Cancelación de Matrícula</span>
+                            </label>
+                            <label
+                                class="flex items-center gap-2 p-3 border rounded-xl cursor-pointer hover:border-indigo-400 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+                                <input type="radio" name="notif-estado" value="CONDICIONALIDAD EXTREMA DE LA MEDIDA">
+                                <span class="text-sm font-bold text-slate-700">Condicionalidad extrema de la
+                                    medida</span>
+                            </label>
+                            <label
+                                class="flex items-center gap-2 p-3 border rounded-xl cursor-pointer hover:border-indigo-400 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+                                <input type="radio" name="notif-estado" value="OTRA MEDIDA">
+                                <span class="text-sm font-bold text-slate-700">Otra Medida</span>
+                            </label>
+                        </div>
+                    </section>
+
+                    <!-- CUERPO DE CORREO PERSONALIZABLE -->
+                    <div>
+                        <h5 class="text-xs font-bold text-slate-500 uppercase mb-2">Mensaje del Correo (Editable)</h5>
+
+                        <!-- PLANTILLAS GUARDADAS DE ESTA FASE -->
+                        <div class="bg-slate-50 border rounded-xl p-3 mb-3">
+                            <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
+                                <select id="plantilla-select"
+                                    class="flex-1 px-3 py-2 border rounded-lg bg-white text-sm">
+                                    <option value="">— Plantillas guardadas de esta fase —</option>
+                                </select>
+                                <button type="button" onclick="aplicarPlantilla()"
+                                    class="px-3 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 whitespace-nowrap">Aplicar</button>
+                                <button type="button" onclick="eliminarPlantilla()"
+                                    class="px-3 py-2 bg-white border text-slate-500 text-xs font-bold rounded-lg hover:bg-red-50 hover:text-red-600 whitespace-nowrap">Borrar</button>
+                                <button type="button" onclick="guardarPlantilla()"
+                                    class="px-3 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 whitespace-nowrap">Guardar como plantilla</button>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-1.5">Las plantillas se guardan por fase y quedan
+                                disponibles para todos los procesos. El texto de abajo es editable antes de enviar.</p>
+                        </div>
+
+                        <!-- ASUNTO EDITABLE -->
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Asunto del Correo</label>
+                        <input type="text" id="notif-asunto" onfocus="setLastField('notif-asunto')"
+                            class="w-full px-4 py-2 border rounded-xl text-sm text-slate-700 mb-3 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                            placeholder="Asunto del correo...">
+
+                        <h6 class="text-xs font-bold text-slate-500 uppercase mb-1">Mensaje</h6>
+                        <p class="text-[11px] text-slate-400 mb-2 flex flex-wrap gap-1.5 items-center">Haz clic para insertar (en el <strong>asunto</strong> o el <strong>mensaje</strong>, según dónde estés escribiendo):
+                            <button type="button" onclick="insertPlaceholder('{nombre}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{nombre}</button>
+                            <button type="button" onclick="insertPlaceholder('{rut}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{rut}</button>
+                            <button type="button" onclick="insertPlaceholder('{curso}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{curso}</button>
+                            <button type="button" onclick="insertPlaceholder('{causa}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{causa}</button>
+                            <button type="button" onclick="insertPlaceholder('{fecha_inicio}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{fecha_inicio}</button>
+                            <button type="button" onclick="insertPlaceholder('{estado}')" class="px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold rounded text-[10px]">{estado}</button>
+                            <button type="button" onclick="insertPlaceholder('{medida}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{medida}</button>
+                            <button type="button" onclick="insertPlaceholder('{fecha_medida}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{fecha_medida}</button>
+                            <button type="button" onclick="insertPlaceholder('{colegio}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{colegio}</button>
+                        </p>
+                        <textarea id="notif-cuerpo" rows="6" onfocus="setLastField('notif-cuerpo')" class="w-full px-4 py-3 border rounded-xl text-sm text-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" placeholder="Escribe el mensaje personalizado del correo..."></textarea>
+                    </div>
+                    </div>
+                    <!-- ============ PASO 2: PROGRAMACIÓN ============ -->
+                    <div class="notif-step space-y-8 hidden" data-step="2">
+                    <!-- TIPO DE ENVÍO -->
+                    <section>
+                        <h5 class="text-xs font-bold text-slate-500 uppercase mb-3">Tipo de envío</h5>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <label
+                                class="flex items-start gap-3 p-3 border rounded-xl cursor-pointer hover:border-indigo-400 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+                                <input type="radio" name="notif-modo" value="una_vez" class="mt-1" checked
+                                    onchange="onModoChange()">
+                                <span><span class="block font-bold text-sm text-slate-700">Una sola vez</span><span
+                                        class="block text-xs text-slate-500">Envía el correo ahora, una vez.</span></span>
+                            </label>
+                            <label
+                                class="flex items-start gap-3 p-3 border rounded-xl cursor-pointer hover:border-indigo-400 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+                                <input type="radio" name="notif-modo" value="paulatino" class="mt-1"
+                                    onchange="onModoChange()">
+                                <span><span class="block font-bold text-sm text-slate-700">Paulatino</span><span
+                                        class="block text-xs text-slate-500">Recordatorio diario hasta
+                                        cancelar.</span></span>
+                            </label>
+                            <label
+                                class="flex items-start gap-3 p-3 border rounded-xl cursor-pointer hover:border-indigo-400 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+                                <input type="radio" name="notif-modo" value="cada_3_dias" class="mt-1"
+                                    onchange="onModoChange()">
+                                <span><span class="block font-bold text-sm text-slate-700">Cada 3 días</span><span
+                                        class="block text-xs text-slate-500">Envía cada 3 días, máximo 3
+                                        veces.</span></span>
+                            </label>
+                            <label
+                                class="flex items-start gap-3 p-3 border rounded-xl cursor-pointer hover:border-indigo-400 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+                                <input type="radio" name="notif-modo" value="fecha_indicada" class="mt-1"
+                                    onchange="onModoChange()">
+                                <span><span class="block font-bold text-sm text-slate-700">En fecha
+                                        indicada</span><span class="block text-xs text-slate-500">Envía una vez en la
+                                        fecha que elijas.</span></span>
+                            </label>
+                            <label
+                                class="flex items-start gap-3 p-3 border rounded-xl cursor-pointer hover:border-indigo-400 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+                                <input type="radio" name="notif-modo" value="dias_habiles" class="mt-1"
+                                    onchange="onModoChange()">
+                                <span><span class="block font-bold text-sm text-slate-700">Por días hábiles</span><span
+                                        class="block text-xs text-slate-500">Notifica en días hábiles específicos (ej: 3, 5, 8).</span></span>
+                            </label>
+                        </div>
+                        <div id="notif-fecha-wrap" class="mt-3 hidden">
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha de envío</label>
+                            <input type="date" id="notif-fecha" oninput="checkDuplicadoFase()" class="px-4 py-2 border rounded-lg">
+                        </div>
+                        <div id="notif-dias-habiles-wrap" class="mt-3 hidden">
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Plazo total (días hábiles)</label>
+                                    <input type="number" id="notif-dh-total" min="1" placeholder="Ej. 10" class="w-full px-4 py-2 border rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Días de envío</label>
+                                    <input type="text" id="notif-dh-envio" placeholder="Ej. 1,3,4" class="w-full px-4 py-2 border rounded-lg">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Hora de envío</label>
+                                    <input type="time" id="notif-dh-hora" value="08:00" class="w-full px-4 py-2 border rounded-lg">
+                                </div>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-1.5">El <strong>día 1 es hoy</strong> y siempre se envía. Los demás días se cuentan corridos desde hoy (día 2 = mañana, día 6 = hoy+5); si caen sábado o domingo se mueven al lunes. Cada envío sale a la hora elegida y queda registrado como tarea programada.</p>
+                            <button type="button" onclick="openDiasPreview()"
+                                class="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                                Ver días de envío
+                            </button>
+                        </div>
+
+                        <div class="mt-5">
+                            <h5 class="text-xs font-bold text-slate-500 uppercase mb-3">Destino</h5>
+                            <div class="flex flex-wrap gap-3 mb-3">
+                                <label
+                                    class="flex items-center gap-2 text-sm border rounded-lg px-3 py-1.5 cursor-pointer has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+                                    <input type="radio" name="notif-destino" value="todos" checked
+                                        onchange="onDestinoChange()"> Todos los del colegio
+                                </label>
+                                <label
+                                    class="flex items-center gap-2 text-sm border rounded-lg px-3 py-1.5 cursor-pointer has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+                                    <input type="radio" name="notif-destino" value="grupos"
+                                        onchange="onDestinoChange()"> Grupos específicos
+                                </label>
+                            </div>
+                            <div id="notif-grupos-wrap" class="hidden flex flex-wrap gap-2"></div>
+                        </div>
+                    </section>
+                    </div>
+                    <!-- ============ PASO 3: DESTINATARIOS ============ -->
+                    <div class="notif-step space-y-8 hidden" data-step="3">
+                    <div id="notif-dup-warning"
+                        class="hidden bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-xl px-4 py-3 flex items-start gap-2">
+                        <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span id="notif-dup-warning-text"></span>
+                    </div>
+                    <!-- DESTINATARIOS -->
+                    <section>
+                        <h5 class="text-xs font-bold text-slate-500 uppercase mb-3">Destinatarios (a quienes se
+                            enviará)</h5>
+                        <div class="overflow-x-auto border rounded-xl">
+                            <table class="w-full text-sm">
+                                <thead class="bg-slate-50 text-slate-500 text-xs uppercase">
+                                    <tr>
+                                        <th class="text-left p-3">Nombre</th>
+                                        <th class="text-left p-3">Email</th>
+                                        <th class="text-left p-3">Colegio</th>
+                                        <th class="text-left p-3">Grupos</th>
+                                        <th class="text-center p-3">Estado</th>
+                                        <th class="p-3"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="notif-dest-body"></tbody>
+                            </table>
+                        </div>
+
+                        <div class="mt-4 bg-slate-50 border rounded-xl p-4">
+                            <h6 class="text-xs font-bold text-slate-500 uppercase mb-3">Agregar destinatario</h6>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <input id="nd-nombre" placeholder="Nombre" class="px-3 py-2 border rounded-lg">
+                                <input id="nd-email" type="email" placeholder="Email" class="px-3 py-2 border rounded-lg">
+                                <select id="nd-colegio" class="px-3 py-2 border rounded-lg bg-white"></select>
+                                <label class="flex items-center gap-2 text-sm text-slate-600">
+                                    <input type="checkbox" id="nd-todos"> Recibe de todos los colegios
+                                    (<strong>todos_colegios</strong>)
+                                </label>
+                            </div>
+                            <div class="mt-3">
+                                <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Grupos</label>
+                                <div id="nd-grupos" class="flex flex-wrap gap-2 text-sm text-slate-600"></div>
+                            </div>
+                            <button type="button" onclick="addDestinatario()"
+                                class="mt-3 px-5 py-2 bg-slate-900 text-white text-sm font-bold rounded-lg hover:bg-slate-800">Agregar</button>
+                        </div>
+                    </section>
+
+                    <!-- GRUPOS DEL COLEGIO -->
+                    <section>
+                        <h5 class="text-xs font-bold text-slate-500 uppercase mb-3">Grupos del colegio</h5>
+                        <div class="flex gap-2 mb-3">
+                            <input id="nuevo-grupo" placeholder="Nombre del grupo (ej. Convivencia)"
+                                class="flex-1 px-3 py-2 border rounded-lg">
+                            <button type="button" onclick="createGrupo()"
+                                class="px-5 py-2 bg-slate-900 text-white text-sm font-bold rounded-lg hover:bg-slate-800">Crear</button>
+                        </div>
+                        <div id="grupos-list" class="flex flex-wrap gap-2"></div>
+                    </section>
+
+                    <!-- HISTORIAL -->
+                    <section>
+                        <h5 class="text-xs font-bold text-slate-500 uppercase mb-3">Notificaciones programadas /
+                            enviadas</h5>
+                        <div id="notif-history" class="space-y-2"></div>
+                    </section>
+                    </div>
+                </div>
+
+                <!-- PIE: NAVEGACIÓN ENTRE FASES -->
+                <div class="p-5 border-t bg-slate-50 flex items-center justify-between gap-4">
+                    <button type="button" id="notif-prev-btn" onclick="notifStepPrev()"
+                        class="px-5 py-2.5 text-slate-600 font-bold rounded-lg hover:bg-slate-200 transition invisible">←
+                        Atrás</button>
+                    <p id="notif-result" class="text-sm flex-1 text-center"></p>
+                    <button type="button" id="notif-next-btn" onclick="notifStepNext()"
+                        class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow">Siguiente
+                        →</button>
+                    <button type="button" onclick="enviarNotificacion()" id="btn-enviar-notif"
+                        class="hidden px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow">Enviar
+                        ahora</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL PREVISUALIZACIÓN DE DÍAS DE ENVÍO -->
+        <div id="dias-preview-modal"
+            class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm hidden z-[120] items-center justify-center p-4">
+            <div class="bg-white w-full max-w-md max-h-[85vh] rounded-3xl overflow-hidden flex flex-col shadow-2xl">
+                <div class="p-5 border-b flex justify-between items-center bg-slate-50">
+                    <div>
+                        <h4 class="font-bold text-slate-800 text-lg">Días de envío</h4>
+                        <p class="text-xs text-slate-500">Fechas en que saldrán los recordatorios</p>
+                    </div>
+                    <button type="button" onclick="closeDiasPreview()"
+                        class="p-2 hover:bg-slate-200 rounded-full transition text-slate-500">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="flex-1 overflow-y-auto p-4">
+                    <div id="dias-preview-list" class="space-y-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL DETALLE DE ENVÍOS (LOGS) -->
+        <div id="logs-modal"
+            class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm hidden z-[120] items-center justify-center p-4">
+            <div class="bg-white w-full max-w-2xl max-h-[85vh] rounded-3xl overflow-hidden flex flex-col shadow-2xl">
+                <div class="p-5 border-b flex justify-between items-center bg-slate-50">
+                    <div>
+                        <h4 class="font-bold text-slate-800 text-lg">Detalle de envíos</h4>
+                        <p class="text-xs text-slate-500">Correos de esta notificación a los destinatarios</p>
+                    </div>
+                    <button type="button" onclick="closeLogsModal()"
+                        class="p-2 hover:bg-slate-200 rounded-full transition text-slate-500">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="p-4 flex gap-3 border-b bg-white">
+                    <div class="flex-1 bg-green-50 border border-green-200 rounded-xl px-4 py-2">
+                        <p class="text-[10px] font-bold text-green-700 uppercase">Enviados</p>
+                        <p id="logs-count-ok" class="text-xl font-bold text-green-700">0</p>
+                    </div>
+                    <div class="flex-1 bg-red-50 border border-red-200 rounded-xl px-4 py-2">
+                        <p class="text-[10px] font-bold text-red-700 uppercase">Fallidos</p>
+                        <p id="logs-count-fail" class="text-xl font-bold text-red-700">0</p>
+                    </div>
+                </div>
+                <div class="flex-1 overflow-y-auto p-4 space-y-5">
+                    <div id="logs-programados-wrap" class="hidden">
+                        <h5 class="text-xs font-bold text-slate-500 uppercase mb-2">Envíos programados (días hábiles)
+                        </h5>
+                        <div id="logs-programados" class="space-y-2"></div>
+                    </div>
+                    <div>
+                        <h5 class="text-xs font-bold text-slate-500 uppercase mb-2">Correos enviados</h5>
+                        <div class="overflow-x-auto border rounded-xl">
+                            <table class="w-full text-sm">
+                                <thead class="bg-slate-50 text-slate-500 text-xs uppercase">
+                                    <tr>
+                                        <th class="text-left p-3">Destinatario</th>
+                                        <th class="text-left p-3">Email</th>
+                                        <th class="text-center p-3">Estado</th>
+                                        <th class="text-left p-3">Detalle</th>
+                                        <th class="text-left p-3">Fecha</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="logs-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL CONSEJO DE PROFESORES -->
+        <div id="consejo-modal"
+            class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm hidden z-[110] items-center justify-center p-4">
+            <div class="bg-white w-full max-w-lg rounded-3xl overflow-hidden flex flex-col shadow-2xl">
+                <div class="p-5 border-b flex justify-between items-center bg-slate-50">
+                    <div>
+                        <h4 class="font-bold text-slate-800 text-lg">Consejo de Profesores</h4>
+                        <p class="text-xs text-slate-500">Registre si el consejo se confirma</p>
+                    </div>
+                    <button type="button" onclick="closeConsejoModal()"
+                        class="p-2 hover:bg-slate-200 rounded-full transition text-slate-500">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="p-6 space-y-5">
+                    <div id="consejo-sent-badge"
+                        class="hidden items-center gap-2 text-sm font-bold text-green-700 bg-green-50 border border-green-200 rounded-xl px-4 py-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7">
+                            </path>
+                        </svg>
+                        <span id="consejo-sent-text">Correo ya enviado.</span>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha del Consejo
+                            (opcional)</label>
+                        <input type="date" id="consejo-fecha" class="w-full px-4 py-2 border rounded-lg">
+                    </div>
+
+                    <div class="bg-slate-50 border rounded-xl p-4">
+                        <label class="flex items-center gap-2 text-sm font-medium text-slate-700">
+                            <input type="checkbox" id="consejo-enviar" onchange="onConsejoEnviarChange()">
+                            Enviar correo a los destinatarios (opcional)
+                        </label>
+                        <div id="consejo-grupos-wrap" class="hidden mt-3">
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-2">Grupos
+                                destino (opcional, vacío = todos del colegio)</label>
+                            <div id="consejo-grupos" class="flex flex-wrap gap-2"></div>
+                        </div>
+                    </div>
+
+                    <p id="consejo-result" class="text-sm"></p>
+                </div>
+
+                <div class="p-5 border-t flex justify-end gap-3 bg-slate-50">
+                    <button type="button" onclick="confirmarConsejo(false)"
+                        class="px-6 py-2.5 text-slate-600 font-bold rounded-lg hover:bg-slate-200 transition">Cancelar</button>
+                    <button type="button" onclick="confirmarConsejo(true)"
+                        class="px-8 py-2.5 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition shadow-lg shadow-green-200">Confirmar</button>
                 </div>
             </div>
         </div>
@@ -357,6 +937,36 @@
             return clean;
         }
 
+        function setProcesoLock(locked) {
+            const lockIcon = document.getElementById('lock-proceso');
+            const tab = document.getElementById('tab-proceso');
+            if (lockIcon) lockIcon.classList.toggle('hidden', !locked);
+            if (tab) {
+                tab.classList.toggle('opacity-40', locked);
+                tab.classList.toggle('cursor-not-allowed', locked);
+                tab.dataset.locked = locked ? '1' : '';
+            }
+        }
+
+        function formPhaseGoto(n) {
+            if ((n === 2 || n === 3) && !studentId) {
+                alert('Primero guarde el registro del estudiante para acceder a "Proceso y Notificaciones".');
+                return;
+            }
+            document.querySelectorAll('#registro-form .form-phase').forEach(el => {
+                el.classList.toggle('hidden', parseInt(el.dataset.phase) !== n);
+            });
+            document.querySelectorAll('#registro-form .form-tab').forEach(el => {
+                const active = parseInt(el.dataset.tab) === n;
+                el.classList.toggle('border-indigo-600', active);
+                el.classList.toggle('text-indigo-700', active);
+                el.classList.toggle('bg-white', active);
+                el.classList.toggle('border-transparent', !active);
+                el.classList.toggle('text-slate-500', !active);
+            });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
         async function init() {
             const token = localStorage.getItem('token');
             if (!token) window.location.href = 'login.html';
@@ -366,14 +976,17 @@
             if (user.rol !== 'lawyer' && user.rol !== 'admin') window.location.href = 'dashboard.html';
 
             document.getElementById('user-info').innerText = user.nombre;
+            setProcesoLock(!studentId);
+            formPhaseGoto(1);
             await loadColegios();
 
             if (studentId) {
                 document.getElementById('page-title').innerText = 'Editar Registro de Alumno';
-                document.getElementById('btn-save').innerText = 'Actualizar Registro';
-                document.getElementById('doc-section').classList.remove('hidden');
+                document.querySelectorAll('.js-btn-save').forEach(b => b.innerText = 'Actualizar Registro');
+                document.getElementById('tab-expediente').classList.remove('hidden');
                 loadStudentData();
                 loadDocuments();
+                loadConsejoEstado();
             }
         }
 
@@ -457,6 +1070,12 @@
 
         document.getElementById('registro-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const form = e.target;
+            if (!form.checkValidity()) {
+                formPhaseGoto(1);
+                form.reportValidity();
+                return;
+            }
             const token = localStorage.getItem('token');
             const payload = {};
             const fields = ["rut", "nombre_estudiante", "curso", "id_colegio", "causa", "fecha_inicio_proceso", "fecha_notificacion_medida", "descargos", "fecha_recepcion_apelacion", "fecha_consejo_profesores", "fecha_notificacion_final", "fecha_envio_sie", "medida", "resultado_revision", "fecha_descargados"];
@@ -641,6 +1260,873 @@
             document.getElementById('modal-preview').classList.add('hidden');
             document.getElementById('preview-iframe').src = '';
             document.body.style.overflow = 'auto';
+        }
+
+        // ---------- NOTIFICACIONES ----------
+        let COLEGIOS_CACHE = [];
+
+        async function ensureColegios() {
+            if (COLEGIOS_CACHE.length) return COLEGIOS_CACHE;
+            const resp = await fetch(`${API_URL}/colegios`);
+            COLEGIOS_CACHE = await resp.json();
+            return COLEGIOS_CACHE;
+        }
+
+        function colegioNombre(id) {
+            const c = COLEGIOS_CACHE.find(x => String(x.id) === String(id));
+            return c ? c.nombre : '—';
+        }
+
+        function loadDefaultMessage() {
+            const TEMPLATES = {
+                inicio_proceso: "Le recordamos que existe un proceso de Aula Segura en curso que requiere su atención.\n\nEstudiante: {nombre}\nRUT: {rut}\nCurso: {curso}\nCausa: {causa}\nFecha de inicio: {fecha_inicio}\n\nPor favor revise el expediente y realice las gestiones que correspondan.",
+                medida: "Le informamos sobre la medida y apelación del proceso de Aula Segura que se detalla a continuación:\n\nEstudiante: {nombre}\nRUT: {rut}\nCurso: {curso}\nMedida Aplicada: {medida}\nFecha Notificación Medida: {fecha_medida}\n\nPor favor revise el expediente y realice las gestiones que correspondan.",
+                apelacion: "Le informamos respecto de la recepción de la carta de apelación del proceso de Aula Segura que se detalla a continuación:\n\nEstudiante: {nombre}\nRUT: {rut}\nCurso: {curso}\n\nPor favor revise el expediente y realice las gestiones que correspondan.",
+                final_medida: "Le informamos la notificación final de la medida del proceso de Aula Segura que se detalla a continuación:\n\nEstudiante: {nombre}\nRUT: {rut}\nCurso: {curso}\nMedida Aplicada: {medida}\n\nPor favor revise el expediente y realice las gestiones que correspondan."
+            };
+            document.getElementById('notif-cuerpo').value = TEMPLATES[currentEtapa] || TEMPLATES['inicio_proceso'];
+
+            const ASUNTOS = {
+                inicio_proceso: "Recordatorio Proceso Aula Segura - {nombre}",
+                medida: "Notificación de Medida y Apelación - {nombre}",
+                apelacion: "Recepción de Carta de Apelación - {nombre}",
+                final_medida: "Notificación Final de la Medida - {nombre}"
+            };
+            document.getElementById('notif-asunto').value = ASUNTOS[currentEtapa] || ASUNTOS['inicio_proceso'];
+            lastFocusedField = 'notif-cuerpo';
+        }
+
+        // ---------- PLANTILLAS DE CORREO (CUERPOS TIPO POR FASE) ----------
+        let PLANTILLAS_CACHE = [];
+
+        async function loadPlantillas() {
+            const token = localStorage.getItem('token');
+            const sel = document.getElementById('plantilla-select');
+            try {
+                const resp = await fetch(`${API_URL}/plantillas?etapa=${encodeURIComponent(currentEtapa)}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                PLANTILLAS_CACHE = resp.ok ? await resp.json() : [];
+            } catch (e) {
+                PLANTILLAS_CACHE = [];
+            }
+            sel.innerHTML = '<option value="">— Plantillas guardadas de esta fase —</option>' +
+                PLANTILLAS_CACHE.map(p => `<option value="${p.id}">${p.titulo}</option>`).join('');
+        }
+
+        function aplicarPlantilla() {
+            const id = document.getElementById('plantilla-select').value;
+            if (!id) { alert('Elige una plantilla de la lista.'); return; }
+            const pl = PLANTILLAS_CACHE.find(p => String(p.id) === String(id));
+            if (pl) document.getElementById('notif-cuerpo').value = pl.cuerpo;
+        }
+
+        async function guardarPlantilla() {
+            const cuerpo = document.getElementById('notif-cuerpo').value.trim();
+            if (!cuerpo) { alert('Escribe el mensaje antes de guardarlo como plantilla.'); return; }
+            const titulo = prompt('Título de la plantilla (ej. "Inicio - Formal"):');
+            if (!titulo || !titulo.trim()) return;
+            const token = localStorage.getItem('token');
+            const resp = await fetch(`${API_URL}/plantillas`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ titulo: titulo.trim(), etapa: currentEtapa, cuerpo })
+            });
+            if (resp.ok) {
+                const nueva = await resp.json();
+                await loadPlantillas();
+                document.getElementById('plantilla-select').value = nueva.id;
+            } else {
+                alert('No se pudo guardar la plantilla.');
+            }
+        }
+
+        async function eliminarPlantilla() {
+            const id = document.getElementById('plantilla-select').value;
+            if (!id) { alert('Elige una plantilla para borrar.'); return; }
+            if (!confirm('¿Eliminar esta plantilla?')) return;
+            const token = localStorage.getItem('token');
+            const resp = await fetch(`${API_URL}/plantillas/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (resp.ok) loadPlantillas();
+            else alert('No se pudo eliminar la plantilla.');
+        }
+
+        let lastFocusedField = 'notif-cuerpo';
+        function setLastField(id) { lastFocusedField = id; }
+
+        function insertPlaceholder(placeholder) {
+            const el = document.getElementById(lastFocusedField) || document.getElementById('notif-cuerpo');
+            const start = el.selectionStart != null ? el.selectionStart : el.value.length;
+            const end = el.selectionEnd != null ? el.selectionEnd : el.value.length;
+            const text = el.value;
+            el.value = text.substring(0, start) + placeholder + text.substring(end);
+            el.focus();
+            el.selectionStart = el.selectionEnd = start + placeholder.length;
+        }
+
+        async function openNotifModal(etapa) {
+            if (!studentId) {
+                alert('Primero guarde el registro del estudiante para poder enviar notificaciones.');
+                return;
+            }
+            const etapasValidas = ['inicio_proceso', 'medida', 'apelacion', 'final_medida'];
+            currentEtapa = etapasValidas.includes(etapa) ? etapa : 'inicio_proceso';
+
+            const estadoSection = document.getElementById('notif-estado-section');
+            const title = document.getElementById('notif-modal-title');
+            const subtitle = document.getElementById('notif-modal-subtitle');
+
+            const TITULOS = {
+                inicio_proceso: ['Enviar Notificación', 'Recordatorio de inicio de proceso a los destinatarios'],
+                medida: ['Cierre del Proceso', 'Elige el estado de la medida y notifica a los destinatarios'],
+                apelacion: ['Enviar Notificación', 'Notificación de recepción de carta de apelación'],
+                final_medida: ['Enviar Notificación', 'Notificación final de la medida a los destinatarios'],
+            };
+            title.innerText = TITULOS[currentEtapa][0];
+            subtitle.innerText = TITULOS[currentEtapa][1];
+
+            if (currentEtapa === 'medida') {
+                estadoSection.classList.remove('hidden');
+                // Preseleccionar el estado según la medida actual del estudiante
+                let medidaActual = document.getElementById('medida').value;
+                // Datos antiguos guardados como valores sueltos -> mapear al botón combinado
+                if (medidaActual === 'EXPULSIÓN' || medidaActual === 'CANCELACIÓN DE MATRÍCULA') {
+                    medidaActual = 'EXPULSIÓN O CANCELACIÓN DE MATRÍCULA';
+                }
+                const radio = document.querySelector(`input[name="notif-estado"][value="${medidaActual}"]`);
+                if (radio) radio.checked = true;
+            } else {
+                estadoSection.classList.add('hidden');
+            }
+
+            const modal = document.getElementById('notif-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+            document.getElementById('notif-result').innerText = '';
+            notifStepGoto(1);
+            NOTIF_HISTORY_CACHE = [];
+            loadDefaultMessage();
+            loadPlantillas();
+            onModoChange();
+            onDestinoChange();
+            populateColegioSelect();
+            await loadGrupos();
+            loadNotifDestinatarios();
+            loadNotifHistory();
+        }
+
+        function closeNotifModal() {
+            const modal = document.getElementById('notif-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = 'auto';
+        }
+
+        // ---------- WIZARD POR FASES (notificación) ----------
+        let notifStep = 1;
+        const NOTIF_TOTAL_STEPS = 3;
+
+        function notifStepGoto(n) {
+            notifStep = Math.max(1, Math.min(NOTIF_TOTAL_STEPS, n));
+            document.querySelectorAll('#notif-modal .notif-step').forEach(el => {
+                el.classList.toggle('hidden', parseInt(el.dataset.step) !== notifStep);
+            });
+            document.querySelectorAll('#notif-modal .notif-step-dot').forEach(el => {
+                const s = parseInt(el.dataset.dot);
+                const fill = s <= notifStep;
+                el.classList.toggle('bg-indigo-600', fill);
+                el.classList.toggle('text-white', fill);
+                el.classList.toggle('bg-slate-200', !fill);
+                el.classList.toggle('text-slate-500', !fill);
+            });
+            document.getElementById('notif-prev-btn').classList.toggle('invisible', notifStep === 1);
+            const isLast = notifStep === NOTIF_TOTAL_STEPS;
+            document.getElementById('notif-next-btn').classList.toggle('hidden', isLast);
+            document.getElementById('btn-enviar-notif').classList.toggle('hidden', !isLast);
+            const body = document.getElementById('notif-body');
+            if (body) body.scrollTop = 0;
+        }
+        function notifStepNext() { notifStepGoto(notifStep + 1); }
+        function notifStepPrev() { notifStepGoto(notifStep - 1); }
+
+        function onModoChange() {
+            const modo = document.querySelector('input[name="notif-modo"]:checked').value;
+            const wrap = document.getElementById('notif-fecha-wrap');
+            const wrapDh = document.getElementById('notif-dias-habiles-wrap');
+            const btn = document.getElementById('btn-enviar-notif');
+            
+            wrap.classList.add('hidden');
+            wrapDh.classList.add('hidden');
+            
+            if (modo === 'fecha_indicada') {
+                wrap.classList.remove('hidden');
+                btn.innerText = 'Programar envío';
+            } else if (modo === 'dias_habiles') {
+                wrapDh.classList.remove('hidden');
+                btn.innerText = 'Programar días hábiles';
+            } else {
+                btn.innerText = 'Enviar ahora';
+            }
+            checkDuplicadoFase();
+        }
+
+        // ---------- ANTI-DUPLICADO: misma fase + misma fecha ----------
+        let NOTIF_HISTORY_CACHE = [];
+
+        function hoyStr() {
+            const d = new Date();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${d.getFullYear()}-${m}-${day}`;
+        }
+
+        // ---------- PREVISUALIZACIÓN DE DÍAS DE ENVÍO ----------
+        const DOW_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+
+        function calcularFechasDiasHabiles(diasStr) {
+            let dias = String(diasStr || '').split(',').map(s => parseInt(s.trim()))
+                .filter(x => Number.isInteger(x) && x >= 1);
+            dias = Array.from(new Set([1, ...dias])).sort((a, b) => a - b);
+            const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+            return dias.map(n => {
+                const d = new Date(hoy);
+                d.setDate(d.getDate() + (n - 1));            // días corridos
+                while (d.getDay() === 0 || d.getDay() === 6) // sáb/dom -> lunes
+                    d.setDate(d.getDate() + 1);
+                return { dia: n, fecha: d };
+            });
+        }
+
+        function fmtFechaLarga(d) {
+            const dd = String(d.getDate()).padStart(2, '0');
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            return `${DOW_ES[d.getDay()]} ${dd}-${mm}-${d.getFullYear()}`;
+        }
+
+        function openDiasPreview() {
+            const diasStr = document.getElementById('notif-dh-envio').value;
+            const hora = document.getElementById('notif-dh-hora').value || '08:00';
+            const cont = document.getElementById('dias-preview-list');
+            const fechas = calcularFechasDiasHabiles(diasStr);
+            if (!fechas.length) {
+                cont.innerHTML = '<p class="text-sm text-slate-400 italic text-center p-6">Indica los días de envío (ej. 2,3,6) para ver las fechas.</p>';
+            } else {
+                const hoyLocal = hoyStr();
+                cont.innerHTML = fechas.map(f => {
+                    const iso = `${f.fecha.getFullYear()}-${String(f.fecha.getMonth() + 1).padStart(2, '0')}-${String(f.fecha.getDate()).padStart(2, '0')}`;
+                    const esHoy = iso === hoyLocal;
+                    return `
+                    <div class="flex items-center justify-between gap-3 p-3 border rounded-xl ${esHoy ? 'bg-indigo-50 border-indigo-200' : ''}">
+                        <div class="flex items-center gap-3">
+                            <span class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center flex-shrink-0">${f.dia}</span>
+                            <div>
+                                <p class="text-sm font-bold text-slate-700 capitalize">${fmtFechaLarga(f.fecha)}</p>
+                                <p class="text-[11px] text-slate-400">Día ${f.dia} · ${hora} hrs</p>
+                            </div>
+                        </div>
+                        ${esHoy ? '<span class="text-[10px] font-bold text-indigo-600 uppercase">Hoy</span>' : ''}
+                    </div>`;
+                }).join('');
+            }
+            const modal = document.getElementById('dias-preview-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeDiasPreview() {
+            const modal = document.getElementById('dias-preview-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function notifFechaEfectiva(n) {
+            // 'fecha_indicada' usa fecha_programada; el resto, el día en que se creó/envió.
+            if (n.fecha_programada) return String(n.fecha_programada).slice(0, 10);
+            if (n.fecha_creacion) return String(n.fecha_creacion).slice(0, 10);
+            return null;
+        }
+
+        function currentFechaEfectiva() {
+            const modoEl = document.querySelector('input[name="notif-modo"]:checked');
+            if (!modoEl) return hoyStr();
+            if (modoEl.value === 'fecha_indicada') {
+                return document.getElementById('notif-fecha').value || null; // sin fecha = no se puede comparar aún
+            }
+            return hoyStr();
+        }
+
+        function checkDuplicadoFase() {
+            const btn = document.getElementById('btn-enviar-notif');
+            const warn = document.getElementById('notif-dup-warning');
+            const warnText = document.getElementById('notif-dup-warning-text');
+            if (!btn || !warn) return;
+
+            const fEf = currentFechaEfectiva();
+            let dup = null;
+            if (fEf) {
+                dup = (NOTIF_HISTORY_CACHE || []).find(n =>
+                    n.etapa === currentEtapa &&
+                    (n.estado === 'activo' || n.estado === 'completado') &&
+                    notifFechaEfectiva(n) === fEf
+                );
+            }
+
+            if (dup) {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+                warn.classList.remove('hidden');
+                if (warnText) warnText.innerText =
+                    `Ya existe una notificación de esta fase para el ${fEf}. No se puede enviar de nuevo. Si necesitas reenviar esta fase, elimínala (o cancélala si está activa) en la sección "Notificaciones programadas / enviadas" más abajo.`;
+            } else {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                warn.classList.add('hidden');
+            }
+        }
+
+        // ---------- GRUPOS ----------
+        let GRUPOS_CACHE = [];
+
+        function onDestinoChange() {
+            const destino = document.querySelector('input[name="notif-destino"]:checked').value;
+            document.getElementById('notif-grupos-wrap').classList.toggle('hidden', destino !== 'grupos');
+        }
+
+        async function loadGrupos() {
+            const token = localStorage.getItem('token');
+            const resp = await fetch(`${API_URL}/estudiantes/${studentId}/grupos`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            GRUPOS_CACHE = resp.ok ? await resp.json() : [];
+            renderGruposList();
+            renderSendGrupos();
+            renderAddGrupos();
+        }
+
+        function renderGruposList() {
+            const cont = document.getElementById('grupos-list');
+            if (!GRUPOS_CACHE.length) {
+                cont.innerHTML = '<p class="text-xs text-slate-400 italic">Aún no hay grupos para este colegio.</p>';
+                return;
+            }
+            cont.innerHTML = GRUPOS_CACHE.map(g => `
+                <span class="inline-flex items-center gap-2 bg-indigo-50 text-indigo-700 text-xs font-bold px-3 py-1.5 rounded-full">
+                    ${g.nombre}
+                    <button type="button" onclick="deleteGrupo(${g.id})" class="text-indigo-400 hover:text-red-600" title="Eliminar grupo">✕</button>
+                </span>
+            `).join('');
+        }
+
+        function renderSendGrupos() {
+            const wrap = document.getElementById('notif-grupos-wrap');
+            if (!GRUPOS_CACHE.length) {
+                wrap.innerHTML = '<p class="text-xs text-slate-400 italic">No hay grupos. Crea uno en "Grupos del colegio".</p>';
+                return;
+            }
+            wrap.innerHTML = GRUPOS_CACHE.map(g => `
+                <label class="flex items-center gap-2 text-sm bg-white border rounded-lg px-3 py-1.5 cursor-pointer">
+                    <input type="checkbox" class="notif-grupo-chk" value="${g.id}"> ${g.nombre}
+                </label>
+            `).join('');
+        }
+
+        function renderAddGrupos() {
+            const cont = document.getElementById('nd-grupos');
+            if (!GRUPOS_CACHE.length) {
+                cont.innerHTML = '<span class="text-xs text-slate-400 italic">Crea grupos abajo para asignarlos.</span>';
+                return;
+            }
+            cont.innerHTML = GRUPOS_CACHE.map(g => `
+                <label class="flex items-center gap-1.5 bg-white border rounded-lg px-2.5 py-1 cursor-pointer">
+                    <input type="checkbox" class="nd-grupo-chk" value="${g.id}"> ${g.nombre}
+                </label>
+            `).join('');
+        }
+
+        async function createGrupo() {
+            const token = localStorage.getItem('token');
+            const nombre = document.getElementById('nuevo-grupo').value.trim();
+            if (!nombre) { alert('Ingrese el nombre del grupo.'); return; }
+            const id_colegio = parseInt(document.getElementById('id_colegio').value);
+            const resp = await fetch(`${API_URL}/grupos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ nombre, id_colegio })
+            });
+            if (resp.ok) {
+                document.getElementById('nuevo-grupo').value = '';
+                await loadGrupos();
+                loadNotifDestinatarios();
+            } else {
+                alert('No se pudo crear el grupo.');
+            }
+        }
+
+        async function deleteGrupo(id) {
+            if (!confirm('¿Eliminar este grupo? Se quitará de todos los destinatarios.')) return;
+            const token = localStorage.getItem('token');
+            await fetch(`${API_URL}/grupos/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            await loadGrupos();
+            loadNotifDestinatarios();
+        }
+
+        async function saveDestGrupos(destId) {
+            const editor = document.getElementById('dest-grp-' + destId);
+            const grupo_ids = Array.from(editor.querySelectorAll('input:checked')).map(c => parseInt(c.value));
+            const token = localStorage.getItem('token');
+            await fetch(`${API_URL}/destinatarios/${destId}/grupos`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ grupo_ids })
+            });
+            loadNotifDestinatarios();
+        }
+
+        async function populateColegioSelect() {
+            const colegios = await ensureColegios();
+            const sel = document.getElementById('nd-colegio');
+            const currentColegio = document.getElementById('id_colegio').value;
+            sel.innerHTML = colegios.map(c =>
+                `<option value="${c.id}" ${String(c.id) === String(currentColegio) ? 'selected' : ''}>${c.nombre}</option>`
+            ).join('');
+        }
+
+        async function loadNotifDestinatarios() {
+            const token = localStorage.getItem('token');
+            await ensureColegios();
+            const body = document.getElementById('notif-dest-body');
+            const resp = await fetch(`${API_URL}/estudiantes/${studentId}/destinatarios`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!resp.ok) {
+                body.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400 text-xs">No se pudo cargar.</td></tr>';
+                return;
+            }
+            const dests = await resp.json();
+            if (dests.length === 0) {
+                body.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400 text-xs">No hay destinatarios para este colegio. Agregue uno abajo.</td></tr>';
+                return;
+            }
+            body.innerHTML = dests.map(d => {
+                const memberIds = (d.grupos || []).map(g => g.id);
+                const chips = (d.grupos || []).map(g =>
+                    `<span class="inline-block bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full">${g.nombre}</span>`
+                ).join(' ') || '<span class="text-[10px] text-slate-300">Sin grupo</span>';
+                const opciones = GRUPOS_CACHE.length
+                    ? GRUPOS_CACHE.map(g =>
+                        `<label class="flex items-center gap-1.5 text-xs"><input type="checkbox" value="${g.id}" ${memberIds.includes(g.id) ? 'checked' : ''}> ${g.nombre}</label>`
+                    ).join('')
+                    : '<span class="text-[10px] text-slate-400">No hay grupos creados.</span>';
+                const editor = `
+                    <details class="mt-1">
+                        <summary class="text-[10px] text-indigo-500 cursor-pointer">Editar grupos</summary>
+                        <div id="dest-grp-${d.id}" class="mt-1 flex flex-col gap-1 bg-white border rounded-lg p-2">
+                            ${opciones}
+                            <button type="button" onclick="saveDestGrupos(${d.id})" class="mt-1 self-start text-[10px] font-bold text-white bg-slate-900 rounded px-2 py-1 hover:bg-slate-800">Guardar</button>
+                        </div>
+                    </details>`;
+                return `
+                <tr class="border-t align-top">
+                    <td class="p-3 font-medium text-slate-700">${d.nombre}</td>
+                    <td class="p-3 text-slate-500">${d.email}</td>
+                    <td class="p-3 text-slate-500">${d.todos_colegios ? 'TODOS' : colegioNombre(d.id_colegio)}</td>
+                    <td class="p-3 text-slate-500">${chips}${editor}</td>
+                    <td class="p-3 text-center">
+                        <button type="button" onclick="toggleDestinatario(${d.id}, ${d.estado ? 'false' : 'true'})"
+                            class="px-2 py-1 rounded-full text-[10px] font-bold ${d.estado ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-500'}">
+                            ${d.estado ? 'ACTIVO' : 'INACTIVO'}
+                        </button>
+                    </td>
+                    <td class="p-3 text-right">
+                        <button type="button" onclick="deleteDestinatario(${d.id})" class="text-slate-300 hover:text-red-600" title="Eliminar">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        async function addDestinatario() {
+            const token = localStorage.getItem('token');
+            const nombre = document.getElementById('nd-nombre').value.trim();
+            const email = document.getElementById('nd-email').value.trim();
+            const id_colegio = parseInt(document.getElementById('nd-colegio').value);
+            const todos = document.getElementById('nd-todos').checked;
+            const grupo_ids = Array.from(document.querySelectorAll('#nd-grupos .nd-grupo-chk:checked')).map(c => parseInt(c.value));
+            if (!nombre || !email) { alert('Ingrese nombre y email.'); return; }
+            const resp = await fetch(`${API_URL}/destinatarios`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ nombre, email, id_colegio, todos_colegios: todos, estado: true, grupo_ids })
+            });
+            if (resp.ok) {
+                document.getElementById('nd-nombre').value = '';
+                document.getElementById('nd-email').value = '';
+                document.getElementById('nd-todos').checked = false;
+                renderAddGrupos();
+                loadNotifDestinatarios();
+            } else {
+                alert('No se pudo agregar el destinatario.');
+            }
+        }
+
+        async function toggleDestinatario(id, nuevoEstado) {
+            const token = localStorage.getItem('token');
+            await fetch(`${API_URL}/destinatarios/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ estado: nuevoEstado })
+            });
+            loadNotifDestinatarios();
+        }
+
+        async function deleteDestinatario(id) {
+            if (!confirm('¿Eliminar este destinatario?')) return;
+            const token = localStorage.getItem('token');
+            await fetch(`${API_URL}/destinatarios/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            loadNotifDestinatarios();
+        }
+
+        async function enviarNotificacion() {
+            const token = localStorage.getItem('token');
+            const modo = document.querySelector('input[name="notif-modo"]:checked').value;
+            const payload = { modo, etapa: currentEtapa };
+            
+            payload.cuerpo_personalizado = document.getElementById('notif-cuerpo').value;
+            payload.asunto_personalizado = document.getElementById('notif-asunto').value;
+
+            if (currentEtapa === 'medida') {
+                const estado = document.querySelector('input[name="notif-estado"]:checked');
+                if (!estado) { alert('Seleccione el estado del proceso.'); return; }
+                payload.medida = estado.value;
+            }
+            const destino = document.querySelector('input[name="notif-destino"]:checked').value;
+            if (destino === 'grupos') {
+                const grupo_ids = Array.from(document.querySelectorAll('.notif-grupo-chk:checked')).map(c => parseInt(c.value));
+                if (!grupo_ids.length) {
+                    alert('Seleccione al menos un grupo, o elija "Todos los del colegio".');
+                    return;
+                }
+                payload.grupo_ids = grupo_ids;
+            }
+            if (modo === 'fecha_indicada') {
+                const fecha = document.getElementById('notif-fecha').value;
+                if (!fecha) { alert('Seleccione la fecha de envío.'); return; }
+                payload.fecha_programada = fecha;
+            }
+            if (modo === 'dias_habiles') {
+                const total = parseInt(document.getElementById('notif-dh-total').value);
+                const envio = document.getElementById('notif-dh-envio').value.trim();
+                const hora = document.getElementById('notif-dh-hora').value || '08:00';
+                if (!total || !envio) {
+                    alert('Debe completar el plazo total y los días hábiles de envío.');
+                    return;
+                }
+                payload.dias_habiles_total = total;
+                payload.dias_habiles_envio = envio;
+                payload.hora_envio = hora;
+            }
+            const btn = document.getElementById('btn-enviar-notif');
+            const original = btn.innerText;
+            btn.disabled = true; btn.innerText = 'Procesando...';
+            const result = document.getElementById('notif-result');
+            try {
+                const resp = await fetch(`${API_URL}/estudiantes/${studentId}/notificar`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    // En etapa 'medida' el backend guardó el estado en el estudiante;
+                    // reflejarlo en el selector "Medida Aplicada" del formulario.
+                    if (currentEtapa === 'medida' && payload.medida) {
+                        const medidaSel = document.getElementById('medida');
+                        if (medidaSel) medidaSel.value = payload.medida;
+                    }
+                    if (data.programada) {
+                        result.className = 'text-sm mt-2 text-indigo-600 font-medium';
+                        result.innerText = 'Notificación programada con éxito.' +
+                            (data.enviados ? ` Se enviaron ${data.enviados} correo(s) ahora (día 1).` : '');
+                    } else {
+                        result.className = 'text-sm mt-2 text-green-600 font-medium';
+                        result.innerText = `Correos enviados: ${data.enviados}. Fallidos: ${data.fallidos}.`;
+                    }
+                    loadNotifHistory();
+                } else {
+                    result.className = 'text-sm mt-2 text-red-600 font-medium';
+                    result.innerText = data.detail || 'Error al enviar.';
+                }
+            } catch (e) {
+                result.className = 'text-sm mt-2 text-red-600 font-medium';
+                result.innerText = 'Error de conexión.';
+            } finally {
+                btn.disabled = false; btn.innerText = original;
+            }
+        }
+
+        const MODO_LABEL = { una_vez: 'Una sola vez', paulatino: 'Paulatino (diario)', cada_3_dias: 'Cada 3 días (máx 3)', fecha_indicada: 'Fecha indicada', dias_habiles: 'Días hábiles' };
+        const ESTADO_LABEL = { activo: 'Activo', completado: 'Completado', cancelado: 'Cancelado' };
+
+        async function loadNotifHistory() {
+            const token = localStorage.getItem('token');
+            const cont = document.getElementById('notif-history');
+            const resp = await fetch(`${API_URL}/estudiantes/${studentId}/notificaciones`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!resp.ok) { cont.innerHTML = ''; NOTIF_HISTORY_CACHE = []; checkDuplicadoFase(); return; }
+            const items = await resp.json();
+            NOTIF_HISTORY_CACHE = items;
+            checkDuplicadoFase();
+            if (items.length === 0) {
+                cont.innerHTML = '<p class="text-xs text-slate-400 italic">Sin notificaciones registradas.</p>';
+                return;
+            }
+            cont.innerHTML = items.map(n => {
+                let infoExtra = '';
+                if (n.modo === 'dias_habiles') {
+                    infoExtra = ` · Plazo: ${n.dias_habiles_total} días hábiles · Envíos: día ${n.dias_habiles_envio}${n.hora_envio ? ' a las ' + n.hora_envio : ''}`;
+                }
+                return `
+                <div class="flex items-center justify-between gap-3 p-3 border rounded-xl">
+                    <div>
+                        <p class="text-sm font-bold text-slate-700">${MODO_LABEL[n.modo] || n.modo}
+                            <span class="ml-2 text-[10px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">${n.etapa === 'medida' ? 'Medida' : n.etapa === 'apelacion' ? 'Apelación' : n.etapa === 'final_medida' ? 'Final' : n.etapa === 'consejo' ? 'Consejo' : 'Inicio'}</span>
+                            <span class="ml-1 text-[10px] px-2 py-0.5 rounded-full ${n.estado === 'activo' ? 'bg-green-100 text-green-700' : n.estado === 'completado' ? 'bg-slate-200 text-slate-600' : 'bg-red-100 text-red-600'}">${ESTADO_LABEL[n.estado] || n.estado}</span>
+                        </p>
+                        <p class="text-[11px] text-slate-400">Enviado ${n.veces_enviado} vez(ces)${n.proximo_envio ? ' · Próximo: ' + new Date(n.proximo_envio).toLocaleString() : ''}${n.fecha_programada ? ' · Programado: ' + n.fecha_programada : ''}${infoExtra}</p>
+                    </div>
+                    <div class="flex items-center gap-3 flex-shrink-0">
+                        <button type="button" onclick="openLogsModal(${n.id})" class="text-xs font-bold text-indigo-600 hover:text-indigo-700">Ver envíos</button>
+                        ${n.estado === 'activo' ? `<button type="button" onclick="cancelarNotif(${n.id})" class="text-xs font-bold text-amber-600 hover:text-amber-700">Cancelar</button>` : ''}
+                        <button type="button" onclick="eliminarNotif(${n.id})" class="text-xs font-bold text-red-500 hover:text-red-700">Eliminar</button>
+                    </div>
+                </div>
+            `;}).join('');
+        }
+
+        async function cancelarNotif(id) {
+            const token = localStorage.getItem('token');
+            await fetch(`${API_URL}/notificaciones/${id}/cancelar`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            loadNotifHistory();
+        }
+
+        async function eliminarNotif(id) {
+            if (!confirm('¿Eliminar esta notificación del historial? Se cancelan los envíos pendientes y se libera la fase para volver a notificar.')) return;
+            const token = localStorage.getItem('token');
+            const resp = await fetch(`${API_URL}/notificaciones/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (resp.ok) loadNotifHistory();
+            else alert('No se pudo eliminar la notificación.');
+        }
+
+        async function openLogsModal(notifId) {
+            const token = localStorage.getItem('token');
+            const modal = document.getElementById('logs-modal');
+            const body = document.getElementById('logs-body');
+            body.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400 text-xs">Cargando...</td></tr>';
+            document.getElementById('logs-count-ok').innerText = '0';
+            document.getElementById('logs-count-fail').innerText = '0';
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            loadEnviosProgramados(notifId);
+            try {
+                const resp = await fetch(`${API_URL}/notificaciones/${notifId}/logs`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const logs = resp.ok ? await resp.json() : [];
+                if (!logs.length) {
+                    body.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400 text-xs">Aún no hay envíos registrados para esta notificación.</td></tr>';
+                    return;
+                }
+                let ok = 0, fail = 0;
+                body.innerHTML = logs.map(l => {
+                    if (l.exito) ok++; else fail++;
+                    return `
+                    <tr class="border-t align-top">
+                        <td class="p-3 font-medium text-slate-700">${l.destinatario_nombre || '—'}</td>
+                        <td class="p-3 text-slate-500">${l.destinatario_email || '—'}</td>
+                        <td class="p-3 text-center">
+                            <span class="px-2 py-1 rounded-full text-[10px] font-bold ${l.exito ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}">${l.exito ? 'ENVIADO' : 'FALLIDO'}</span>
+                        </td>
+                        <td class="p-3 text-slate-500 text-xs">${l.detalle || ''}</td>
+                        <td class="p-3 text-slate-400 text-xs whitespace-nowrap">${l.fecha_envio ? new Date(l.fecha_envio).toLocaleString() : ''}</td>
+                    </tr>`;
+                }).join('');
+                document.getElementById('logs-count-ok').innerText = ok;
+                document.getElementById('logs-count-fail').innerText = fail;
+            } catch (e) {
+                body.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-red-500 text-xs">Error al cargar los envíos.</td></tr>';
+            }
+        }
+
+        async function loadEnviosProgramados(notifId) {
+            const token = localStorage.getItem('token');
+            const wrap = document.getElementById('logs-programados-wrap');
+            const cont = document.getElementById('logs-programados');
+            try {
+                const resp = await fetch(`${API_URL}/notificaciones/${notifId}/envios`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const envios = resp.ok ? await resp.json() : [];
+                if (!envios.length) { wrap.classList.add('hidden'); return; }
+                wrap.classList.remove('hidden');
+                const EST = {
+                    pendiente: ['Pendiente', 'bg-amber-100 text-amber-700'],
+                    enviado: ['Enviado', 'bg-green-100 text-green-700'],
+                    cancelado: ['Cancelado', 'bg-slate-200 text-slate-500'],
+                };
+                cont.innerHTML = envios.map(e => {
+                    let dests = [];
+                    try { dests = JSON.parse(e.destinatarios || '[]'); } catch (x) { dests = []; }
+                    const est = EST[e.estado] || [e.estado, 'bg-slate-100 text-slate-600'];
+                    return `
+                    <div class="flex items-center justify-between gap-3 p-3 border rounded-xl">
+                        <div>
+                            <p class="text-sm font-bold text-slate-700">Día ${e.dia_numero ?? '?'} ·
+                                ${e.fecha || ''} ${e.hora || ''}
+                                <span class="ml-1 text-[10px] px-2 py-0.5 rounded-full ${est[1]}">${est[0]}</span>
+                            </p>
+                            <p class="text-[11px] text-slate-400">${dests.length} destinatario(s)${e.fecha_envio_real ? ' · Enviado: ' + new Date(e.fecha_envio_real).toLocaleString() : ''}</p>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (x) {
+                wrap.classList.add('hidden');
+            }
+        }
+
+        function closeLogsModal() {
+            const modal = document.getElementById('logs-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // ---------- CONSEJO DE PROFESORES ----------
+        async function openConsejoModal() {
+            if (!studentId) {
+                alert('Primero guarde el registro del estudiante para registrar el consejo.');
+                return;
+            }
+            const modal = document.getElementById('consejo-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+            document.getElementById('consejo-result').innerText = '';
+            document.getElementById('consejo-fecha').value = document.getElementById('fecha_consejo_profesores').value || '';
+            document.getElementById('consejo-enviar').checked = false;
+            onConsejoEnviarChange();
+            await loadGrupos();
+            renderConsejoGrupos();
+            loadConsejoEstado();
+        }
+
+        function closeConsejoModal() {
+            const modal = document.getElementById('consejo-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = 'auto';
+        }
+
+        function onConsejoEnviarChange() {
+            const checked = document.getElementById('consejo-enviar').checked;
+            document.getElementById('consejo-grupos-wrap').classList.toggle('hidden', !checked);
+        }
+
+        function renderConsejoGrupos() {
+            const cont = document.getElementById('consejo-grupos');
+            if (!GRUPOS_CACHE.length) {
+                cont.innerHTML = '<span class="text-xs text-slate-400 italic">No hay grupos; se enviará a todos los del colegio.</span>';
+                return;
+            }
+            cont.innerHTML = GRUPOS_CACHE.map(g => `
+                <label class="flex items-center gap-2 text-sm bg-white border rounded-lg px-3 py-1.5 cursor-pointer">
+                    <input type="checkbox" class="consejo-grupo-chk" value="${g.id}"> ${g.nombre}
+                </label>
+            `).join('');
+        }
+
+        function updateConsejoFormLabel(confirmado, correoEnviado, fechaEnvio) {
+            const lbl = document.getElementById('consejo-estado-label');
+            if (!lbl) return;
+            let parts = [];
+            if (confirmado === true) parts.push('✓ Consejo confirmado.');
+            else if (confirmado === false) parts.push('✕ Consejo cancelado.');
+            else parts.push('Registre si el Consejo de Profesores se confirma.');
+            if (correoEnviado) parts.push('Correo enviado' + (fechaEnvio ? ' el ' + new Date(fechaEnvio).toLocaleString() : '') + '.');
+            lbl.innerText = parts.join(' ');
+        }
+
+        async function loadConsejoEstado() {
+            const token = localStorage.getItem('token');
+            const resp = await fetch(`${API_URL}/estudiantes/${studentId}/consejo`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!resp.ok) return;
+            const data = await resp.json();
+            const badge = document.getElementById('consejo-sent-badge');
+            if (data.correo_enviado) {
+                badge.classList.remove('hidden');
+                badge.classList.add('flex');
+                document.getElementById('consejo-sent-text').innerText =
+                    'Correo ya enviado' + (data.fecha_envio ? ' el ' + new Date(data.fecha_envio).toLocaleString() : '') + '.';
+            } else {
+                badge.classList.add('hidden');
+                badge.classList.remove('flex');
+            }
+            updateConsejoFormLabel(data.confirmado, data.correo_enviado, data.fecha_envio);
+        }
+
+        async function confirmarConsejo(confirmado) {
+            const token = localStorage.getItem('token');
+            const fecha = document.getElementById('consejo-fecha').value || null;
+            const enviar = document.getElementById('consejo-enviar').checked;
+            const grupo_ids = Array.from(document.querySelectorAll('#consejo-grupos .consejo-grupo-chk:checked')).map(c => parseInt(c.value));
+            const payload = { confirmado, fecha, enviar_correo: enviar, grupo_ids };
+            const result = document.getElementById('consejo-result');
+            result.className = 'text-sm text-slate-500';
+            result.innerText = 'Procesando...';
+            try {
+                const resp = await fetch(`${API_URL}/estudiantes/${studentId}/consejo`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
+                });
+                const data = await resp.json();
+                if (resp.ok) {
+                    if (fecha) {
+                        document.getElementById('fecha_consejo_profesores').value = fecha;
+                        document.getElementById('no_consejo').checked = false;
+                        toggleDate('fecha_consejo_profesores', false);
+                    }
+                    result.className = 'text-sm text-green-600 font-medium';
+                    let msg = confirmado ? 'Consejo confirmado.' : 'Consejo cancelado.';
+                    if (data.correo_enviado) msg += ` Correos enviados: ${data.enviados}, fallidos: ${data.fallidos}.`;
+                    result.innerText = msg;
+                    loadConsejoEstado();
+                } else {
+                    result.className = 'text-sm text-red-600 font-medium';
+                    result.innerText = data.detail || 'Error al registrar.';
+                }
+            } catch (e) {
+                result.className = 'text-sm text-red-600 font-medium';
+                result.innerText = 'Error de conexión.';
+            }
         }
 
         init();
