@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro Alumno - Aula Segura</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/sidebar.js"></script>
     <style>
         body {
             display: none;
@@ -16,8 +17,9 @@
 <body class="bg-slate-50 text-slate-800 font-sans">
     <script>
         const API_URL = window.location.origin.includes('127.0.0.1') || window.location.origin.includes('localhost') || window.location.origin.startsWith('file://')
-            ? 'http://127.0.0.1:8000'
+            ? (window.location.port === '8000' ? 'http://127.0.0.1:8000' : 'http://127.0.0.1:8010')
             : window.location.origin + '/api';
+
 
         (async function () {
             const token = localStorage.getItem('token');
@@ -76,365 +78,376 @@
             </div>
 
             <div class="p-8">
-            <!-- ============ FASE 1: DATOS DEL ESTUDIANTE ============ -->
-            <div class="form-phase" data-phase="1">
-            <!-- GRUPO: DATOS DEL ESTUDIANTE -->
-            <div class="border border-slate-200 rounded-2xl p-6 bg-slate-50/40">
-                <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wide mb-5">Datos del Estudiante</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">RUT</label>
-                <input type="text" id="rut" placeholder="12.123.456-7" oninput="formatRUT(this)" required
-                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
-            </div>
+                <!-- ============ FASE 1: DATOS DEL ESTUDIANTE ============ -->
+                <div class="form-phase" data-phase="1">
+                    <!-- GRUPO: DATOS DEL ESTUDIANTE -->
+                    <div class="border border-slate-200 rounded-2xl p-6 bg-slate-50/40">
+                        <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wide mb-5">Datos del Estudiante
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">RUT</label>
+                                <input type="text" id="rut" placeholder="12.123.456-7" oninput="formatRUT(this)"
+                                    required
+                                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            </div>
 
-            <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre Completo del
-                    Estudiante</label>
-                <input type="text" id="nombre_estudiante" required
-                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
-            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre Completo del
+                                    Estudiante</label>
+                                <input type="text" id="nombre_estudiante" required
+                                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            </div>
 
-            <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Curso</label>
-                <select id="curso" required
-                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white">
-                    <option value="">Seleccione un curso...</option>
-                    <option value="PKºA">PKºA</option>
-                    <option value="PKºB">PKºB</option>
-                    <option value="KºA">KºA</option>
-                    <option value="KºB">KºB</option>
-                    <option value="1ºA">1ºA</option>
-                    <option value="1ºB">1ºB</option>
-                    <option value="1ºC">1ºC</option>
-                    <option value="2ºA">2ºA</option>
-                    <option value="2ºB">2ºB</option>
-                    <option value="2ºC">2ºC</option>
-                    <option value="3ºA">3ºA</option>
-                    <option value="3ºB">3ºB</option>
-                    <option value="3ºC">3ºC</option>
-                    <option value="4ºA">4ºA</option>
-                    <option value="4ºB">4ºB</option>
-                    <option value="4ºC">4ºC</option>
-                    <option value="5ºA">5ºA</option>
-                    <option value="5ºB">5ºB</option>
-                    <option value="5ºC">5ºC</option>
-                    <option value="6ºA">6ºA</option>
-                    <option value="6ºB">6ºB</option>
-                    <option value="6ºC">6ºC</option>
-                    <option value="7ºA">7ºA</option>
-                    <option value="7ºB">7ºB</option>
-                    <option value="7ºC">7ºC</option>
-                    <option value="8ºA">8ºA</option>
-                    <option value="8ºB">8ºB</option>
-                    <option value="8ºC">8ºC</option>
-                    <option value="1ºM A">1ºM A</option>
-                    <option value="1ºM B">1ºM B</option>
-                    <option value="1ºM C">1ºM C</option>
-                    <option value="2ºM A">2ºM A</option>
-                    <option value="2ºM B">2ºM B</option>
-                    <option value="2ºM C">2ºM C</option>
-                    <option value="3ºM A">3ºM A</option>
-                    <option value="3ºM B">3ºM B</option>
-                    <option value="3ºM C">3ºM C</option>
-                    <option value="4ºM A">4ºM A</option>
-                    <option value="4ºM B">4ºM B</option>
-                    <option value="4ºM C">4ºM C</option>
-                </select>
-            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Curso</label>
+                                <select id="curso" required
+                                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white">
+                                    <option value="">Seleccione un curso...</option>
+                                    <option value="1ºA">1ºA</option>
+                                    <option value="1ºB">1ºB</option>
+                                    <option value="1ºC">1ºC</option>
+                                    <option value="2ºA">2ºA</option>
+                                    <option value="2ºB">2ºB</option>
+                                    <option value="2ºC">2ºC</option>
+                                    <option value="3ºA">3ºA</option>
+                                    <option value="3ºB">3ºB</option>
+                                    <option value="3ºC">3ºC</option>
+                                    <option value="4ºA">4ºA</option>
+                                    <option value="4ºB">4ºB</option>
+                                    <option value="4ºC">4ºC</option>
+                                    <option value="5ºA">5ºA</option>
+                                    <option value="5ºB">5ºB</option>
+                                    <option value="5ºC">5ºC</option>
+                                    <option value="6ºA">6ºA</option>
+                                    <option value="6ºB">6ºB</option>
+                                    <option value="6ºC">6ºC</option>
+                                    <option value="7ºA">7ºA</option>
+                                    <option value="7ºB">7ºB</option>
+                                    <option value="7ºC">7ºC</option>
+                                    <option value="8ºA">8ºA</option>
+                                    <option value="8ºB">8ºB</option>
+                                    <option value="8ºC">8ºC</option>
+                                    <option value="1ºM A">1ºM A</option>
+                                    <option value="1ºM B">1ºM B</option>
+                                    <option value="1ºM C">1ºM C</option>
+                                    <option value="2ºM A">2ºM A</option>
+                                    <option value="2ºM B">2ºM B</option>
+                                    <option value="2ºM C">2ºM C</option>
+                                    <option value="3ºM A">3ºM A</option>
+                                    <option value="3ºM B">3ºM B</option>
+                                    <option value="3ºM C">3ºM C</option>
+                                    <option value="4ºM A">4ºM A</option>
+                                    <option value="4ºM B">4ºM B</option>
+                                    <option value="4ºM C">4ºM C</option>
+                                </select>
+                            </div>
 
-            <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Colegio</label>
-                <select id="id_colegio" required
-                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
-                    <!-- Dinámico -->
-                </select>
-            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Colegio</label>
+                                <select id="id_colegio" required
+                                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                    <!-- Dinámico -->
+                                </select>
+                            </div>
 
-            <div class="md:col-span-2">
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Causa</label>
-                <textarea id="causa" required rows="2"
-                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"></textarea>
-            </div>
-                </div>
-            </div>
-            <!-- FIN GRUPO DATOS DEL ESTUDIANTE -->
-
-            <!-- BOTONES GUARDAR / CANCELAR (dentro de la fase de datos) -->
-            <div class="flex justify-end gap-3 mt-6 border-t pt-6">
-                <button type="button" onclick="window.location.href='dashboard.html'"
-                    class="px-6 py-2 text-slate-500 font-bold hover:bg-slate-100 rounded-lg transition">Cancelar</button>
-                <button type="submit"
-                    class="js-btn-save px-10 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg">Guardar
-                    Registro</button>
-            </div>
-            </div>
-            <!-- ============ FASE 2: PROCESO Y NOTIFICACIONES ============ -->
-            <div class="form-phase hidden space-y-6" data-phase="2">
-
-            <!-- GRUPO: NOTIFICACIÓN INICIO PROCESO -->
-            <div class="md:col-span-2 border border-indigo-200 rounded-2xl p-6 bg-indigo-50/40">
-                <div class="flex flex-col md:flex-row md:items-end gap-4">
-                    <div class="flex-1">
-                        <label class="block text-xs font-bold text-indigo-700 uppercase mb-1">Fecha Notificación
-                            Inicio Proceso</label>
-                        <input type="date" id="fecha_inicio_proceso"
-                            class="w-full px-4 py-2 border border-indigo-200 rounded-lg bg-white">
-                    </div>
-                    <button type="button" onclick="openNotifModal()"
-                        class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 whitespace-nowrap">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
-                            </path>
-                        </svg>
-                        Enviar Notificación
-                    </button>
-                </div>
-                <p class="text-[11px] text-slate-400 mt-2">Los recordatorios se envían a los destinatarios del
-                    colegio del estudiante (más los que tengan el privilegio <strong>todos_colegios</strong>). Guarde
-                    el registro antes de notificar.</p>
-            </div>
-            <!-- FIN GRUPO NOTIFICACIÓN -->
-
-            <!-- GRUPO: DESCARGOS -->
-            <div class="md:col-span-2 border border-slate-200 rounded-2xl p-6 bg-slate-50/40">
-                <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wide mb-5">Descargos</h3>
-                <div class="grid grid-cols-1 gap-5">
-                    <div>
-                        <div class="flex justify-between items-center mb-1 md:max-w-xs">
-                            <label class="block text-xs font-bold text-slate-500 uppercase">Fecha Descargados</label>
-                            <label
-                                class="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase cursor-pointer">
-                                <input type="checkbox" id="no_descargados"
-                                    onchange="toggleDate('fecha_descargados', this.checked)"> No registra
-                            </label>
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Causa</label>
+                                <textarea id="causa" required rows="2"
+                                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"></textarea>
+                            </div>
                         </div>
-                        <input type="date" id="fecha_descargados"
-                            class="w-full md:max-w-xs px-4 py-2 border rounded-lg">
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Descargos</label>
-                        <textarea id="descargos" rows="3"
-                            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"></textarea>
+                    <!-- FIN GRUPO DATOS DEL ESTUDIANTE -->
+
+                    <!-- BOTONES GUARDAR / CANCELAR (dentro de la fase de datos) -->
+                    <div class="flex justify-end gap-3 mt-6 border-t pt-6">
+                        <button type="button" onclick="window.location.href='dashboard.html'"
+                            class="px-6 py-2 text-slate-500 font-bold hover:bg-slate-100 rounded-lg transition">Cancelar</button>
+                        <button type="submit"
+                            class="js-btn-save px-10 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg">Guardar
+                            Registro</button>
                     </div>
                 </div>
-            </div>
-            <!-- FIN GRUPO DESCARGOS -->
+                <!-- ============ FASE 2: PROCESO Y NOTIFICACIONES ============ -->
+                <div class="form-phase hidden space-y-6" data-phase="2">
 
-            <!-- GRUPO: NOTIFICACIÓN MEDIDA Y APELACIÓN -->
-            <div class="md:col-span-2 border border-indigo-200 rounded-2xl p-6 bg-indigo-50/40">
-                <div class="flex flex-col md:flex-row md:items-end gap-4">
-                    <div class="flex-1">
-                        <label class="block text-xs font-bold text-indigo-700 uppercase mb-1">Fecha Notificación
-                            Medida y Apelación</label>
-                        <input type="date" id="fecha_notificacion_medida"
-                            class="w-full px-4 py-2 border border-indigo-200 rounded-lg bg-white">
-                    </div>
-                    <button type="button" onclick="openNotifModal('medida')"
-                        class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 whitespace-nowrap">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        Cierre del Proceso
-                    </button>
-                </div>
-                <p class="text-[11px] text-slate-400 mt-2">Abre el modal para elegir el estado del proceso (medida) y
-                    enviar la notificación a los destinatarios. Guarde el registro antes de notificar.</p>
-            </div>
-            <!-- FIN GRUPO NOTIFICACIÓN MEDIDA -->
-
-            <!-- GRUPO: NOTIFICACIÓN RECEPCIÓN CARTA APELACIÓN -->
-            <div class="md:col-span-2 border border-indigo-200 rounded-2xl p-6 bg-indigo-50/40">
-                <div class="flex flex-col md:flex-row md:items-end gap-4">
-                    <div class="flex-1">
-                        <div class="flex justify-between items-center mb-1">
-                            <label class="block text-xs font-bold text-indigo-700 uppercase">Fecha Recepción CARTA
-                                Apelación</label>
-                            <label
-                                class="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase cursor-pointer">
-                                <input type="checkbox" id="no_apelacion"
-                                    onchange="toggleDate('fecha_recepcion_apelacion', this.checked)"> No registra
-                            </label>
-                        </div>
-                        <input type="date" id="fecha_recepcion_apelacion"
-                            class="w-full px-4 py-2 border border-indigo-200 rounded-lg bg-white">
-                    </div>
-                    <button type="button" onclick="openNotifModal('apelacion')"
-                        class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 whitespace-nowrap">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
-                            </path>
-                        </svg>
-                        Enviar Notificación
-                    </button>
-                </div>
-                <p class="text-[11px] text-slate-400 mt-2">Los recordatorios se envían a los destinatarios del
-                    colegio del estudiante (más los que tengan el privilegio <strong>todos_colegios</strong>). Guarde
-                    el registro antes de notificar.</p>
-            </div>
-            <!-- FIN GRUPO NOTIFICACIÓN APELACIÓN -->
-
-            <!-- GRUPO: CONSEJO DE PROFESORES -->
-            <div class="md:col-span-2 border border-indigo-200 rounded-2xl p-6 bg-indigo-50/40">
-                <div class="flex flex-col md:flex-row md:items-end gap-4">
-                    <div class="flex-1">
-                        <div class="flex justify-between items-center mb-1">
-                            <label class="block text-xs font-bold text-indigo-700 uppercase">Fecha Consejo
-                                Profesores</label>
-                            <label
-                                class="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase cursor-pointer">
-                                <input type="checkbox" id="no_consejo"
-                                    onchange="toggleDate('fecha_consejo_profesores', this.checked)"> No registra
-                            </label>
-                        </div>
-                        <input type="date" id="fecha_consejo_profesores"
-                            class="w-full px-4 py-2 border border-indigo-200 rounded-lg bg-white">
-                    </div>
-                    <button type="button" onclick="openConsejoModal()"
-                        class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 whitespace-nowrap">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        Registrar Consejo
-                    </button>
-                </div>
-                <p id="consejo-estado-label" class="text-[11px] text-slate-400 mt-2">Registre si el Consejo de
-                    Profesores se confirma. Opcionalmente puede enviar correo a los destinatarios.</p>
-            </div>
-            <!-- FIN GRUPO CONSEJO DE PROFESORES -->
-
-            <!-- GRUPO: NOTIFICACIÓN FINAL "MEDIDA" -->
-            <div class="md:col-span-2 border border-indigo-200 rounded-2xl p-6 bg-indigo-50/40">
-                <div class="flex flex-col md:flex-row md:items-end gap-4">
-                    <div class="flex-1">
-                        <label class="block text-xs font-bold text-indigo-700 uppercase mb-1">Fecha Notificación
-                            Final "MEDIDA"</label>
-                        <input type="date" id="fecha_notificacion_final"
-                            class="w-full px-4 py-2 border border-indigo-200 rounded-lg bg-white">
-                    </div>
-                    <button type="button" onclick="openNotifModal('final_medida')"
-                        class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 whitespace-nowrap">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
-                            </path>
-                        </svg>
-                        Enviar Notificación
-                    </button>
-                </div>
-                <p class="text-[11px] text-slate-400 mt-2">Los recordatorios se envían a los destinatarios del
-                    colegio del estudiante (más los que tengan el privilegio <strong>todos_colegios</strong>). Guarde
-                    el registro antes de notificar.</p>
-            </div>
-            <!-- FIN GRUPO NOTIFICACIÓN FINAL MEDIDA -->
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha Envío ANTECEDENTES
-                    SIE</label>
-                <input type="date" id="fecha_envio_sie" class="w-full px-4 py-2 border rounded-lg">
-            </div>
-
-            <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Medida Aplicada</label>
-                <select id="medida" class="w-full px-4 py-2 border rounded-lg">
-                    <option value="EXPULSIÓN O CANCELACIÓN DE MATRÍCULA">EXPULSIÓN O CANCELACIÓN DE MATRÍCULA</option>
-                    <option value="CONDICIONALIDAD EXTREMA DE LA MEDIDA">CONDICIONALIDAD EXTREMA DE LA MEDIDA</option>
-                    <option value="OTRA MEDIDA">OTRA MEDIDA</option>
-                    <option value="EXPULSIÓN">EXPULSIÓN</option>
-                    <option value="CANCELACIÓN DE MATRÍCULA">CANCELACIÓN DE MATRÍCULA</option>
-                </select>
-            </div>
-            </div>
-
-
-            <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Resultado Revisión EXPEDIENTE
-                    MEDIDA</label>
-                <textarea id="resultado_revision" rows="2"
-                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"></textarea>
-            </div>
-
-            <!-- BOTONES GUARDAR / CANCELAR -->
-            <div class="flex justify-end gap-3 mt-6 border-t pt-6">
-                <button type="button" onclick="window.location.href='dashboard.html'"
-                    class="px-6 py-2 text-slate-500 font-bold hover:bg-slate-100 rounded-lg transition">Cancelar</button>
-                <button type="submit"
-                    class="js-btn-save px-10 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg">Guardar
-                    Registro</button>
-            </div>
-            </div>
-            <!-- ============ FASE 3: EXPEDIENTE DIGITAL ============ -->
-            <!-- SECCIÓN DE DOCUMENTACIÓN (SOLO EDICIÓN) -->
-            <div id="doc-section" class="form-phase hidden" data-phase="3">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13">
-                            </path>
-                        </svg>
-                    </div>
-                    <h3 class="text-lg font-bold text-slate-800">Expediente Digital (PDF)</h3>
-                </div>
-
-                <div class="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100 mb-8">
-                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
-                        <div class="md:col-span-6">
-                            <label
-                                class="block text-[10px] font-bold text-indigo-600 uppercase mb-2 tracking-wider">Tipo
-                                de Documento</label>
-                            <input list="doc-types" id="doc-type" placeholder="Escriba o seleccione un tipo de documento..."
-                                class="w-full px-4 py-2.5 bg-white border border-indigo-100 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 transition-all outline-none">
-                            <datalist id="doc-types">
-                                <option value="Fecha Notificación Final &quot;MEDIDA&quot;"></option>
-                                <option value="Resultado Revisión EXPEDIENTE MEDIDA"></option>
-                            </datalist>
-                        </div>
-                        <div class="md:col-span-3">
-                            <label
-                                class="block text-[10px] font-bold text-indigo-600 uppercase mb-2 tracking-wider">Archivo
-                                PDF</label>
-                            <label
-                                class="flex items-center justify-center w-full px-4 py-2 bg-white border border-dashed border-indigo-200 rounded-xl cursor-pointer hover:bg-indigo-50 transition-all group">
-                                <span id="file-name-label"
-                                    class="text-[10px] text-indigo-400 group-hover:text-indigo-600 truncate">Seleccionar
-                                    PDF...</span>
-                                <input type="file" id="doc-file" accept=".pdf" class="hidden"
-                                    onchange="document.getElementById('file-name-label').innerText = this.files[0] ? this.files[0].name : 'Seleccionar PDF...'">
-                            </label>
-                        </div>
-                        <div class="md:col-span-3">
-                            <button type="button" onclick="uploadFile()"
-                                class="w-full bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2">
+                    <!-- GRUPO: NOTIFICACIÓN INICIO PROCESO -->
+                    <div class="md:col-span-2 border border-indigo-200 rounded-2xl p-6 bg-indigo-50/40">
+                        <div class="flex flex-col md:flex-row md:items-end gap-4">
+                            <div class="flex-1">
+                                <label class="block text-xs font-bold text-indigo-700 uppercase mb-1">Fecha Notificación
+                                    Inicio Proceso</label>
+                                <input type="date" id="fecha_inicio_proceso"
+                                    class="w-full px-4 py-2 border border-indigo-200 rounded-lg bg-white">
+                            </div>
+                            <button type="button" onclick="openNotifModal()"
+                                class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 whitespace-nowrap">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
                                     </path>
                                 </svg>
-                                Subir y Comprimir
+                                Enviar Notificación
                             </button>
                         </div>
+                        <p class="text-[11px] text-slate-400 mt-2">Los recordatorios se envían a los destinatarios del
+                            colegio del estudiante (más los que tengan el privilegio <strong>todos_colegios</strong>).
+                            Guarde
+                            el registro antes de notificar.</p>
+                    </div>
+                    <!-- FIN GRUPO NOTIFICACIÓN -->
+
+                    <!-- GRUPO: DESCARGOS -->
+                    <div class="md:col-span-2 border border-slate-200 rounded-2xl p-6 bg-slate-50/40">
+                        <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wide mb-5">Descargos</h3>
+                        <div class="grid grid-cols-1 gap-5">
+                            <div>
+                                <div class="flex justify-between items-center mb-1 md:max-w-xs">
+                                    <label class="block text-xs font-bold text-slate-500 uppercase">Fecha
+                                        Descargados</label>
+                                    <label
+                                        class="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase cursor-pointer">
+                                        <input type="checkbox" id="no_descargados"
+                                            onchange="toggleDate('fecha_descargados', this.checked)"> No registra
+                                    </label>
+                                </div>
+                                <input type="date" id="fecha_descargados"
+                                    class="w-full md:max-w-xs px-4 py-2 border rounded-lg">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Descargos</label>
+                                <textarea id="descargos" rows="3"
+                                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- FIN GRUPO DESCARGOS -->
+
+                    <!-- GRUPO: NOTIFICACIÓN MEDIDA Y APELACIÓN -->
+                    <div class="md:col-span-2 border border-indigo-200 rounded-2xl p-6 bg-indigo-50/40">
+                        <div class="flex flex-col md:flex-row md:items-end gap-4">
+                            <div class="flex-1">
+                                <label class="block text-xs font-bold text-indigo-700 uppercase mb-1">Fecha Notificación
+                                    Medida y Apelación</label>
+                                <input type="date" id="fecha_notificacion_medida"
+                                    class="w-full px-4 py-2 border border-indigo-200 rounded-lg bg-white">
+                            </div>
+                            <button type="button" onclick="openNotifModal('medida')"
+                                class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 whitespace-nowrap">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Cierre del Proceso
+                            </button>
+                        </div>
+                        <p class="text-[11px] text-slate-400 mt-2">Abre el modal para elegir el estado del proceso
+                            (medida) y
+                            enviar la notificación a los destinatarios. Guarde el registro antes de notificar.</p>
+                    </div>
+                    <!-- FIN GRUPO NOTIFICACIÓN MEDIDA -->
+
+                    <!-- GRUPO: NOTIFICACIÓN RECEPCIÓN CARTA APELACIÓN -->
+                    <div class="md:col-span-2 border border-indigo-200 rounded-2xl p-6 bg-indigo-50/40">
+                        <div class="flex flex-col md:flex-row md:items-end gap-4">
+                            <div class="flex-1">
+                                <div class="flex justify-between items-center mb-1">
+                                    <label class="block text-xs font-bold text-indigo-700 uppercase">Fecha Recepción
+                                        CARTA
+                                        Apelación</label>
+                                    <label
+                                        class="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase cursor-pointer">
+                                        <input type="checkbox" id="no_apelacion"
+                                            onchange="toggleDate('fecha_recepcion_apelacion', this.checked)"> No
+                                        registra
+                                    </label>
+                                </div>
+                                <input type="date" id="fecha_recepcion_apelacion"
+                                    class="w-full px-4 py-2 border border-indigo-200 rounded-lg bg-white">
+                            </div>
+                            <button type="button" onclick="openNotifModal('apelacion')"
+                                class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 whitespace-nowrap">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                                Enviar Notificación
+                            </button>
+                        </div>
+                        <p class="text-[11px] text-slate-400 mt-2">Los recordatorios se envían a los destinatarios del
+                            colegio del estudiante (más los que tengan el privilegio <strong>todos_colegios</strong>).
+                            Guarde
+                            el registro antes de notificar.</p>
+                    </div>
+                    <!-- FIN GRUPO NOTIFICACIÓN APELACIÓN -->
+
+                    <!-- GRUPO: CONSEJO DE PROFESORES -->
+                    <div class="md:col-span-2 border border-indigo-200 rounded-2xl p-6 bg-indigo-50/40">
+                        <div class="flex flex-col md:flex-row md:items-end gap-4">
+                            <div class="flex-1">
+                                <div class="flex justify-between items-center mb-1">
+                                    <label class="block text-xs font-bold text-indigo-700 uppercase">Fecha Consejo
+                                        Profesores</label>
+                                    <label
+                                        class="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase cursor-pointer">
+                                        <input type="checkbox" id="no_consejo"
+                                            onchange="toggleDate('fecha_consejo_profesores', this.checked)"> No registra
+                                    </label>
+                                </div>
+                                <input type="date" id="fecha_consejo_profesores"
+                                    class="w-full px-4 py-2 border border-indigo-200 rounded-lg bg-white">
+                            </div>
+                            <button type="button" onclick="openConsejoModal()"
+                                class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 whitespace-nowrap">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                Registrar Consejo
+                            </button>
+                        </div>
+                        <p id="consejo-estado-label" class="text-[11px] text-slate-400 mt-2">Registre si el Consejo de
+                            Profesores se confirma. Opcionalmente puede enviar correo a los destinatarios.</p>
+                    </div>
+                    <!-- FIN GRUPO CONSEJO DE PROFESORES -->
+
+                    <!-- GRUPO: NOTIFICACIÓN FINAL "MEDIDA" -->
+                    <div class="md:col-span-2 border border-indigo-200 rounded-2xl p-6 bg-indigo-50/40">
+                        <div class="flex flex-col md:flex-row md:items-end gap-4">
+                            <div class="flex-1">
+                                <label class="block text-xs font-bold text-indigo-700 uppercase mb-1">Fecha Notificación
+                                    Final "MEDIDA"</label>
+                                <input type="date" id="fecha_notificacion_final"
+                                    class="w-full px-4 py-2 border border-indigo-200 rounded-lg bg-white">
+                            </div>
+                            <button type="button" onclick="openNotifModal('final_medida')"
+                                class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 whitespace-nowrap">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                                    </path>
+                                </svg>
+                                Enviar Notificación
+                            </button>
+                        </div>
+                        <p class="text-[11px] text-slate-400 mt-2">Los recordatorios se envían a los destinatarios del
+                            colegio del estudiante (más los que tengan el privilegio <strong>todos_colegios</strong>).
+                            Guarde
+                            el registro antes de notificar.</p>
+                    </div>
+                    <!-- FIN GRUPO NOTIFICACIÓN FINAL MEDIDA -->
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha Envío
+                                ANTECEDENTES
+                                SIE</label>
+                            <input type="date" id="fecha_envio_sie" class="w-full px-4 py-2 border rounded-lg">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Medida Aplicada</label>
+                            <select id="medida" class="w-full px-4 py-2 border rounded-lg">
+                                <option value="EXPULSIÓN O CANCELACIÓN DE MATRÍCULA">EXPULSIÓN O CANCELACIÓN DE
+                                    MATRÍCULA</option>
+                                <option value="CONDICIONALIDAD EXTREMA DE LA MEDIDA">CONDICIONALIDAD EXTREMA DE LA
+                                    MEDIDA</option>
+                                <option value="OTRA MEDIDA">OTRA MEDIDA</option>
+                                <option value="EXPULSIÓN">EXPULSIÓN</option>
+                                <option value="CANCELACIÓN DE MATRÍCULA">CANCELACIÓN DE MATRÍCULA</option>
+                            </select>
+                        </div>
+                    </div>
+
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Resultado Revisión
+                            EXPEDIENTE
+                            MEDIDA</label>
+                        <textarea id="resultado_revision" rows="2"
+                            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500"></textarea>
+                    </div>
+
+                    <!-- BOTONES GUARDAR / CANCELAR -->
+                    <div class="flex justify-end gap-3 mt-6 border-t pt-6">
+                        <button type="button" onclick="window.location.href='dashboard.html'"
+                            class="px-6 py-2 text-slate-500 font-bold hover:bg-slate-100 rounded-lg transition">Cancelar</button>
+                        <button type="submit"
+                            class="js-btn-save px-10 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg">Guardar
+                            Registro</button>
                     </div>
                 </div>
+                <!-- ============ FASE 3: EXPEDIENTE DIGITAL ============ -->
+                <!-- SECCIÓN DE DOCUMENTACIÓN (SOLO EDICIÓN) -->
+                <div id="doc-section" class="form-phase hidden" data-phase="3">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div
+                            class="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13">
+                                </path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-800">Expediente Digital (PDF)</h3>
+                    </div>
 
-                <div id="doc-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Lista de archivos -->
-                </div>
+                    <div class="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100 mb-8">
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
+                            <div class="md:col-span-6">
+                                <label
+                                    class="block text-[10px] font-bold text-indigo-600 uppercase mb-2 tracking-wider">Tipo
+                                    de Documento</label>
+                                <input list="doc-types" id="doc-type"
+                                    placeholder="Escriba o seleccione un tipo de documento..."
+                                    class="w-full px-4 py-2.5 bg-white border border-indigo-100 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 transition-all outline-none">
+                                <datalist id="doc-types">
+                                    <option value="Fecha Notificación Final &quot;MEDIDA&quot;"></option>
+                                    <option value="Resultado Revisión EXPEDIENTE MEDIDA"></option>
+                                </datalist>
+                            </div>
+                            <div class="md:col-span-3">
+                                <label
+                                    class="block text-[10px] font-bold text-indigo-600 uppercase mb-2 tracking-wider">Archivo
+                                    PDF</label>
+                                <label
+                                    class="flex items-center justify-center w-full px-4 py-2 bg-white border border-dashed border-indigo-200 rounded-xl cursor-pointer hover:bg-indigo-50 transition-all group">
+                                    <span id="file-name-label"
+                                        class="text-[10px] text-indigo-400 group-hover:text-indigo-600 truncate">Seleccionar
+                                        PDF...</span>
+                                    <input type="file" id="doc-file" accept=".pdf" class="hidden"
+                                        onchange="document.getElementById('file-name-label').innerText = this.files[0] ? this.files[0].name : 'Seleccionar PDF...'">
+                                </label>
+                            </div>
+                            <div class="md:col-span-3">
+                                <button type="button" onclick="uploadFile()"
+                                    class="w-full bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                                        </path>
+                                    </svg>
+                                    Subir y Comprimir
+                                </button>
+                            </div>
+                        </div>
+                    </div>
 
-                <!-- BOTONES GUARDAR / CANCELAR -->
-                <div class="flex justify-end gap-3 mt-8 border-t pt-6">
-                    <button type="button" onclick="window.location.href='dashboard.html'"
-                        class="px-6 py-2 text-slate-500 font-bold hover:bg-slate-100 rounded-lg transition">Cancelar</button>
-                    <button type="submit"
-                        class="js-btn-save px-10 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg">Guardar
-                        Registro</button>
+                    <div id="doc-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Lista de archivos -->
+                    </div>
+
+                    <!-- BOTONES GUARDAR / CANCELAR -->
+                    <div class="flex justify-end gap-3 mt-8 border-t pt-6">
+                        <button type="button" onclick="window.location.href='dashboard.html'"
+                            class="px-6 py-2 text-slate-500 font-bold hover:bg-slate-100 rounded-lg transition">Cancelar</button>
+                        <button type="submit"
+                            class="js-btn-save px-10 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg">Guardar
+                            Registro</button>
+                    </div>
                 </div>
-            </div>
             </div>
 
             <!-- MODAL PREVIEW PDF (fuera de las fases) -->
@@ -498,7 +511,8 @@
                     <button type="button" onclick="closeNotifModal()"
                         class="p-2 hover:bg-slate-200 rounded-full transition text-slate-500">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12">
                             </path>
                         </svg>
                     </button>
@@ -507,17 +521,23 @@
                 <!-- STEPPER / INDICADOR DE FASES -->
                 <div class="px-6 py-3 border-b bg-white flex items-center gap-2 text-xs font-bold select-none">
                     <button type="button" onclick="notifStepGoto(1)" class="flex items-center gap-2 text-slate-500">
-                        <span class="notif-step-dot w-6 h-6 rounded-full flex items-center justify-center bg-slate-200 text-slate-500 transition" data-dot="1">1</span>
+                        <span
+                            class="notif-step-dot w-6 h-6 rounded-full flex items-center justify-center bg-slate-200 text-slate-500 transition"
+                            data-dot="1">1</span>
                         <span class="hidden sm:inline">Mensaje</span>
                     </button>
                     <span class="flex-1 h-px bg-slate-200"></span>
                     <button type="button" onclick="notifStepGoto(2)" class="flex items-center gap-2 text-slate-500">
-                        <span class="notif-step-dot w-6 h-6 rounded-full flex items-center justify-center bg-slate-200 text-slate-500 transition" data-dot="2">2</span>
+                        <span
+                            class="notif-step-dot w-6 h-6 rounded-full flex items-center justify-center bg-slate-200 text-slate-500 transition"
+                            data-dot="2">2</span>
                         <span class="hidden sm:inline">Programación</span>
                     </button>
                     <span class="flex-1 h-px bg-slate-200"></span>
                     <button type="button" onclick="notifStepGoto(3)" class="flex items-center gap-2 text-slate-500">
-                        <span class="notif-step-dot w-6 h-6 rounded-full flex items-center justify-center bg-slate-200 text-slate-500 transition" data-dot="3">3</span>
+                        <span
+                            class="notif-step-dot w-6 h-6 rounded-full flex items-center justify-center bg-slate-200 text-slate-500 transition"
+                            data-dot="3">3</span>
                         <span class="hidden sm:inline">Destinatarios</span>
                     </button>
                 </div>
@@ -525,234 +545,317 @@
                 <div id="notif-body" class="flex-1 overflow-y-auto p-6">
                     <!-- ============ PASO 1: MENSAJE ============ -->
                     <div class="notif-step space-y-8" data-step="1">
-                    <!-- ESTADO DEL PROCESO (solo etapa medida) -->
-                    <section id="notif-estado-section" class="hidden">
-                        <h5 class="text-xs font-bold text-slate-500 uppercase mb-3">Estado del proceso</h5>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <label
-                                class="flex items-center gap-2 p-3 border rounded-xl cursor-pointer hover:border-indigo-400 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
-                                <input type="radio" name="notif-estado" value="EXPULSIÓN O CANCELACIÓN DE MATRÍCULA" checked>
-                                <span class="text-sm font-bold text-slate-700">Expulsión o Cancelación de Matrícula</span>
-                            </label>
-                            <label
-                                class="flex items-center gap-2 p-3 border rounded-xl cursor-pointer hover:border-indigo-400 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
-                                <input type="radio" name="notif-estado" value="CONDICIONALIDAD EXTREMA DE LA MEDIDA">
-                                <span class="text-sm font-bold text-slate-700">Condicionalidad extrema de la
-                                    medida</span>
-                            </label>
-                            <label
-                                class="flex items-center gap-2 p-3 border rounded-xl cursor-pointer hover:border-indigo-400 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
-                                <input type="radio" name="notif-estado" value="OTRA MEDIDA">
-                                <span class="text-sm font-bold text-slate-700">Otra Medida</span>
-                            </label>
-                        </div>
-                    </section>
-
-                    <!-- CUERPO DE CORREO PERSONALIZABLE -->
-                    <div>
-                        <h5 class="text-xs font-bold text-slate-500 uppercase mb-2">Mensaje del Correo (Editable)</h5>
-
-                        <!-- PLANTILLAS GUARDADAS DE ESTA FASE -->
-                        <div class="bg-slate-50 border rounded-xl p-3 mb-3">
-                            <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
-                                <select id="plantilla-select"
-                                    class="flex-1 px-3 py-2 border rounded-lg bg-white text-sm">
-                                    <option value="">— Plantillas guardadas de esta fase —</option>
-                                </select>
-                                <button type="button" onclick="aplicarPlantilla()"
-                                    class="px-3 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 whitespace-nowrap">Aplicar</button>
-                                <button type="button" onclick="eliminarPlantilla()"
-                                    class="px-3 py-2 bg-white border text-slate-500 text-xs font-bold rounded-lg hover:bg-red-50 hover:text-red-600 whitespace-nowrap">Borrar</button>
-                                <button type="button" onclick="guardarPlantilla()"
-                                    class="px-3 py-2 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 whitespace-nowrap">Guardar como plantilla</button>
+                        <!-- ESTADO DEL PROCESO (solo etapa medida) -->
+                        <section id="notif-estado-section" class="hidden">
+                            <h5 class="text-xs font-bold text-slate-500 uppercase mb-3">Estado del proceso</h5>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <label
+                                    class="flex items-center gap-2 p-3 border rounded-xl cursor-pointer hover:border-indigo-400 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+                                    <input type="radio" name="notif-estado" value="EXPULSIÓN O CANCELACIÓN DE MATRÍCULA"
+                                        checked>
+                                    <span class="text-sm font-bold text-slate-700">Expulsión o Cancelación de
+                                        Matrícula</span>
+                                </label>
+                                <label
+                                    class="flex items-center gap-2 p-3 border rounded-xl cursor-pointer hover:border-indigo-400 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+                                    <input type="radio" name="notif-estado"
+                                        value="CONDICIONALIDAD EXTREMA DE LA MEDIDA">
+                                    <span class="text-sm font-bold text-slate-700">Condicionalidad extrema de la
+                                        medida</span>
+                                </label>
+                                <label
+                                    class="flex items-center gap-2 p-3 border rounded-xl cursor-pointer hover:border-indigo-400 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+                                    <input type="radio" name="notif-estado" value="OTRA MEDIDA">
+                                    <span class="text-sm font-bold text-slate-700">Otra Medida</span>
+                                </label>
                             </div>
-                            <p class="text-[11px] text-slate-400 mt-1.5">Las plantillas se guardan por fase y quedan
-                                disponibles para todos los procesos. El texto de abajo es editable antes de enviar.</p>
+                        </section>
+
+                        <!-- CUERPO DE CORREO PERSONALIZABLE -->
+                        <div>
+                            <h5 class="text-xs font-bold text-slate-500 uppercase mb-2">Mensaje del Correo (Editable)
+                            </h5>
+
+                            <!-- PLANTILLAS GUARDADAS DE ESTA FASE -->
+                            <div class="bg-slate-50 border rounded-xl p-3 mb-3">
+                                <!-- CASO 1: YA EXISTEN PLANTILLAS DE ESTA FASE -->
+                                <div id="plantillas-existentes-wrap" class="hidden flex-col sm:flex-row gap-2 sm:items-center">
+                                    <select id="plantilla-select"
+                                        class="flex-1 px-3 py-2 border rounded-lg bg-white text-sm" onchange="aplicarPlantillaSeleccionada()">
+                                        <option value="">— Seleccionar plantilla —</option>
+                                    </select>
+                                    <button type="button" onclick="modificarPlantillaActual()"
+                                        class="px-3 py-2 bg-amber-600 text-white text-xs font-bold rounded-lg hover:bg-amber-700 whitespace-nowrap shadow-sm flex items-center gap-1">
+                                        ✏️ Modificar plantilla
+                                    </button>
+                                    <button type="button" onclick="eliminarPlantilla()"
+                                        class="px-3 py-2 bg-white border text-slate-500 text-xs font-bold rounded-lg hover:bg-red-50 hover:text-red-600 whitespace-nowrap">
+                                        🗑️ Borrar
+                                    </button>
+                                </div>
+
+                                <!-- CASO 2: NO EXISTEN PLANTILLAS DE ESTA FASE -->
+                                <div id="plantillas-vacias-wrap" class="hidden flex-col sm:flex-row items-center justify-between gap-3 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                                    <div class="flex items-center gap-2 text-amber-800 text-xs font-medium">
+                                        <span class="text-base">📝</span>
+                                        <span>No hay una plantilla configurada para esta fase.</span>
+                                    </div>
+                                    <button type="button" onclick="guardarPlantilla()"
+                                        class="px-3 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 whitespace-nowrap shadow-sm flex items-center gap-1">
+                                        ➕ Registrar plantilla
+                                    </button>
+                                </div>
+
+                                <p class="text-[11px] text-slate-400 mt-1.5">Las plantillas se guardan por fase y quedan disponibles para todos los procesos. El texto de abajo es editable antes de enviar.</p>
+                            </div>
+
+                            <!-- ASUNTO EDITABLE -->
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Asunto del
+                                Correo</label>
+                            <input type="text" id="notif-asunto" onfocus="setLastField('notif-asunto')"
+                                class="w-full px-4 py-2 border rounded-xl text-sm text-slate-700 mb-3 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                placeholder="Asunto del correo...">
+
+                            <h6 class="text-xs font-bold text-slate-500 uppercase mb-1">Mensaje</h6>
+                            <p class="text-[11px] text-slate-400 mb-2 flex flex-wrap gap-1.5 items-center">Haz clic para
+                                insertar (en el <strong>asunto</strong> o el <strong>mensaje</strong>, según dónde estés
+                                escribiendo):
+                                <button type="button" onclick="insertPlaceholder('{nombre}')"
+                                    class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{nombre}</button>
+                                <button type="button" onclick="insertPlaceholder('{rut}')"
+                                    class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{rut}</button>
+                                <button type="button" onclick="insertPlaceholder('{curso}')"
+                                    class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{curso}</button>
+                                <button type="button" onclick="insertPlaceholder('{causa}')"
+                                    class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{causa}</button>
+                                <button type="button" onclick="insertPlaceholder('{fecha_inicio}')"
+                                    class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{fecha_inicio}</button>
+                                <button type="button" onclick="insertPlaceholder('{estado}')"
+                                    class="px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold rounded text-[10px]">{estado}</button>
+                                <button type="button" onclick="insertPlaceholder('{medida}')"
+                                    class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{medida}</button>
+                                <button type="button" onclick="insertPlaceholder('{fecha_medida}')"
+                                    class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{fecha_medida}</button>
+                                <button type="button" onclick="insertPlaceholder('{colegio}')"
+                                    class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{colegio}</button>
+                                <button type="button" onclick="insertPlaceholder('{dias_transcurridos}')"
+                                    class="px-1.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded text-[10px]">{dias_transcurridos}</button>
+                                <button type="button" onclick="insertPlaceholder('{plazo_total}')"
+                                    class="px-1.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded text-[10px]">{plazo_total}</button>
+                                <button type="button" onclick="insertPlaceholder('{dias_restantes}')"
+                                    class="px-1.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded text-[10px]">{dias_restantes}</button>
+                            </p>
+                            <textarea id="notif-cuerpo" rows="6" onfocus="setLastField('notif-cuerpo')"
+                                class="w-full px-4 py-3 border rounded-xl text-sm text-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                                placeholder="Escribe el mensaje personalizado del correo..."></textarea>
                         </div>
-
-                        <!-- ASUNTO EDITABLE -->
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Asunto del Correo</label>
-                        <input type="text" id="notif-asunto" onfocus="setLastField('notif-asunto')"
-                            class="w-full px-4 py-2 border rounded-xl text-sm text-slate-700 mb-3 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                            placeholder="Asunto del correo...">
-
-                        <h6 class="text-xs font-bold text-slate-500 uppercase mb-1">Mensaje</h6>
-                        <p class="text-[11px] text-slate-400 mb-2 flex flex-wrap gap-1.5 items-center">Haz clic para insertar (en el <strong>asunto</strong> o el <strong>mensaje</strong>, según dónde estés escribiendo):
-                            <button type="button" onclick="insertPlaceholder('{nombre}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{nombre}</button>
-                            <button type="button" onclick="insertPlaceholder('{rut}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{rut}</button>
-                            <button type="button" onclick="insertPlaceholder('{curso}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{curso}</button>
-                            <button type="button" onclick="insertPlaceholder('{causa}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{causa}</button>
-                            <button type="button" onclick="insertPlaceholder('{fecha_inicio}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{fecha_inicio}</button>
-                            <button type="button" onclick="insertPlaceholder('{estado}')" class="px-1.5 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold rounded text-[10px]">{estado}</button>
-                            <button type="button" onclick="insertPlaceholder('{medida}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{medida}</button>
-                            <button type="button" onclick="insertPlaceholder('{fecha_medida}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{fecha_medida}</button>
-                            <button type="button" onclick="insertPlaceholder('{colegio}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{colegio}</button>
-                        </p>
-                        <textarea id="notif-cuerpo" rows="6" onfocus="setLastField('notif-cuerpo')" class="w-full px-4 py-3 border rounded-xl text-sm text-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" placeholder="Escribe el mensaje personalizado del correo..."></textarea>
-                    </div>
                     </div>
                     <!-- ============ PASO 2: PROGRAMACIÓN ============ -->
                     <div class="notif-step space-y-8 hidden" data-step="2">
-                    <!-- TIPO DE ENVÍO -->
-                    <section>
-                        <h5 class="text-xs font-bold text-slate-500 uppercase mb-3">Tipo de envío</h5>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <label
-                                class="flex items-start gap-3 p-3 border rounded-xl cursor-pointer hover:border-indigo-400 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
-                                <input type="radio" name="notif-modo" value="una_vez" class="mt-1" checked
-                                    onchange="onModoChange()">
-                                <span><span class="block font-bold text-sm text-slate-700">Una sola vez</span><span
-                                        class="block text-xs text-slate-500">Envía el correo ahora, una vez.</span></span>
-                            </label>
-                            <label
-                                class="flex items-start gap-3 p-3 border rounded-xl cursor-pointer hover:border-indigo-400 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
-                                <input type="radio" name="notif-modo" value="paulatino" class="mt-1"
-                                    onchange="onModoChange()">
-                                <span><span class="block font-bold text-sm text-slate-700">Paulatino</span><span
-                                        class="block text-xs text-slate-500">Recordatorio diario hasta
-                                        cancelar.</span></span>
-                            </label>
-                            <label
-                                class="flex items-start gap-3 p-3 border rounded-xl cursor-pointer hover:border-indigo-400 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
-                                <input type="radio" name="notif-modo" value="cada_3_dias" class="mt-1"
-                                    onchange="onModoChange()">
-                                <span><span class="block font-bold text-sm text-slate-700">Cada 3 días</span><span
-                                        class="block text-xs text-slate-500">Envía cada 3 días, máximo 3
-                                        veces.</span></span>
-                            </label>
-                            <label
-                                class="flex items-start gap-3 p-3 border rounded-xl cursor-pointer hover:border-indigo-400 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
-                                <input type="radio" name="notif-modo" value="fecha_indicada" class="mt-1"
-                                    onchange="onModoChange()">
-                                <span><span class="block font-bold text-sm text-slate-700">En fecha
-                                        indicada</span><span class="block text-xs text-slate-500">Envía una vez en la
-                                        fecha que elijas.</span></span>
-                            </label>
-                            <label
-                                class="flex items-start gap-3 p-3 border rounded-xl cursor-pointer hover:border-indigo-400 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
-                                <input type="radio" name="notif-modo" value="dias_habiles" class="mt-1"
-                                    onchange="onModoChange()">
-                                <span><span class="block font-bold text-sm text-slate-700">Por días hábiles</span><span
-                                        class="block text-xs text-slate-500">Notifica en días hábiles específicos (ej: 3, 5, 8).</span></span>
-                            </label>
-                        </div>
-                        <div id="notif-fecha-wrap" class="mt-3 hidden">
-                            <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha de envío</label>
-                            <input type="date" id="notif-fecha" oninput="checkDuplicadoFase()" class="px-4 py-2 border rounded-lg">
-                        </div>
-                        <div id="notif-dias-habiles-wrap" class="mt-3 hidden">
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Plazo total (días hábiles)</label>
-                                    <input type="number" id="notif-dh-total" min="1" placeholder="Ej. 10" class="w-full px-4 py-2 border rounded-lg">
+                        <!-- CONFIGURACIÓN DE ENVÍO DE ESTA FASE -->
+                        <section>
+                            <div class="flex items-center justify-between mb-3">
+                                <h5 class="text-xs font-bold text-slate-500 uppercase">Programación del Proceso</h5>
+                                <a href="plantillas.html" target="_blank" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                                    ⚙️ Modificar en Plantillas y Plazos
+                                </a>
+                            </div>
+                            
+                            <div id="fase-config-info-card" class="bg-indigo-50/70 border border-indigo-100 rounded-xl p-4 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-extrabold text-indigo-900 uppercase tracking-wide" id="fase-config-nombre">—</span>
+                                    <span class="text-[11px] bg-indigo-200/60 text-indigo-800 font-extrabold px-2.5 py-0.5 rounded-full" id="fase-config-plazo">Plazo: —</span>
                                 </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Días de envío</label>
-                                    <input type="text" id="notif-dh-envio" placeholder="Ej. 1,3,4" class="w-full px-4 py-2 border rounded-lg">
-                                </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Hora de envío</label>
-                                    <input type="time" id="notif-dh-hora" value="08:00" class="w-full px-4 py-2 border rounded-lg">
+                                <div class="text-xs text-slate-600 space-y-1">
+                                    <p class="font-medium text-slate-700"><strong>Configuración de envíos programados:</strong></p>
+                                    <div id="fase-config-dias-badges" class="flex flex-wrap gap-1.5 pt-1">
+                                        <span class="text-slate-400 italic text-xs">Cargando configuración de la fase...</span>
+                                    </div>
                                 </div>
                             </div>
-                            <p class="text-[11px] text-slate-400 mt-1.5">El <strong>día 1 es hoy</strong> y siempre se envía. Los demás días se cuentan corridos desde hoy (día 2 = mañana, día 6 = hoy+5); si caen sábado o domingo se mueven al lunes. Cada envío sale a la hora elegida y queda registrado como tarea programada.</p>
-                            <button type="button" onclick="openDiasPreview()"
-                                class="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
-                                    </path>
-                                </svg>
-                                Ver días de envío
-                            </button>
-                        </div>
 
-                        <div class="mt-5">
-                            <h5 class="text-xs font-bold text-slate-500 uppercase mb-3">Destino</h5>
-                            <div class="flex flex-wrap gap-3 mb-3">
-                                <label
-                                    class="flex items-center gap-2 text-sm border rounded-lg px-3 py-1.5 cursor-pointer has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
-                                    <input type="radio" name="notif-destino" value="todos" checked
-                                        onchange="onDestinoChange()"> Todos los del colegio
-                                </label>
-                                <label
-                                    class="flex items-center gap-2 text-sm border rounded-lg px-3 py-1.5 cursor-pointer has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
-                                    <input type="radio" name="notif-destino" value="grupos"
-                                        onchange="onDestinoChange()"> Grupos específicos
-                                </label>
+                            <!-- Mantenemos el radio activo por defecto (una_vez / automático) de forma no visible para compatibilidad -->
+                            <div class="hidden">
+                                <input type="radio" name="notif-modo" value="una_vez" checked onchange="onModoChange()">
                             </div>
-                            <div id="notif-grupos-wrap" class="hidden flex flex-wrap gap-2"></div>
-                        </div>
-                    </section>
+                            <div id="notif-fecha-wrap" class="mt-3 hidden">
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha de
+                                    envío</label>
+                                <input type="date" id="notif-fecha" oninput="checkDuplicadoFase()"
+                                    class="px-4 py-2 border rounded-lg">
+                            </div>
+                            <div id="notif-dias-habiles-wrap" class="mt-3 hidden">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Plazo total
+                                            (días hábiles)</label>
+                                        <input type="number" id="notif-dh-total" min="1" placeholder="Ej. 10"
+                                            class="w-full px-4 py-2 border rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Días de
+                                            envío</label>
+                                        <input type="text" id="notif-dh-envio" placeholder="Ej. 1,3,4"
+                                            class="w-full px-4 py-2 border rounded-lg">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Hora de
+                                            envío</label>
+                                        <input type="time" id="notif-dh-hora" value="08:00"
+                                            class="w-full px-4 py-2 border rounded-lg">
+                                    </div>
+                                </div>
+                                <p class="text-[11px] text-slate-400 mt-1.5">El <strong>día 1 es hoy</strong> y siempre
+                                    se envía. Los demás días se cuentan corridos desde hoy (día 2 = mañana, día 6 =
+                                    hoy+5); si caen sábado o domingo se mueven al lunes. Cada envío sale a la hora
+                                    elegida y queda registrado como tarea programada.</p>
+                                <button type="button" onclick="openDiasPreview()"
+                                    class="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                        </path>
+                                    </svg>
+                                    Ver días de envío
+                                </button>
+                            </div>
+
+                            <div class="mt-5">
+                                <h5 class="text-xs font-bold text-slate-500 uppercase mb-3">Destino</h5>
+                                <div class="flex flex-wrap gap-3 mb-3">
+                                    <label
+                                        class="flex items-center gap-2 text-sm border rounded-lg px-3 py-1.5 cursor-pointer has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+                                        <input type="radio" name="notif-destino" value="todos" checked
+                                            onchange="onDestinoChange()"> Todos los del colegio
+                                    </label>
+                                    <label
+                                        class="flex items-center gap-2 text-sm border rounded-lg px-3 py-1.5 cursor-pointer has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+                                        <input type="radio" name="notif-destino" value="grupos"
+                                            onchange="onDestinoChange()"> Grupos específicos
+                                    </label>
+                                </div>
+                                <div id="notif-grupos-wrap" class="hidden flex flex-wrap gap-2"></div>
+                            </div>
+                        </section>
                     </div>
-                    <!-- ============ PASO 3: DESTINATARIOS ============ -->
-                    <div class="notif-step space-y-8 hidden" data-step="3">
-                    <div id="notif-dup-warning"
-                        class="hidden bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-xl px-4 py-3 flex items-start gap-2">
-                        <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                        </svg>
-                        <span id="notif-dup-warning-text"></span>
-                    </div>
-                    <!-- DESTINATARIOS -->
-                    <section>
-                        <h5 class="text-xs font-bold text-slate-500 uppercase mb-3">Destinatarios (a quienes se
-                            enviará)</h5>
-                        <div class="overflow-x-auto border rounded-xl">
-                            <table class="w-full text-sm">
-                                <thead class="bg-slate-50 text-slate-500 text-xs uppercase">
-                                    <tr>
-                                        <th class="text-left p-3">Nombre</th>
-                                        <th class="text-left p-3">Email</th>
-                                        <th class="text-left p-3">Colegio</th>
-                                        <th class="text-left p-3">Grupos</th>
-                                        <th class="text-center p-3">Estado</th>
-                                        <th class="p-3"></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="notif-dest-body"></tbody>
-                            </table>
+                                      <!-- ============ PASO 3: DESTINATARIOS ============ -->
+                    <div class="notif-step space-y-4 hidden" data-step="3">
+                        <div id="notif-dup-warning"
+                            class="hidden bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-xl px-4 py-3 flex items-start gap-2">
+                            <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <span id="notif-dup-warning-text"></span>
                         </div>
 
-                        <div class="mt-4 bg-slate-50 border rounded-xl p-4">
-                            <h6 class="text-xs font-bold text-slate-500 uppercase mb-3">Agregar destinatario</h6>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <input id="nd-nombre" placeholder="Nombre" class="px-3 py-2 border rounded-lg">
-                                <input id="nd-email" type="email" placeholder="Email" class="px-3 py-2 border rounded-lg">
-                                <select id="nd-colegio" class="px-3 py-2 border rounded-lg bg-white"></select>
-                                <label class="flex items-center gap-2 text-sm text-slate-600">
-                                    <input type="checkbox" id="nd-todos"> Recibe de todos los colegios
-                                    (<strong>todos_colegios</strong>)
-                                </label>
+                        <!-- SISTEMA DE ACORDEÓN PARA PASO 3 -->
+                        <div class="space-y-3">
+                            <!-- ACORDEÓN 1: DESTINATARIOS -->
+                            <div class="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-xs">
+                                <button type="button" onclick="toggleAccordion('acc-destinatarios')"
+                                    class="w-full px-5 py-4 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition text-left">
+                                    <div class="flex items-center gap-3">
+                                        <div class="p-2 bg-indigo-100 text-indigo-700 rounded-lg text-sm">👥</div>
+                                        <div>
+                                            <h5 class="text-sm font-bold text-slate-800">Destinatarios <span class="text-xs font-normal text-slate-500">(a quienes se enviará)</span></h5>
+                                            <p class="text-xs text-slate-400">Listado de usuarios que recibirán los correos</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <span id="acc-dest-count" class="text-xs font-bold bg-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-full">0</span>
+                                        <svg id="acc-destinatarios-arrow" class="w-5 h-5 text-slate-400 transition-transform duration-200 transform rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                </button>
+                                <div id="acc-destinatarios" class="p-4 border-t border-slate-100">
+                                    <div class="overflow-x-auto border rounded-xl">
+                                        <table class="w-full text-sm">
+                                            <thead class="bg-slate-50 text-slate-500 text-xs uppercase">
+                                                <tr>
+                                                    <th class="text-left p-3">Nombre</th>
+                                                    <th class="text-left p-3">Email</th>
+                                                    <th class="text-left p-3">Colegio</th>
+                                                    <th class="text-left p-3">Grupos</th>
+                                                    <th class="text-center p-3">Estado</th>
+                                                    <th class="p-3"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="notif-dest-body"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="mt-3">
-                                <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Grupos</label>
-                                <div id="nd-grupos" class="flex flex-wrap gap-2 text-sm text-slate-600"></div>
+
+                            <!-- ACORDEÓN 2: AGREGAR DESTINATARIO -->
+                            <div class="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-xs">
+                                <button type="button" onclick="toggleAccordion('acc-agregar-dest')"
+                                    class="w-full px-5 py-4 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition text-left">
+                                    <div class="flex items-center gap-3">
+                                        <div class="p-2 bg-emerald-100 text-emerald-700 rounded-lg text-sm">➕</div>
+                                        <div>
+                                            <h5 class="text-sm font-bold text-slate-800">Agregar destinatario</h5>
+                                            <p class="text-xs text-slate-400">Registrar un nuevo contacto al sistema</p>
+                                        </div>
+                                    </div>
+                                    <svg id="acc-agregar-dest-arrow" class="w-5 h-5 text-slate-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+                                <div id="acc-agregar-dest" class="p-4 border-t border-slate-100 hidden">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <input id="nd-nombre" placeholder="Nombre" class="px-3 py-2 border rounded-lg">
+                                        <input id="nd-email" type="email" placeholder="Email" class="px-3 py-2 border rounded-lg">
+                                        <select id="nd-colegio" class="px-3 py-2 border rounded-lg bg-white"></select>
+                                        <label class="flex items-center gap-2 text-sm text-slate-600">
+                                            <input type="checkbox" id="nd-todos"> Recibe de todos los colegios
+                                            (<strong>todos_colegios</strong>)
+                                        </label>
+                                    </div>
+                                    <div class="mt-3">
+                                        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Grupos</label>
+                                        <div id="nd-grupos" class="flex flex-wrap gap-2 text-sm text-slate-600"></div>
+                                    </div>
+                                    <button type="button" onclick="addDestinatario()"
+                                        class="mt-3 px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-lg shadow-sm transition">
+                                        Agregar Destinatario
+                                    </button>
+                                </div>
                             </div>
-                            <button type="button" onclick="addDestinatario()"
-                                class="mt-3 px-5 py-2 bg-slate-900 text-white text-sm font-bold rounded-lg hover:bg-slate-800">Agregar</button>
-                        </div>
-                    </section>
 
-                    <!-- GRUPOS DEL COLEGIO -->
-                    <section>
-                        <h5 class="text-xs font-bold text-slate-500 uppercase mb-3">Grupos del colegio</h5>
-                        <div class="flex gap-2 mb-3">
-                            <input id="nuevo-grupo" placeholder="Nombre del grupo (ej. Convivencia)"
-                                class="flex-1 px-3 py-2 border rounded-lg">
-                            <button type="button" onclick="createGrupo()"
-                                class="px-5 py-2 bg-slate-900 text-white text-sm font-bold rounded-lg hover:bg-slate-800">Crear</button>
+                            <!-- ACORDEÓN 3: GRUPOS DEL COLEGIO -->
+                            <div class="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-xs">
+                                <button type="button" onclick="toggleAccordion('acc-grupos-colegio')"
+                                    class="w-full px-5 py-4 flex items-center justify-between bg-slate-50 hover:bg-slate-100 transition text-left">
+                                    <div class="flex items-center gap-3">
+                                        <div class="p-2 bg-amber-100 text-amber-700 rounded-lg text-sm">🏷️</div>
+                                        <div>
+                                            <h5 class="text-sm font-bold text-slate-800">Grupos del colegio</h5>
+                                            <p class="text-xs text-slate-400">Administrar categorías y grupos de notificación</p>
+                                        </div>
+                                    </div>
+                                    <svg id="acc-grupos-colegio-arrow" class="w-5 h-5 text-slate-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+                                <div id="acc-grupos-colegio" class="p-4 border-t border-slate-100 hidden">
+                                    <div class="flex gap-2 mb-3">
+                                        <input id="nuevo-grupo" placeholder="Nombre del grupo (ej. Convivencia)" class="flex-1 px-3 py-2 border rounded-lg">
+                                        <button type="button" onclick="createGrupo()" class="px-5 py-2 bg-slate-900 text-white text-sm font-bold rounded-lg hover:bg-slate-800 transition">Crear</button>
+                                    </div>
+                                    <div id="grupos-list" class="flex flex-wrap gap-2"></div>
+                                </div>
+                            </div>
                         </div>
-                        <div id="grupos-list" class="flex flex-wrap gap-2"></div>
-                    </section>
 
-                    <!-- HISTORIAL -->
-                    <section>
-                        <h5 class="text-xs font-bold text-slate-500 uppercase mb-3">Notificaciones programadas /
-                            enviadas</h5>
-                        <div id="notif-history" class="space-y-2"></div>
-                    </section>
+                        <!-- HISTORIAL -->
+                        <section>
+                            <h5 class="text-xs font-bold text-slate-500 uppercase mb-3">Notificaciones programadas /
+                                enviadas</h5>
+                            <div id="notif-history" class="space-y-2"></div>
+                        </section>
                     </div>
                 </div>
 
@@ -784,7 +887,8 @@
                     <button type="button" onclick="closeDiasPreview()"
                         class="p-2 hover:bg-slate-200 rounded-full transition text-slate-500">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12">
                             </path>
                         </svg>
                     </button>
@@ -807,7 +911,8 @@
                     <button type="button" onclick="closeLogsModal()"
                         class="p-2 hover:bg-slate-200 rounded-full transition text-slate-500">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12">
                             </path>
                         </svg>
                     </button>
@@ -910,30 +1015,30 @@
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
-        const studentId = urlParams.get('id');
+        let studentId = urlParams.get('id');
 
         function normalizarCurso(str) {
             if (!str) return "";
             let clean = str.toString().trim().toUpperCase();
-            
+
             // Reemplazar grados/ordinales por un caracter unificado "º"
             clean = clean.replace(/[°º]/g, "º");
-            
+
             // Quitar espacios repetidos
             clean = clean.replace(/\s+/g, " ");
-            
+
             // Normalizar Romanos / Medio
             clean = clean.replace(/IV\s*º?\s*(M|MEDIO)/g, "4ºM");
             clean = clean.replace(/III\s*º?\s*(M|MEDIO)/g, "3ºM");
             clean = clean.replace(/II\s*º?\s*(M|MEDIO)/g, "2ºM");
             clean = clean.replace(/I\s*º?\s*(M|MEDIO)/g, "1ºM");
-            
+
             // Asegurar formato de espacio antes de la letra en enseñanza media (ej: "1ºM A" en lugar de "1ºMA" o "1ºM  A")
             clean = clean.replace(/(1|2|3|4)ºM\s*([A-C])/g, "$1ºM $2");
-            
+
             // Tambien puede haber "5º A" con espacio entre el grado y la letra, quitar el espacio
             clean = clean.replace(/(\d)º\s+([A-C])/g, "$1º$2");
-            
+
             return clean;
         }
 
@@ -1101,15 +1206,35 @@
                 });
 
                 if (response.ok) {
-                    window.location.href = 'dashboard.html';
+                    const resData = await response.json();
+                    const wasNew = !studentId;
+
+                    if (wasNew && resData && resData.id) {
+                        studentId = resData.id;
+                        window.history.pushState(null, '', `registro.html?id=${studentId}`);
+                        document.getElementById('page-title').innerText = 'Editar Registro de Alumno';
+                        document.querySelectorAll('.js-btn-save').forEach(b => b.innerText = 'Actualizar Registro');
+                        document.getElementById('tab-expediente').classList.remove('hidden');
+                    }
+
+                    setProcesoLock(false);
+                    formPhaseGoto(2);
+
+                    if (wasNew) {
+                        alert('✅ Registro del alumno guardado con éxito. Has avanzado a la Fase 2: Proceso y Notificaciones.');
+                    } else {
+                        alert('✅ Registro actualizado con éxito.');
+                    }
                 } else if (response.status === 422) {
                     const errorData = await response.json();
                     showErrorModal(errorData.detail);
                 } else {
-                    alert('Error al guardar el registro');
+                    const errData = await response.json().catch(() => ({ detail: 'Error en el servidor (' + response.status + ')' }));
+                    alert('❌ Error al guardar: ' + (errData.detail || 'Respuesta no válida del servidor'));
                 }
             } catch (e) {
-                alert('Error de conexión');
+                console.error('Error al guardar registro:', e);
+                alert('❌ Error de conexión con el backend (http://127.0.0.1:8010). Asegúrate de que el servidor Uvicorn esté activo.');
             }
         });
 
@@ -1279,10 +1404,10 @@
 
         function loadDefaultMessage() {
             const TEMPLATES = {
-                inicio_proceso: "Le recordamos que existe un proceso de Aula Segura en curso que requiere su atención.\n\nEstudiante: {nombre}\nRUT: {rut}\nCurso: {curso}\nCausa: {causa}\nFecha de inicio: {fecha_inicio}\n\nPor favor revise el expediente y realice las gestiones que correspondan.",
-                medida: "Le informamos sobre la medida y apelación del proceso de Aula Segura que se detalla a continuación:\n\nEstudiante: {nombre}\nRUT: {rut}\nCurso: {curso}\nMedida Aplicada: {medida}\nFecha Notificación Medida: {fecha_medida}\n\nPor favor revise el expediente y realice las gestiones que correspondan.",
-                apelacion: "Le informamos respecto de la recepción de la carta de apelación del proceso de Aula Segura que se detalla a continuación:\n\nEstudiante: {nombre}\nRUT: {rut}\nCurso: {curso}\n\nPor favor revise el expediente y realice las gestiones que correspondan.",
-                final_medida: "Le informamos la notificación final de la medida del proceso de Aula Segura que se detalla a continuación:\n\nEstudiante: {nombre}\nRUT: {rut}\nCurso: {curso}\nMedida Aplicada: {medida}\n\nPor favor revise el expediente y realice las gestiones que correspondan."
+                inicio_proceso: "Le recordamos que existe un proceso de Aula Segura en curso que requiere su atención.\n\nEstudiante: {nombre}\nRUT: {rut}\nCurso: {curso}\nCausa: {causa}\nFecha de inicio: {fecha_inicio}\n\nTe quedan {dias_restantes} días de {plazo_total} del plazo total (han transcurrido {dias_transcurridos} días). **Recuerda que esta fase es muy importante dentro del proceso.**\n\nPor favor revise el expediente y realice las gestiones que correspondan.",
+                medida: "Le informamos sobre la medida y apelación del proceso de Aula Segura que se detalla a continuación:\n\nEstudiante: {nombre}\nRUT: {rut}\nCurso: {curso}\nMedida Aplicada: {medida}\nFecha Notificación Medida: {fecha_medida}\n\nTe quedan {dias_restantes} días de {plazo_total} del plazo total (han transcurrido {dias_transcurridos} días). **Recuerda que esta fase es muy importante dentro del proceso.**\n\nPor favor revise el expediente y realice las gestiones que correspondan.",
+                apelacion: "Le informamos respecto de la recepción de la carta de apelación del proceso de Aula Segura que se detalla a continuación:\n\nEstudiante: {nombre}\nRUT: {rut}\nCurso: {curso}\n\nTe quedan {dias_restantes} días de {plazo_total} del plazo total (han transcurrido {dias_transcurridos} días). **Recuerda que esta fase es muy importante dentro del proceso.**\n\nPor favor revise el expediente y realice las gestiones que correspondan.",
+                final_medida: "Le informamos la notificación final de la medida del proceso de Aula Segura que se detalla a continuación:\n\nEstudiante: {nombre}\nRUT: {rut}\nCurso: {curso}\nMedida Aplicada: {medida}\n\nTe quedan {dias_restantes} días de {plazo_total} del plazo total (han transcurrido {dias_transcurridos} días). **Recuerda que esta fase es muy importante dentro del proceso.**\n\nPor favor revise el expediente y realice las gestiones que correspondan."
             };
             document.getElementById('notif-cuerpo').value = TEMPLATES[currentEtapa] || TEMPLATES['inicio_proceso'];
 
@@ -1302,6 +1427,9 @@
         async function loadPlantillas() {
             const token = localStorage.getItem('token');
             const sel = document.getElementById('plantilla-select');
+            const wrapExistentes = document.getElementById('plantillas-existentes-wrap');
+            const wrapVacias = document.getElementById('plantillas-vacias-wrap');
+
             try {
                 const resp = await fetch(`${API_URL}/plantillas?etapa=${encodeURIComponent(currentEtapa)}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -1310,15 +1438,66 @@
             } catch (e) {
                 PLANTILLAS_CACHE = [];
             }
-            sel.innerHTML = '<option value="">— Plantillas guardadas de esta fase —</option>' +
-                PLANTILLAS_CACHE.map(p => `<option value="${p.id}">${p.titulo}</option>`).join('');
+
+            if (PLANTILLAS_CACHE && PLANTILLAS_CACHE.length > 0) {
+                if (wrapExistentes) {
+                    wrapExistentes.classList.remove('hidden');
+                    wrapExistentes.classList.add('flex');
+                }
+                if (wrapVacias) {
+                    wrapVacias.classList.add('hidden');
+                    wrapVacias.classList.remove('flex');
+                }
+                sel.innerHTML = '<option value="">— Seleccionar plantilla —</option>' +
+                    PLANTILLAS_CACHE.map(p => `<option value="${p.id}">${p.titulo}</option>`).join('');
+                
+                // Si solo hay una plantilla o ninguna seleccionada, autoseleccionar la primera
+                if (PLANTILLAS_CACHE.length === 1) {
+                    sel.value = PLANTILLAS_CACHE[0].id;
+                    aplicarPlantillaSeleccionada();
+                }
+            } else {
+                if (wrapExistentes) {
+                    wrapExistentes.classList.add('hidden');
+                    wrapExistentes.classList.remove('flex');
+                }
+                if (wrapVacias) {
+                    wrapVacias.classList.remove('hidden');
+                    wrapVacias.classList.add('flex');
+                }
+            }
         }
 
-        function aplicarPlantilla() {
+        function aplicarPlantillaSeleccionada() {
             const id = document.getElementById('plantilla-select').value;
-            if (!id) { alert('Elige una plantilla de la lista.'); return; }
+            if (!id) return;
             const pl = PLANTILLAS_CACHE.find(p => String(p.id) === String(id));
             if (pl) document.getElementById('notif-cuerpo').value = pl.cuerpo;
+        }
+
+        async function modificarPlantillaActual() {
+            const id = document.getElementById('plantilla-select').value;
+            if (!id) { alert('Selecciona una plantilla para modificar.'); return; }
+            const cuerpo = document.getElementById('notif-cuerpo').value.trim();
+            if (!cuerpo) { alert('El cuerpo de la plantilla no puede estar vacío.'); return; }
+            const pl = PLANTILLAS_CACHE.find(p => String(p.id) === String(id));
+            const nuevoTitulo = prompt('Nombre o título de la plantilla:', pl ? pl.titulo : '');
+            if (!nuevoTitulo || !nuevoTitulo.trim()) return;
+
+            const token = localStorage.getItem('token');
+            const resp = await fetch(`${API_URL}/plantillas/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ titulo: nuevoTitulo.trim(), etapa: currentEtapa, cuerpo })
+            });
+
+            if (resp.ok) {
+                alert('✅ Plantilla modificada correctamente.');
+                await loadPlantillas();
+                document.getElementById('plantilla-select').value = id;
+            } else {
+                alert('❌ No se pudo actualizar la plantilla.');
+            }
         }
 
         async function guardarPlantilla() {
@@ -1410,13 +1589,49 @@
             notifStepGoto(1);
             NOTIF_HISTORY_CACHE = [];
             loadDefaultMessage();
-            loadPlantillas();
+            await loadPlantillas();
+            loadFaseConfigInfo();
             onModoChange();
             onDestinoChange();
             populateColegioSelect();
             await loadGrupos();
             loadNotifDestinatarios();
             loadNotifHistory();
+        }
+
+        async function loadFaseConfigInfo() {
+            const token = localStorage.getItem('token');
+            const elNombre = document.getElementById('fase-config-nombre');
+            const elPlazo = document.getElementById('fase-config-plazo');
+            const elBadges = document.getElementById('fase-config-dias-badges');
+            if (!elBadges) return;
+
+            try {
+                const resp = await fetch(`${API_URL}/configuracion/fases`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (resp.ok) {
+                    const fases = await resp.json();
+                    const config = fases.find(f => f.etapa === currentEtapa);
+                    if (config) {
+                        if (elNombre) elNombre.innerText = config.nombre_etapa || currentEtapa;
+                        if (elPlazo) elPlazo.innerText = `Plazo Total: ${config.plazo_dias} días`;
+
+                        const diasArr = config.dias_recordatorio ? config.dias_recordatorio.split(',').map(x => x.trim()) : [];
+                        if (diasArr.length > 0) {
+                            elBadges.innerHTML = diasArr.map(d => `
+                                <span class="px-2.5 py-1 bg-indigo-600 text-white rounded-md text-xs font-bold shadow-xs">
+                                    ${d === '0' ? 'Día 0 (Envío Inmediato)' : 'Recordatorio Día ' + d}
+                                </span>
+                            `).join('');
+                        } else {
+                            elBadges.innerHTML = `<span class="text-slate-500 text-xs italic">Sin días de recordatorio adicionales programados.</span>`;
+                        }
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.error('Error cargando configuración de fase:', e);
+            }
+            if (elBadges) elBadges.innerHTML = `<span class="text-slate-400 text-xs italic">Configuración por defecto del sistema.</span>`;
         }
 
         function closeNotifModal() {
@@ -1458,10 +1673,10 @@
             const wrap = document.getElementById('notif-fecha-wrap');
             const wrapDh = document.getElementById('notif-dias-habiles-wrap');
             const btn = document.getElementById('btn-enviar-notif');
-            
+
             wrap.classList.add('hidden');
             wrapDh.classList.add('hidden');
-            
+
             if (modo === 'fecha_indicada') {
                 wrap.classList.remove('hidden');
                 btn.innerText = 'Programar envío';
@@ -1588,6 +1803,22 @@
             }
         }
 
+        // ---------- ACORDEÓN PASO 3 ----------
+        function toggleAccordion(id) {
+            const content = document.getElementById(id);
+            const arrow = document.getElementById(`${id}-arrow`);
+            if (!content) return;
+
+            const isHidden = content.classList.contains('hidden');
+            if (isHidden) {
+                content.classList.remove('hidden');
+                if (arrow) arrow.classList.add('rotate-180');
+            } else {
+                content.classList.add('hidden');
+                if (arrow) arrow.classList.remove('rotate-180');
+            }
+        }
+
         // ---------- GRUPOS ----------
         let GRUPOS_CACHE = [];
 
@@ -1710,6 +1941,9 @@
                 return;
             }
             const dests = await resp.json();
+            const countBadge = document.getElementById('acc-dest-count');
+            if (countBadge) countBadge.innerText = dests.length;
+
             if (dests.length === 0) {
                 body.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400 text-xs">No hay destinatarios para este colegio. Agregue uno abajo.</td></tr>';
                 return;
@@ -1799,9 +2033,26 @@
 
         async function enviarNotificacion() {
             const token = localStorage.getItem('token');
-            const modo = document.querySelector('input[name="notif-modo"]:checked').value;
-            const payload = { modo, etapa: currentEtapa };
-            
+            let payload = { modo: 'dias_habiles', etapa: currentEtapa };
+
+            try {
+                const configResp = await fetch(`${API_URL}/configuracion/fases`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (configResp.ok) {
+                    const fases = await configResp.json();
+                    const conf = fases.find(f => f.etapa === currentEtapa);
+                    if (conf) {
+                        payload.dias_habiles_total = conf.plazo_dias || 10;
+                        payload.dias_habiles_envio = conf.dias_recordatorio || "0,3,5";
+                        payload.hora_envio = "08:00";
+                    }
+                }
+            } catch (e) {
+                console.error("Error obteniendo configuración de fase:", e);
+                payload.dias_habiles_total = 10;
+                payload.dias_habiles_envio = "0,3,5";
+                payload.hora_envio = "08:00";
+            }
+
             payload.cuerpo_personalizado = document.getElementById('notif-cuerpo').value;
             payload.asunto_personalizado = document.getElementById('notif-asunto').value;
 
@@ -1818,23 +2069,6 @@
                     return;
                 }
                 payload.grupo_ids = grupo_ids;
-            }
-            if (modo === 'fecha_indicada') {
-                const fecha = document.getElementById('notif-fecha').value;
-                if (!fecha) { alert('Seleccione la fecha de envío.'); return; }
-                payload.fecha_programada = fecha;
-            }
-            if (modo === 'dias_habiles') {
-                const total = parseInt(document.getElementById('notif-dh-total').value);
-                const envio = document.getElementById('notif-dh-envio').value.trim();
-                const hora = document.getElementById('notif-dh-hora').value || '08:00';
-                if (!total || !envio) {
-                    alert('Debe completar el plazo total y los días hábiles de envío.');
-                    return;
-                }
-                payload.dias_habiles_total = total;
-                payload.dias_habiles_envio = envio;
-                payload.hora_envio = hora;
             }
             const btn = document.getElementById('btn-enviar-notif');
             const original = btn.innerText;
@@ -1875,7 +2109,7 @@
             }
         }
 
-        const MODO_LABEL = { una_vez: 'Una sola vez', paulatino: 'Paulatino (diario)', cada_3_dias: 'Cada 3 días (máx 3)', fecha_indicada: 'Fecha indicada', dias_habiles: 'Días hábiles' };
+        const MODO_LABEL = { una_vez: 'Envío Programado', paulatino: 'Paulatino (diario)', cada_3_dias: 'Cada 3 días', fecha_indicada: 'Fecha indicada', dias_habiles: 'Días hábiles' };
         const ESTADO_LABEL = { activo: 'Activo', completado: 'Completado', cancelado: 'Cancelado' };
 
         async function loadNotifHistory() {
@@ -1895,24 +2129,28 @@
             cont.innerHTML = items.map(n => {
                 let infoExtra = '';
                 if (n.modo === 'dias_habiles') {
-                    infoExtra = ` · Plazo: ${n.dias_habiles_total} días hábiles · Envíos: día ${n.dias_habiles_envio}${n.hora_envio ? ' a las ' + n.hora_envio : ''}`;
+                    infoExtra = ` · Plazo: ${n.dias_habiles_total} días · Días programados: [${n.dias_habiles_envio}]`;
                 }
                 return `
-                <div class="flex items-center justify-between gap-3 p-3 border rounded-xl">
+                <div class="flex items-center justify-between gap-3 p-3 border rounded-xl bg-white shadow-xs">
                     <div>
-                        <p class="text-sm font-bold text-slate-700">${MODO_LABEL[n.modo] || n.modo}
-                            <span class="ml-2 text-[10px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">${n.etapa === 'medida' ? 'Medida' : n.etapa === 'apelacion' ? 'Apelación' : n.etapa === 'final_medida' ? 'Final' : n.etapa === 'consejo' ? 'Consejo' : 'Inicio'}</span>
-                            <span class="ml-1 text-[10px] px-2 py-0.5 rounded-full ${n.estado === 'activo' ? 'bg-green-100 text-green-700' : n.estado === 'completado' ? 'bg-slate-200 text-slate-600' : 'bg-red-100 text-red-600'}">${ESTADO_LABEL[n.estado] || n.estado}</span>
+                        <p class="text-sm font-bold text-slate-700">
+                            Proceso ${n.etapa === 'medida' ? 'Medida' : n.etapa === 'apelacion' ? 'Apelación' : n.etapa === 'final_medida' ? 'Final' : n.etapa === 'consejo' ? 'Consejo' : 'Inicio'}
+                            <span class="ml-2 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">${MODO_LABEL[n.modo] || n.modo}</span>
+                            <span class="ml-1 text-[10px] font-extrabold px-2 py-0.5 rounded-full ${n.estado === 'activo' ? 'bg-green-100 text-green-700' : n.estado === 'completado' ? 'bg-slate-200 text-slate-600' : 'bg-red-100 text-red-600'}">${ESTADO_LABEL[n.estado] || n.estado}</span>
                         </p>
-                        <p class="text-[11px] text-slate-400">Enviado ${n.veces_enviado} vez(ces)${n.proximo_envio ? ' · Próximo: ' + new Date(n.proximo_envio).toLocaleString() : ''}${n.fecha_programada ? ' · Programado: ' + n.fecha_programada : ''}${infoExtra}</p>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Enviado ${n.veces_enviado} vez(ces)${n.proximo_envio ? ' · Próximo envío: ' + new Date(n.proximo_envio).toLocaleString() : ''}${infoExtra}</p>
                     </div>
                     <div class="flex items-center gap-3 flex-shrink-0">
-                        <button type="button" onclick="openLogsModal(${n.id})" class="text-xs font-bold text-indigo-600 hover:text-indigo-700">Ver envíos</button>
+                        <button type="button" onclick="openLogsModal(${n.id})" class="px-3 py-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 text-xs font-bold rounded-lg transition flex items-center gap-1">
+                            📅 Ver días y envíos
+                        </button>
                         ${n.estado === 'activo' ? `<button type="button" onclick="cancelarNotif(${n.id})" class="text-xs font-bold text-amber-600 hover:text-amber-700">Cancelar</button>` : ''}
-                        <button type="button" onclick="eliminarNotif(${n.id})" class="text-xs font-bold text-red-500 hover:text-red-700">Eliminar</button>
+                        <button type="button" onclick="eliminarNotif(${n.id})" class="text-xs font-bold text-red-500 hover:text-red-700" title="Eliminar">🗑️</button>
                     </div>
                 </div>
-            `;}).join('');
+            `;
+            }).join('');
         }
 
         async function cancelarNotif(id) {
@@ -1996,13 +2234,13 @@
                     try { dests = JSON.parse(e.destinatarios || '[]'); } catch (x) { dests = []; }
                     const est = EST[e.estado] || [e.estado, 'bg-slate-100 text-slate-600'];
                     return `
-                    <div class="flex items-center justify-between gap-3 p-3 border rounded-xl">
+                    <div class="flex items-center justify-between gap-3 p-3 border rounded-xl bg-slate-50/50">
                         <div>
-                            <p class="text-sm font-bold text-slate-700">Día ${e.dia_numero ?? '?'} ·
-                                ${e.fecha || ''} ${e.hora || ''}
-                                <span class="ml-1 text-[10px] px-2 py-0.5 rounded-full ${est[1]}">${est[0]}</span>
+                            <p class="text-sm font-bold text-slate-800">
+                                📅 Recordatorio ${e.dia_numero === 0 ? 'Día 0 (Inmediato)' : 'Día ' + e.dia_numero} · <span class="text-indigo-700">${e.fecha || ''} ${e.hora || ''}</span>
+                                <span class="ml-2 text-[10px] font-extrabold px-2 py-0.5 rounded-full ${est[1]}">${est[0]}</span>
                             </p>
-                            <p class="text-[11px] text-slate-400">${dests.length} destinatario(s)${e.fecha_envio_real ? ' · Enviado: ' + new Date(e.fecha_envio_real).toLocaleString() : ''}</p>
+                            <p class="text-[11px] text-slate-500 mt-0.5">${dests.length} destinatario(s) asignado(s)${e.fecha_envio_real ? ' · Enviado realmente: ' + new Date(e.fecha_envio_real).toLocaleString() : ''}</p>
                         </div>
                     </div>`;
                 }).join('');

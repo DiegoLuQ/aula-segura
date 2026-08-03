@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Otras Medidas - Aula Segura</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/sidebar.js"></script>
+
     <style>
         body { display: none; }
         .table-container { width: 100% !important; max-width: 100vw; overflow-x: auto; }
@@ -14,8 +16,9 @@
 <body class="bg-slate-50 text-slate-800 font-sans">
     <script>
         const API_URL = window.location.origin.includes('127.0.0.1') || window.location.origin.includes('localhost') || window.location.origin.startsWith('file://')
-            ? 'http://127.0.0.1:8000'
+            ? (window.location.port === '8000' ? 'http://127.0.0.1:8000' : 'http://127.0.0.1:8010')
             : window.location.origin + '/api';
+
 
         (async function() {
             const token = localStorage.getItem('token');
@@ -53,10 +56,14 @@
                 <p class="text-slate-500">Gestión de procesos adicionales</p>
             </div>
             <div class="flex flex-wrap gap-3 justify-end">
+                <button id="btn-sort-recent" onclick="toggleSortRecent()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-700 transition shadow-sm flex items-center gap-1.5 text-sm" title="Ordenar recién registrados primero">
+                    <span id="sort-icon">⬇️</span> <span id="sort-label">Más Recientes Primero</span>
+                </button>
                 <div class="relative" id="columns-dropdown-container">
                     <button onclick="toggleColumnsDropdown(event)" class="bg-white text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-50 transition border border-slate-200 text-sm flex items-center gap-2">
                         ⚙ Columnas
                     </button>
+
                     <div id="columns-dropdown" class="absolute right-0 top-full mt-2 w-64 bg-white border rounded-xl shadow-xl p-4 hidden z-[60]">
                         <h4 class="text-xs font-bold text-slate-400 uppercase mb-3">Mostrar Columnas</h4>
                         <div id="column-toggles" class="space-y-2 max-h-64 overflow-y-auto text-sm">
@@ -241,6 +248,26 @@
             renderTable();
         }
 
+        let sortOrder = 'desc';
+
+        function toggleSortRecent() {
+            sortOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+            const btnIcon = document.getElementById('sort-icon');
+            const btnLabel = document.getElementById('sort-label');
+            const btn = document.getElementById('btn-sort-recent');
+
+            if (sortOrder === 'desc') {
+                btnIcon.innerText = '⬇️';
+                btnLabel.innerText = 'Más Recientes Primero';
+                btn.className = "bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-700 transition shadow-sm flex items-center gap-1.5 text-sm";
+            } else {
+                btnIcon.innerText = '⬆️';
+                btnLabel.innerText = 'Más Antiguos Primero';
+                btn.className = "bg-white text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-50 transition border border-slate-200 flex items-center gap-1.5 text-sm";
+            }
+            renderTable();
+        }
+
         function renderTable() {
             const search = document.getElementById('filter-search').value.toLowerCase();
             const year = document.getElementById('filter-year').value;
@@ -257,6 +284,11 @@
                 const matchesHasta = !hasta || item.fecha_inicio <= hasta;
                 return matchesYear && matchesSearch && matchesColegio && matchesDesde && matchesHasta;
             });
+
+            filtered.sort((a, b) => {
+                return sortOrder === 'desc' ? (b.id - a.id) : (a.id - b.id);
+            });
+
 
             const headerRow = document.getElementById('table-header');
             const tbody = document.getElementById('table-body');

@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Destinatarios y Grupos de Correo - Aula Segura</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/sidebar.js"></script>
+    <style>
+        body { display: none; }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
+    <script>
+        const API_URL = window.location.origin.includes('127.0.0.1') || window.location.origin.includes('localhost') || window.location.origin.startsWith('file://')
+            ? (window.location.port === '8000' ? 'http://127.0.0.1:8000' : 'http://127.0.0.1:8010')
+            : window.location.origin + '/api';
+
+        (async function () {
+            const token = localStorage.getItem('token');
+            if (!token) { window.location.href = 'index.html'; return; }
+            const resp = await fetch(`${API_URL}/me`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!resp.ok) { window.location.href = 'index.html'; return; }
+            const user = await resp.json();
+            if (user.rol !== 'lawyer' && user.rol !== 'admin') { window.location.href = 'dashboard.html'; return; }
+            document.body.style.display = 'block';
+        })();
+    </script>
+
+    <main class="p-6 lg:p-10 max-w-7xl mx-auto w-full space-y-8">
+        <!-- HEADER -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+                    <span class="text-3xl">👥</span> Destinatarios, Grupos y Arquitectura de Correo
+                </h2>
+                <p class="text-slate-500 text-sm mt-1">Configura el interruptor general de envíos, servidor SMTP, grupos y lista de contactos.</p>
+            </div>
+        </div>
+
+        <!-- TARJETA ARQUITECTURA Y SWITCH MASTER DE CORREOS -->
+        <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 lg:p-8 shadow-xl relative overflow-hidden border border-indigo-900/50">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+                <div class="space-y-2">
+                    <div class="flex items-center gap-3">
+                        <span id="master-status-badge" class="px-3 py-1 text-xs font-black uppercase tracking-wider rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> ENVÍOS ACTIVADOS
+                        </span>
+                        <span class="text-xs text-indigo-300">Arquitectura de Envíos</span>
+                    </div>
+                    <h3 class="text-xl font-bold text-white">Estado Global del Servidor de Correos</h3>
+                    <p class="text-slate-300 text-xs max-w-xl">
+                        Controla el despacho automático de correos en todo el sistema. Si desactivas esta opción, los envíos programados quedarán en pausa hasta volver a encenderlo.
+                    </p>
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-center gap-3">
+                    <button id="btn-toggle-master" onclick="toggleMasterSwitch()" class="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-2xl shadow-lg transition flex items-center justify-center gap-2">
+                        <span>🟢 Envíos Habilitados</span>
+                    </button>
+
+                    <button onclick="toggleSmtpForm()" class="w-full sm:w-auto px-5 py-3 bg-white/10 hover:bg-white/20 text-white font-medium text-sm rounded-2xl border border-white/15 transition flex items-center justify-center gap-2">
+                        ⚙️ Ajustes SMTP
+                    </button>
+                </div>
+            </div>
+
+            <!-- FORMULARIO DESPLEGABLE SMTP -->
+            <div id="smtp-form-wrap" class="hidden mt-6 pt-6 border-t border-indigo-800/60 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <div>
+                    <label class="font-bold text-indigo-200 uppercase tracking-wider">Host SMTP</label>
+                    <input type="text" id="smtp-host" placeholder="smtp.gmail.com" class="w-full mt-1 px-3 py-2 bg-slate-900/80 border border-indigo-700/50 rounded-xl text-white focus:outline-none focus:border-indigo-400">
+                </div>
+                <div>
+                    <label class="font-bold text-indigo-200 uppercase tracking-wider">Puerto</label>
+                    <input type="number" id="smtp-port" placeholder="587" class="w-full mt-1 px-3 py-2 bg-slate-900/80 border border-indigo-700/50 rounded-xl text-white focus:outline-none focus:border-indigo-400">
+                </div>
+                <div>
+                    <label class="font-bold text-indigo-200 uppercase tracking-wider">Usuario SMTP</label>
+                    <input type="text" id="smtp-user" placeholder="usuario@gmail.com" class="w-full mt-1 px-3 py-2 bg-slate-900/80 border border-indigo-700/50 rounded-xl text-white focus:outline-none focus:border-indigo-400">
+                </div>
+                <div>
+                    <label class="font-bold text-indigo-200 uppercase tracking-wider">Contraseña SMTP</label>
+                    <input type="password" id="smtp-pass" placeholder="••••••••" class="w-full mt-1 px-3 py-2 bg-slate-900/80 border border-indigo-700/50 rounded-xl text-white focus:outline-none focus:border-indigo-400">
+                </div>
+                <div>
+                    <label class="font-bold text-indigo-200 uppercase tracking-wider">Nombre Remitente</label>
+                    <input type="text" id="smtp-remitente-nombre" placeholder="Aula Segura" class="w-full mt-1 px-3 py-2 bg-slate-900/80 border border-indigo-700/50 rounded-xl text-white focus:outline-none focus:border-indigo-400">
+                </div>
+                <div>
+                    <label class="font-bold text-indigo-200 uppercase tracking-wider">Correo Remitente</label>
+                    <input type="email" id="smtp-remitente-email" placeholder="notificaciones@colegio.cl" class="w-full mt-1 px-3 py-2 bg-slate-900/80 border border-indigo-700/50 rounded-xl text-white focus:outline-none focus:border-indigo-400">
+                </div>
+                <div class="md:col-span-3 flex justify-end gap-3 pt-2">
+                    <button onclick="probarSmtpModal()" class="px-4 py-2 bg-indigo-600/80 hover:bg-indigo-600 text-white font-medium rounded-xl transition">
+                        ✉️ Probar Conexión SMTP
+                    </button>
+                    <button onclick="guardarSmtp()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-md transition">
+                        💾 Guardar Ajustes SMTP
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN GRUPOS DE CORREO -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        📁 Grupos de Correos (Equipos por Colegio)
+                    </h3>
+                    <p class="text-xs text-slate-500">Organiza los contactos en equipos (ej: Dirección, Abogados, Convivencia Escolar).</p>
+                </div>
+                <button onclick="abrirModalGrupo()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-xs">
+                    ➕ Nuevo Grupo
+                </button>
+            </div>
+
+            <div id="grupos-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <p class="text-xs text-slate-400 col-span-full">Cargando grupos...</p>
+            </div>
+        </div>
+
+        <!-- SECCIÓN DESTINATARIOS -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        📧 Lista de Destinatarios (Contactos)
+                    </h3>
+                    <p class="text-xs text-slate-500">Administra los correos individuales y asigna los grupos correspondientes.</p>
+                </div>
+                <button onclick="abrirModalDestinatario()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-xs">
+                    👤 Nuevo Destinatario
+                </button>
+            </div>
+
+            <!-- BARRA DE BÚSQUEDA Y FILTRO -->
+            <div class="flex flex-col md:flex-row gap-4 justify-between items-center mb-5">
+                <div class="relative w-full md:w-80">
+                    <input type="text" id="search-dest" onkeyup="filtrarDestinatarios()" placeholder="Buscar por nombre o correo..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+                    <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Estado:</label>
+                    <select id="filter-dest-estado" onchange="filtrarDestinatarios()" class="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500">
+                        <option value="todos">Todos</option>
+                        <option value="activo" selected>Solo Activos</option>
+                        <option value="inactivo">Solo Inactivos</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- TABLA DE DESTINATARIOS -->
+            <div class="overflow-x-auto rounded-xl border border-slate-200">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-100/80 border-b border-slate-200 text-xs uppercase font-bold text-slate-500 tracking-wider">
+                        <tr>
+                            <th class="py-3 px-4">Contacto</th>
+                            <th class="py-3 px-4">Correo Electrónico</th>
+                            <th class="py-3 px-4">Colegio</th>
+                            <th class="py-3 px-4">Grupos Pertenecientes</th>
+                            <th class="py-3 px-4 text-center">Estado</th>
+                            <th class="py-3 px-4 text-right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="destinatarios-tbody" class="divide-y divide-slate-100">
+                        <tr>
+                            <td colspan="6" class="text-center py-8 text-slate-400">Cargando destinatarios...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL GRUPO -->
+    <div id="modal-grupo" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[2000] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <h3 id="modal-grupo-title" class="text-lg font-bold text-slate-900 mb-4">Nuevo Grupo de Correo</h3>
+            <input type="hidden" id="grupo-id">
+            <div class="space-y-4 text-sm">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Nombre del Grupo</label>
+                    <input type="text" id="grupo-nombre" placeholder="ej: Consejo de Profesores" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Colegio Asignado</label>
+                    <select id="grupo-colegio" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500"></select>
+                </div>
+            </div>
+            <div class="pt-5 flex justify-end gap-2">
+                <button onclick="cerrarModalGrupo()" class="px-4 py-2 bg-slate-100 text-slate-700 font-semibold text-xs rounded-xl">Cancelar</button>
+                <button onclick="guardarGrupo()" class="px-4 py-2 bg-indigo-600 text-white font-bold text-xs rounded-xl">Guardar Grupo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DESTINATARIO -->
+    <div id="modal-dest" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[2000] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100">
+            <h3 id="modal-dest-title" class="text-lg font-bold text-slate-900 mb-4">Nuevo Destinatario</h3>
+            <input type="hidden" id="dest-id">
+            <div class="space-y-4 text-sm">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Nombre Completo</label>
+                    <input type="text" id="dest-nombre" placeholder="ej: Maria Gonzalez" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Correo Electrónico</label>
+                    <input type="email" id="dest-email" placeholder="ej: maria@colegio.cl" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1">Colegio</label>
+                    <select id="dest-colegio" class="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500"></select>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="dest-todos-colegios" class="w-4 h-4 rounded text-indigo-600">
+                    <label for="dest-todos-colegios" class="text-xs font-medium text-slate-700">Privilegio: Recibe correos de TODOS los colegios</label>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-2">Asignar a Grupos</label>
+                    <div id="dest-grupos-checkboxes" class="flex flex-wrap gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200 max-h-36 overflow-y-auto"></div>
+                </div>
+            </div>
+            <div class="pt-5 flex justify-end gap-2">
+                <button onclick="cerrarModalDestinatario()" class="px-4 py-2 bg-slate-100 text-slate-700 font-semibold text-xs rounded-xl">Cancelar</button>
+                <button onclick="guardarDestinatario()" class="px-4 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl">Guardar Contacto</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let configCache = {};
+        let gruposCache = [];
+        let destinatariosCache = [];
+        let colegiosCache = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            inicializarData();
+        });
+
+        async function inicializarData() {
+            await cargarColegios();
+            await cargarConfig();
+            await cargarGrupos();
+            await cargarDestinatarios();
+        }
+
+        async function cargarColegios() {
+            const token = localStorage.getItem('token');
+            try {
+                const resp = await fetch(`${API_URL}/colegios`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (resp.ok) colegiosCache = await resp.json();
+            } catch (err) { console.error(err); }
+        }
+
+        async function cargarConfig() {
+            const token = localStorage.getItem('token');
+            try {
+                const resp = await fetch(`${API_URL}/configuracion/email`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (resp.ok) {
+                    configCache = await resp.json();
+                    renderConfigUI();
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        function renderConfigUI() {
+            const btn = document.getElementById('btn-toggle-master');
+            const badge = document.getElementById('master-status-badge');
+
+            if (configCache.envio_activo) {
+                btn.className = "w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-2xl shadow-lg transition flex items-center justify-center gap-2";
+                btn.innerHTML = '🟢 Envíos Habilitados (Haz clic para Pausar)';
+                badge.className = "px-3 py-1 text-xs font-black uppercase tracking-wider rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5";
+                badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> ENVÍOS ACTIVADOS';
+            } else {
+                btn.className = "w-full sm:w-auto px-6 py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm rounded-2xl shadow-lg transition flex items-center justify-center gap-2";
+                btn.innerHTML = '🔴 Envíos Pausados (Haz clic para Activar)';
+                badge.className = "px-3 py-1 text-xs font-black uppercase tracking-wider rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-1.5";
+                badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-400"></span> ENVÍOS DESACTIVADOS';
+            }
+
+            document.getElementById('smtp-host').value = configCache.smtp_host || '';
+            document.getElementById('smtp-port').value = configCache.smtp_port || 587;
+            document.getElementById('smtp-user').value = configCache.smtp_user || '';
+            document.getElementById('smtp-pass').value = configCache.smtp_password || '';
+            document.getElementById('smtp-remitente-nombre').value = configCache.remitente_nombre || '';
+            document.getElementById('smtp-remitente-email').value = configCache.remitente_email || '';
+        }
+
+        async function toggleMasterSwitch() {
+            const token = localStorage.getItem('token');
+            const nuevoEstado = !configCache.envio_activo;
+
+            try {
+                const resp = await fetch(`${API_URL}/configuracion/email`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ envio_activo: nuevoEstado })
+                });
+
+                if (resp.ok) {
+                    configCache = await resp.json();
+                    renderConfigUI();
+                }
+            } catch (err) { alert('Error al cambiar estado global'); }
+        }
+
+        function toggleSmtpForm() {
+            document.getElementById('smtp-form-wrap').classList.toggle('hidden');
+        }
+
+        async function guardarSmtp() {
+            const token = localStorage.getItem('token');
+            const payload = {
+                smtp_host: document.getElementById('smtp-host').value,
+                smtp_port: parseInt(document.getElementById('smtp-port').value) || 587,
+                smtp_user: document.getElementById('smtp-user').value,
+                smtp_password: document.getElementById('smtp-pass').value,
+                remitente_nombre: document.getElementById('smtp-remitente-nombre').value,
+                remitente_email: document.getElementById('smtp-remitente-email').value,
+            };
+
+            try {
+                const resp = await fetch(`${API_URL}/configuracion/email`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (resp.ok) {
+                    configCache = await resp.json();
+                    alert('✅ Ajustes SMTP guardados correctamente.');
+                    renderConfigUI();
+                } else { alert('❌ Error al guardar ajustes SMTP'); }
+            } catch (err) { alert('❌ Error de conexión al guardar SMTP'); }
+        }
+
+        async function probarSmtpModal() {
+            const dest = prompt('Ingresa un correo para enviar la prueba:', configCache.smtp_user || '');
+            if (!dest) return;
+            const token = localStorage.getItem('token');
+
+            try {
+                const resp = await fetch(`${API_URL}/configuracion/email/test`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email_destino: dest })
+                });
+
+                const data = await resp.json();
+                if (resp.ok) {
+                    alert(`✅ ${data.message}`);
+                } else { alert(`❌ ${data.detail || 'Error en prueba SMTP'}`); }
+            } catch (err) { alert('❌ Error de conexión al probar SMTP'); }
+        }
+
+        // --- MANEJO DE GRUPOS ---
+        async function cargarGrupos() {
+            const token = localStorage.getItem('token');
+            const grid = document.getElementById('grupos-grid');
+
+            try {
+                const resp = await fetch(`${API_URL}/grupos`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (resp.ok) {
+                    gruposCache = await resp.json();
+                    if (gruposCache.length === 0) {
+                        grid.innerHTML = '<p class="text-xs text-slate-400 col-span-full">No hay grupos creados aún.</p>';
+                        return;
+                    }
+
+                    grid.innerHTML = gruposCache.map(g => {
+                        const colegioNombre = (colegiosCache.find(c => c.id === g.id_colegio) || {}).nombre || 'Global / Sin colegio';
+                        return `
+                            <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col justify-between gap-3">
+                                <div>
+                                    <h4 class="font-bold text-slate-800 text-sm">${g.nombre}</h4>
+                                    <p class="text-[11px] text-indigo-600 font-semibold mt-0.5">${colegioNombre}</p>
+                                </div>
+                                <div class="flex items-center justify-between border-t border-slate-200/60 pt-2.5">
+                                    <span class="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded">ID: ${g.id}</span>
+                                    <div class="flex gap-1">
+                                        <button onclick="editarGrupo(${g.id})" class="p-1 text-slate-500 hover:text-indigo-600">✏️</button>
+                                        <button onclick="eliminarGrupo(${g.id})" class="p-1 text-rose-500 hover:text-rose-700">🗑️</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        function abrirModalGrupo() {
+            document.getElementById('grupo-id').value = '';
+            document.getElementById('grupo-nombre').value = '';
+            document.getElementById('modal-grupo-title').innerText = 'Nuevo Grupo de Correo';
+            poblarSelectColegios('grupo-colegio');
+            document.getElementById('modal-grupo').classList.remove('hidden');
+        }
+
+        function editarGrupo(id) {
+            const g = gruposCache.find(x => x.id === id);
+            if (!g) return;
+            document.getElementById('grupo-id').value = g.id;
+            document.getElementById('grupo-nombre').value = g.nombre;
+            document.getElementById('modal-grupo-title').innerText = 'Editar Grupo';
+            poblarSelectColegios('grupo-colegio', g.id_colegio);
+            document.getElementById('modal-grupo').classList.remove('hidden');
+        }
+
+        function cerrarModalGrupo() {
+            document.getElementById('modal-grupo').classList.add('hidden');
+        }
+
+        async function guardarGrupo() {
+            const token = localStorage.getItem('token');
+            const id = document.getElementById('grupo-id').value;
+            const nombre = document.getElementById('grupo-nombre').value.trim();
+            const id_colegio = parseInt(document.getElementById('grupo-colegio').value) || null;
+
+            if (!nombre) { alert('Escribe el nombre del grupo'); return; }
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `${API_URL}/grupos/${id}` : `${API_URL}/grupos`;
+
+            try {
+                const resp = await fetch(url, {
+                    method: method,
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, id_colegio })
+                });
+
+                if (resp.ok) {
+                    cerrarModalGrupo();
+                    cargarGrupos();
+                } else { alert('Error al guardar grupo'); }
+            } catch (err) { alert('Error de conexión'); }
+        }
+
+        async function eliminarGrupo(id) {
+            if (!confirm('¿Seguro que deseas eliminar este grupo?')) return;
+            const token = localStorage.getItem('token');
+            try {
+                const resp = await fetch(`${API_URL}/grupos/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (resp.ok) cargarGrupos();
+            } catch (err) { alert('Error al eliminar grupo'); }
+        }
+
+        // --- MANEJO DE DESTINATARIOS ---
+        async function cargarDestinatarios() {
+            const token = localStorage.getItem('token');
+            try {
+                const resp = await fetch(`${API_URL}/destinatarios`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (resp.ok) {
+                    destinatariosCache = await resp.json();
+                    renderizarDestinatarios(destinatariosCache);
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        function renderizarDestinatarios(data) {
+            const tbody = document.getElementById('destinatarios-tbody');
+            const search = document.getElementById('search-dest').value.toLowerCase().trim();
+            const estFiltro = document.getElementById('filter-dest-estado').value;
+
+            const filtrados = data.filter(d => {
+                if (estFiltro === 'activo' && !d.estado) return false;
+                if (estFiltro === 'inactivo' && d.estado) return false;
+                if (!search) return true;
+                return d.nombre.toLowerCase().includes(search) || d.email.toLowerCase().includes(search);
+            });
+
+            if (filtrados.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">No hay destinatarios registrados.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtrados.map(d => {
+                const colegioNombre = d.todos_colegios ? '🌐 Todos los Colegios' : ((colegiosCache.find(c => c.id === d.id_colegio) || {}).nombre || 'Sin colegio');
+                const gruposChips = (d.grupos || []).map(g => `<span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded border border-indigo-200">${g.nombre}</span>`).join(' ') || '<span class="text-slate-400 text-xs italic">Sin grupo</span>';
+
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="py-3 px-4 font-bold text-slate-900">${d.nombre}</td>
+                        <td class="py-3 px-4 text-xs font-mono text-slate-700">${d.email}</td>
+                        <td class="py-3 px-4 text-xs text-indigo-700 font-semibold">${colegioNombre}</td>
+                        <td class="py-3 px-4">${gruposChips}</td>
+                        <td class="py-3 px-4 text-center">
+                            <button onclick="toggleEstadoDestinatario(${d.id}, ${!d.estado})" class="px-2.5 py-1 text-xs font-bold rounded-full ${d.estado ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}">
+                                ${d.estado ? '🟢 Activo' : '⚪ Pausado'}
+                            </button>
+                        </td>
+                        <td class="py-3 px-4 text-right flex items-center justify-end gap-1">
+                            <button onclick="editarDestinatario(${d.id})" class="p-1 text-slate-500 hover:text-indigo-600">✏️</button>
+                            <button onclick="eliminarDestinatario(${d.id})" class="p-1 text-rose-500 hover:text-rose-700">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filtrarDestinatarios() {
+            renderizarDestinatarios(destinatariosCache);
+        }
+
+        function abrirModalDestinatario() {
+            document.getElementById('dest-id').value = '';
+            document.getElementById('dest-nombre').value = '';
+            document.getElementById('dest-email').value = '';
+            document.getElementById('dest-todos-colegios').checked = false;
+            document.getElementById('modal-dest-title').innerText = 'Nuevo Destinatario';
+            poblarSelectColegios('dest-colegio');
+            renderGruposCheckboxes([]);
+            document.getElementById('modal-dest').classList.remove('hidden');
+        }
+
+        function editarDestinatario(id) {
+            const d = destinatariosCache.find(x => x.id === id);
+            if (!d) return;
+            document.getElementById('dest-id').value = d.id;
+            document.getElementById('dest-nombre').value = d.nombre;
+            document.getElementById('dest-email').value = d.email;
+            document.getElementById('dest-todos-colegios').checked = d.todos_colegios || false;
+            document.getElementById('modal-dest-title').innerText = 'Editar Destinatario';
+            poblarSelectColegios('dest-colegio', d.id_colegio);
+            const memberGroupIds = (d.grupos || []).map(g => g.id);
+            renderGruposCheckboxes(memberGroupIds);
+            document.getElementById('modal-dest').classList.remove('hidden');
+        }
+
+        function cerrarModalDestinatario() {
+            document.getElementById('modal-dest').classList.add('hidden');
+        }
+
+        function renderGruposCheckboxes(selectedIds) {
+            const box = document.getElementById('dest-grupos-checkboxes');
+            if (gruposCache.length === 0) {
+                box.innerHTML = '<span class="text-xs text-slate-400 italic">No hay grupos. Crea uno arriba.</span>';
+                return;
+            }
+            box.innerHTML = gruposCache.map(g => `
+                <label class="flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-xs cursor-pointer">
+                    <input type="checkbox" value="${g.id}" class="dest-grupo-chk w-3.5 h-3.5 text-indigo-600 rounded" ${selectedIds.includes(g.id) ? 'checked' : ''}>
+                    <span>${g.nombre}</span>
+                </label>
+            `).join('');
+        }
+
+        async function guardarDestinatario() {
+            const token = localStorage.getItem('token');
+            const id = document.getElementById('dest-id').value;
+            const nombre = document.getElementById('dest-nombre').value.trim();
+            const email = document.getElementById('dest-email').value.trim();
+            const id_colegio = parseInt(document.getElementById('dest-colegio').value) || null;
+            const todos_colegios = document.getElementById('dest-todos-colegios').checked;
+            const grupo_ids = Array.from(document.querySelectorAll('.dest-grupo-chk:checked')).map(c => parseInt(c.value));
+
+            if (!nombre || !email) { alert('Nombre y correo son obligatorios'); return; }
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `${API_URL}/destinatarios/${id}` : `${API_URL}/destinatarios`;
+
+            try {
+                const resp = await fetch(url, {
+                    method: method,
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, email, id_colegio, todos_colegios, estado: true })
+                });
+
+                if (resp.ok) {
+                    const destSaved = await resp.json();
+                    // Guardar grupos asignados
+                    await fetch(`${API_URL}/destinatarios/${destSaved.id}/grupos`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ grupo_ids: grupo_ids })
+                    });
+
+                    cerrarModalDestinatario();
+                    cargarDestinatarios();
+                } else { alert('Error al guardar destinatario'); }
+            } catch (err) { alert('Error de conexión'); }
+        }
+
+        async function toggleEstadoDestinatario(id, nuevoEstado) {
+            const token = localStorage.getItem('token');
+            try {
+                const resp = await fetch(`${API_URL}/destinatarios/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ estado: nuevoEstado })
+                });
+                if (resp.ok) cargarDestinatarios();
+            } catch (err) { alert('Error al cambiar estado'); }
+        }
+
+        async function eliminarDestinatario(id) {
+            if (!confirm('¿Seguro que deseas eliminar este destinatario?')) return;
+            const token = localStorage.getItem('token');
+            try {
+                const resp = await fetch(`${API_URL}/destinatarios/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (resp.ok) cargarDestinatarios();
+            } catch (err) { alert('Error al eliminar'); }
+        }
+
+        function poblarSelectColegios(selectId, selectedValue = null) {
+            const select = document.getElementById(selectId);
+            select.innerHTML = '<option value="">(Sin colegio / Global)</option>' +
+                colegiosCache.map(c => `<option value="${c.id}" ${selectedValue === c.id ? 'selected' : ''}>${c.nombre}</option>`).join('');
+        }
+    </script>
+</body>
+
+</html>

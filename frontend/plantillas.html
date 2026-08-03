@@ -4,8 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plantillas de Correo - Aula Segura</title>
+    <title>Plantillas y Plazos por Fase - Aula Segura</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/sidebar.js"></script>
     <style>
         body { display: none; }
     </style>
@@ -14,8 +15,9 @@
 <body class="bg-slate-50 text-slate-800 font-sans">
     <script>
         const API_URL = window.location.origin.includes('127.0.0.1') || window.location.origin.includes('localhost') || window.location.origin.startsWith('file://')
-            ? 'http://127.0.0.1:8000'
+            ? (window.location.port === '8000' ? 'http://127.0.0.1:8000' : 'http://127.0.0.1:8010')
             : window.location.origin + '/api';
+
 
         (async function () {
             const token = localStorage.getItem('token');
@@ -28,81 +30,98 @@
         })();
     </script>
 
-    <header class="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center sticky top-0 z-50">
-        <div class="flex items-center gap-4">
-            <h1 class="text-xl font-bold text-indigo-900">Aula Segura</h1>
-            <span id="user-role-badge" class="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs font-bold rounded uppercase"></span>
-        </div>
-        <nav class="flex gap-4">
-            <a href="dashboard.html" class="text-slate-500 hover:text-indigo-600 transition">Registros</a>
-            <a href="otras_medidas.html" class="text-slate-500 hover:text-indigo-600 transition">Otras Medidas</a>
-            <a href="plantillas.html" class="text-indigo-600 font-bold border-b-2 border-indigo-600 pb-1">Plantillas</a>
-            <a href="upload.html" id="nav-upload" class="hidden text-slate-500 hover:text-indigo-600 transition">Subir Excel</a>
-            <a href="admin.html" id="nav-admin" class="hidden text-slate-500 hover:text-indigo-600 transition">Usuarios</a>
-        </nav>
-        <div class="flex items-center gap-6">
-            <span id="user-info" class="text-sm font-medium text-slate-600"></span>
-            <button onclick="logout()" class="text-slate-400 hover:text-red-600 transition">Salir</button>
-        </div>
-    </header>
-
-    <main class="p-6 lg:p-10 max-w-5xl mx-auto w-full">
-        <div class="mb-8">
-            <h2 class="text-2xl font-bold">Plantillas de Correo</h2>
-            <p class="text-slate-500">Crea y administra cuerpos de correo reutilizables, organizados por fase del
-                proceso. Luego podrás elegirlos al "Enviar Notificación".</p>
-        </div>
-
-        <!-- EDITOR -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
-            <h3 id="editor-title" class="text-sm font-bold text-slate-700 uppercase tracking-wide mb-5">Nueva plantilla
-            </h3>
-            <input type="hidden" id="pl-id">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Título</label>
-                    <input type="text" id="pl-titulo" placeholder='Ej. "Inicio - Formal"'
-                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fase</label>
-                    <select id="pl-etapa" class="w-full px-4 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500">
-                        <option value="inicio_proceso">Inicio de Proceso</option>
-                        <option value="medida">Medida y Apelación</option>
-                        <option value="apelacion">Recepción Carta Apelación</option>
-                        <option value="final_medida">Notificación Final "Medida"</option>
-                    </select>
-                </div>
+    <main class="p-6 lg:p-10 max-w-6xl mx-auto w-full">
+        <!-- HEADER & TABS -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+            <div>
+                <h2 class="text-2xl font-extrabold text-slate-900">Plantillas y Plazos de Proceso</h2>
+                <p class="text-slate-500 text-sm">Gestiona cuerpos de correo reutilizables y la programación de recordatorios por etapa disciplinaria.</p>
             </div>
 
-            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Cuerpo del Mensaje</label>
-            <p class="text-[11px] text-slate-400 mb-2 flex flex-wrap gap-1.5 items-center">Haz clic para insertar:
-                <button type="button" onclick="insertPlaceholder('{nombre}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{nombre}</button>
-                <button type="button" onclick="insertPlaceholder('{rut}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{rut}</button>
-                <button type="button" onclick="insertPlaceholder('{curso}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{curso}</button>
-                <button type="button" onclick="insertPlaceholder('{causa}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{causa}</button>
-                <button type="button" onclick="insertPlaceholder('{fecha_inicio}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{fecha_inicio}</button>
-                <button type="button" onclick="insertPlaceholder('{medida}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{medida}</button>
-                <button type="button" onclick="insertPlaceholder('{fecha_medida}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{fecha_medida}</button>
-                <button type="button" onclick="insertPlaceholder('{colegio}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{colegio}</button>
-            </p>
-            <textarea id="pl-cuerpo" rows="7"
-                class="w-full px-4 py-3 border rounded-xl text-sm text-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
-                placeholder="Escribe el cuerpo del correo..."></textarea>
-
-            <div class="flex items-center gap-3 mt-4">
-                <button type="button" onclick="guardarPlantilla()" id="btn-guardar"
-                    class="px-8 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg">Guardar
-                    plantilla</button>
-                <button type="button" onclick="resetForm()" id="btn-cancelar"
-                    class="hidden px-6 py-2.5 text-slate-500 font-bold rounded-lg hover:bg-slate-100 transition">Cancelar
-                    edición</button>
-                <p id="pl-result" class="text-sm"></p>
+            <!-- TAB SWITCHER -->
+            <div class="bg-slate-200/80 p-1 rounded-xl flex gap-1 border border-slate-300/50">
+                <button type="button" onclick="switchTab('plantillas')" id="tab-btn-plantillas"
+                    class="px-5 py-2 text-xs font-extrabold rounded-lg transition bg-white text-indigo-700 shadow-sm">
+                    📧 Plantillas de Correo
+                </button>
+                <button type="button" onclick="switchTab('fases')" id="tab-btn-fases"
+                    class="px-5 py-2 text-xs font-extrabold rounded-lg transition text-slate-600 hover:text-indigo-700">
+                    ⏱️ Plazos y Recordatorios por Fase
+                </button>
             </div>
         </div>
 
-        <!-- LISTA -->
-        <div id="plantillas-list" class="space-y-8"></div>
+        <!-- SECCIÓN 1: PLANTILLAS DE CORREO -->
+        <div id="section-plantillas" class="space-y-8">
+            <!-- EDITOR PLANTILLAS -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <h3 id="editor-title" class="text-xs font-extrabold text-indigo-900 uppercase tracking-wider mb-5">Nueva plantilla de correo</h3>
+                <input type="hidden" id="pl-id">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Título</label>
+                        <input type="text" id="pl-titulo" placeholder='Ej. "Inicio - Formal"'
+                            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fase</label>
+                        <select id="pl-etapa" class="w-full px-4 py-2 border rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 text-sm">
+                            <option value="inicio_proceso">Inicio de Proceso</option>
+                            <option value="medida">Medida y Apelación</option>
+                            <option value="apelacion">Recepción Carta Apelación</option>
+                            <option value="consejo">Consejo de Profesores</option>
+                            <option value="final_medida">Notificación Final "Medida"</option>
+                        </select>
+                    </div>
+                </div>
+
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Cuerpo del Mensaje</label>
+                <p class="text-[11px] text-slate-400 mb-2 flex flex-wrap gap-1.5 items-center">Haz clic para insertar:
+                    <button type="button" onclick="insertPlaceholder('{nombre}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{nombre}</button>
+                    <button type="button" onclick="insertPlaceholder('{rut}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{rut}</button>
+                    <button type="button" onclick="insertPlaceholder('{curso}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{curso}</button>
+                    <button type="button" onclick="insertPlaceholder('{causa}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{causa}</button>
+                    <button type="button" onclick="insertPlaceholder('{fecha_inicio}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{fecha_inicio}</button>
+                    <button type="button" onclick="insertPlaceholder('{medida}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{medida}</button>
+                    <button type="button" onclick="insertPlaceholder('{fecha_medida}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{fecha_medida}</button>
+                    <button type="button" onclick="insertPlaceholder('{colegio}')" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded text-[10px]">{colegio}</button>
+                    <button type="button" onclick="insertPlaceholder('{dias_transcurridos}')" class="px-1.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded text-[10px]">{dias_transcurridos}</button>
+                    <button type="button" onclick="insertPlaceholder('{plazo_total}')" class="px-1.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded text-[10px]">{plazo_total}</button>
+                    <button type="button" onclick="insertPlaceholder('{dias_restantes}')" class="px-1.5 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded text-[10px]">{dias_restantes}</button>
+
+                </p>
+                <textarea id="pl-cuerpo" rows="6"
+                    class="w-full px-4 py-3 border rounded-xl text-sm text-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                    placeholder="Escribe el cuerpo del correo..."></textarea>
+
+                <div class="flex items-center gap-3 mt-4">
+                    <button type="button" onclick="guardarPlantilla()" id="btn-guardar"
+                        class="px-8 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg text-sm">Guardar plantilla</button>
+                    <button type="button" onclick="resetForm()" id="btn-cancelar"
+                        class="hidden px-6 py-2.5 text-slate-500 font-bold rounded-lg hover:bg-slate-100 transition text-sm">Cancelar edición</button>
+                    <p id="pl-result" class="text-sm"></p>
+                </div>
+            </div>
+
+            <!-- LISTADO DE PLANTILLAS -->
+            <div id="plantillas-list" class="space-y-8"></div>
+        </div>
+
+        <!-- SECCIÓN 2: PLAZOS Y RECORDATORIOS POR FASE -->
+        <div id="section-fases" class="hidden space-y-6">
+            <div class="bg-indigo-900 text-white p-6 rounded-2xl shadow-md border border-indigo-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h3 class="text-lg font-bold flex items-center gap-2">⏱️ Configuración de Plazos y Días de Recordatorio</h3>
+                    <p class="text-xs text-indigo-200 mt-1">Configura para cada fase disciplinaria su <strong>plazo total de días</strong> y los <strong>días en los que se enviarán correos de recordatorio</strong>.</p>
+                </div>
+                <div class="bg-indigo-800/80 px-4 py-2.5 rounded-xl border border-indigo-700 text-xs text-indigo-100 leading-relaxed">
+                    💡 <strong>Envío Día 0:</strong> Al incluir el día <code>0</code>, el primer correo se enviará <strong>inmediatamente en el momento de crear la notificación</strong>.
+                </div>
+            </div>
+
+            <!-- LISTADO DE CARDS DE FASES -->
+            <div id="fases-config-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
+        </div>
     </main>
 
     <script>
@@ -110,22 +129,35 @@
             { key: 'inicio_proceso', label: 'Inicio de Proceso' },
             { key: 'medida', label: 'Medida y Apelación' },
             { key: 'apelacion', label: 'Recepción Carta Apelación' },
+            { key: 'consejo', label: 'Consejo de Profesores' },
             { key: 'final_medida', label: 'Notificación Final "Medida"' },
         ];
-        const ETAPA_LABEL = Object.fromEntries(ETAPAS.map(e => [e.key, e.label]));
 
         let PLANTILLAS = [];
+        let FASES_CONFIG = [];
 
         async function init() {
-            const token = localStorage.getItem('token');
-            const resp = await fetch(`${API_URL}/me`, { headers: { 'Authorization': `Bearer ${token}` } });
-            if (!resp.ok) { logout(); return; }
-            const user = await resp.json();
-            document.getElementById('user-info').innerText = user.nombre;
-            document.getElementById('user-role-badge').innerText = user.rol;
-            if (user.rol === 'lawyer') document.getElementById('nav-upload').classList.remove('hidden');
-            if (user.rol === 'admin') document.getElementById('nav-admin').classList.remove('hidden');
             await loadPlantillas();
+            await loadFasesConfig();
+        }
+
+        function switchTab(tab) {
+            const secPlantillas = document.getElementById('section-plantillas');
+            const secFases = document.getElementById('section-fases');
+            const btnPlantillas = document.getElementById('tab-btn-plantillas');
+            const btnFases = document.getElementById('tab-btn-fases');
+
+            if (tab === 'plantillas') {
+                secPlantillas.classList.remove('hidden');
+                secFases.classList.add('hidden');
+                btnPlantillas.className = "px-5 py-2 text-xs font-extrabold rounded-lg transition bg-white text-indigo-700 shadow-sm";
+                btnFases.className = "px-5 py-2 text-xs font-extrabold rounded-lg transition text-slate-600 hover:text-indigo-700";
+            } else {
+                secPlantillas.classList.add('hidden');
+                secFases.classList.remove('hidden');
+                btnFases.className = "px-5 py-2 text-xs font-extrabold rounded-lg transition bg-white text-indigo-700 shadow-sm";
+                btnPlantillas.className = "px-5 py-2 text-xs font-extrabold rounded-lg transition text-slate-600 hover:text-indigo-700";
+            }
         }
 
         async function loadPlantillas() {
@@ -143,13 +175,13 @@
                     ? items.map(p => `
                         <div class="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col gap-3 shadow-sm">
                             <div class="flex items-start justify-between gap-3">
-                                <h4 class="font-bold text-slate-800">${escapeHtml(p.titulo)}</h4>
+                                <h4 class="font-bold text-slate-800 text-sm">${escapeHtml(p.titulo)}</h4>
                                 <div class="flex items-center gap-1.5 flex-shrink-0">
                                     <button type="button" onclick="editarPlantilla(${p.id})" class="p-2 bg-slate-50 text-slate-400 hover:bg-indigo-600 hover:text-white rounded-lg transition" title="Editar">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                        ✏️
                                     </button>
                                     <button type="button" onclick="eliminarPlantilla(${p.id})" class="p-2 bg-slate-50 text-slate-400 hover:bg-red-600 hover:text-white rounded-lg transition" title="Eliminar">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        🗑️
                                     </button>
                                 </div>
                             </div>
@@ -158,12 +190,102 @@
                     : '<p class="text-xs text-slate-400 italic">Sin plantillas para esta fase.</p>';
                 return `
                     <section>
-                        <h3 class="text-sm font-bold text-indigo-700 uppercase tracking-wide mb-3">${et.label}
+                        <h3 class="text-xs font-extrabold text-indigo-700 uppercase tracking-wide mb-3">${et.label}
                             <span class="ml-1 text-[10px] bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">${items.length}</span>
                         </h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">${cards}</div>
                     </section>`;
             }).join('');
+        }
+
+        async function loadFasesConfig() {
+            const token = localStorage.getItem('token');
+            const cont = document.getElementById('fases-config-list');
+            try {
+                const resp = await fetch(`${API_URL}/configuracion/fases`, { headers: { 'Authorization': `Bearer ${token}` } });
+                FASES_CONFIG = resp.ok ? await resp.json() : [];
+            } catch (e) {
+                FASES_CONFIG = [];
+            }
+
+            if (!FASES_CONFIG.length) {
+                cont.innerHTML = `<p class="text-sm text-slate-400">No hay configuración disponible.</p>`;
+                return;
+            }
+
+            cont.innerHTML = FASES_CONFIG.map(f => {
+                const diasArr = f.dias_recordatorio ? f.dias_recordatorio.split(',').map(x => x.strip ? x.strip() : x.trim()) : [];
+                return `
+                <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <span class="text-xs font-extrabold text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full uppercase">${escapeHtml(f.nombre_etapa)}</span>
+                            <span class="text-xs text-slate-400 font-mono">etapa: ${f.etapa}</span>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Plazo Total de Días de la Fase</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="number" id="fase-plazo-${f.etapa}" value="${f.plazo_dias}" min="1" max="90"
+                                        class="w-32 px-4 py-2 border rounded-xl font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 text-sm">
+                                    <span class="text-xs text-slate-500 font-medium">días hábiles/calendario</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 uppercase mb-1">Días de Recordatorio (Separados por coma)</label>
+                                <input type="text" id="fase-dias-${f.etapa}" value="${f.dias_recordatorio}" placeholder="ej. 0,3,5,7,9"
+                                    class="w-full px-4 py-2.5 border rounded-xl font-mono text-sm text-slate-800 focus:ring-2 focus:ring-indigo-500">
+                                <p class="text-[11px] text-slate-400 mt-1">Ejemplo: <code>0, 5, 7, 9</code> en un plazo de 10 días enviará el correo inicial el Día 0 al instante, y luego avisos los días 5, 7 y 9.</p>
+                            </div>
+
+                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <span class="text-[11px] text-slate-400 block font-bold uppercase mb-1">Días programados:</span>
+                                <div class="flex flex-wrap gap-1.5">
+                                    ${diasArr.map(d => `<span class="px-2 py-0.5 bg-indigo-600 text-white rounded-md text-xs font-bold">${d === '0' ? 'Día 0 (Inmediato)' : 'Día ' + d}</span>`).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+                        <span id="fase-msg-${f.etapa}" class="text-xs font-bold"></span>
+                        <button type="button" onclick="guardarConfigFase('${f.etapa}')"
+                            class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition shadow-md">
+                            Guardar Cambios
+                        </button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        async function guardarConfigFase(etapa) {
+            const plazoVal = parseInt(document.getElementById(`fase-plazo-${etapa}`).value) || 10;
+            const diasVal = document.getElementById(`fase-dias-${etapa}`).value.trim();
+            const msgEl = document.getElementById(`fase-msg-${etapa}`);
+
+            const token = localStorage.getItem('token');
+            try {
+                const resp = await fetch(`${API_URL}/configuracion/fases/${etapa}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ plazo_dias: plazoVal, dias_recordatorio: diasVal })
+                });
+
+                if (resp.ok) {
+                    msgEl.className = 'text-xs font-bold text-emerald-600';
+                    msgEl.innerText = '✅ ¡Guardado!';
+                    setTimeout(() => { msgEl.innerText = ''; loadFasesConfig(); }, 1500);
+                } else {
+                    msgEl.className = 'text-xs font-bold text-red-600';
+                    msgEl.innerText = '❌ Error al guardar';
+                }
+            } catch (e) {
+                msgEl.className = 'text-xs font-bold text-red-600';
+                msgEl.innerText = '❌ Error de conexión';
+            }
         }
 
         function escapeHtml(str) {
@@ -185,7 +307,7 @@
             document.getElementById('pl-id').value = '';
             document.getElementById('pl-titulo').value = '';
             document.getElementById('pl-cuerpo').value = '';
-            document.getElementById('editor-title').innerText = 'Nueva plantilla';
+            document.getElementById('editor-title').innerText = 'Nueva plantilla de correo';
             document.getElementById('btn-guardar').innerText = 'Guardar plantilla';
             document.getElementById('btn-cancelar').classList.add('hidden');
             document.getElementById('pl-result').innerText = '';
@@ -254,11 +376,6 @@
             } else {
                 alert('No se pudo eliminar la plantilla.');
             }
-        }
-
-        function logout() {
-            localStorage.removeItem('token');
-            window.location.href = 'login.html';
         }
 
         init();

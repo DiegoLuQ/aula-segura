@@ -260,6 +260,11 @@ class EnvioProgramado(BaseModel):
     class Config:
         from_attributes = True
 
+class EliminarLoteEnvios(BaseModel):
+    ids: Optional[List[int]] = None
+    eliminar_todos: bool = False
+    estado_filtro: Optional[str] = None
+
 class ConsejoConfirmar(BaseModel):
     confirmado: bool
     fecha: Optional[date] = None
@@ -277,3 +282,54 @@ class NotificacionLog(BaseModel):
 
     class Config:
         from_attributes = True
+
+class ConfigFaseBase(BaseModel):
+    etapa: str
+    nombre_etapa: str
+    plazo_dias: int = 10
+    dias_recordatorio: str = "0,3,5,7,9"
+    id_colegio: Optional[int] = None
+
+class ConfigFaseUpdate(BaseModel):
+    plazo_dias: Optional[int] = None
+    dias_recordatorio: Optional[str] = None
+
+class ConfigFase(ConfigFaseBase):
+    id: int
+    fecha_actualizacion: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class ConfigEmail(BaseModel):
+    id: int
+    envio_activo: bool = True
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = 587
+    smtp_user: Optional[str] = None
+    smtp_password: Optional[str] = None
+    smtp_use_tls: bool = True
+    remitente_nombre: Optional[str] = "Aula Segura"
+    remitente_email: Optional[str] = None
+    fecha_actualizacion: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class ConfigEmailUpdate(BaseModel):
+    envio_activo: Optional[bool] = None
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[int] = None
+    smtp_user: Optional[str] = None
+    smtp_password: Optional[str] = None
+    smtp_use_tls: Optional[bool] = None
+    remitente_nombre: Optional[str] = None
+    remitente_email: Optional[str] = None
+
+class TestEmailPayload(BaseModel):
+    email_destino: str
+
+
+    class Config:
+        from_attributes = True
+

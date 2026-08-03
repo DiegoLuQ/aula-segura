@@ -180,3 +180,31 @@ class NotificacionLog(Base):
     exito = Column(Boolean, default=False)
     detalle = Column(String(255), nullable=True)
     fecha_envio = Column(DateTime, default=datetime.now)
+
+class ConfigFase(Base):
+    """Configuración de plazo y días de recordatorio por etapa del proceso disciplinario."""
+    __tablename__ = "pro_aula_segura_config_fases"
+    id = Column(Integer, primary_key=True, index=True)
+    etapa = Column(String(50), nullable=False)
+    nombre_etapa = Column(String(100), nullable=False)
+    plazo_dias = Column(Integer, default=10)
+    dias_recordatorio = Column(String(255), default="0,3,5,7,9")  # Comas separadas, ej: "0,5,7,9"
+    id_colegio = Column(Integer, ForeignKey("pro_aula_segura_colegios.id"), nullable=True)
+    fecha_actualizacion = Column(TIMESTAMP, server_default=func.now())
+
+
+class ConfigEmail(Base):
+    """Configuración global de la arquitectura de envíos de correo del sistema."""
+    __tablename__ = "pro_aula_segura_config_email"
+    id = Column(Integer, primary_key=True, index=True)
+    envio_activo = Column(Boolean, default=True)  # Switch general ON/OFF
+    smtp_host = Column(String(150), nullable=True)
+    smtp_port = Column(Integer, default=587)
+    smtp_user = Column(String(150), nullable=True)
+    smtp_password = Column(String(150), nullable=True)
+    smtp_use_tls = Column(Boolean, default=True)
+    remitente_nombre = Column(String(100), default="Aula Segura")
+    remitente_email = Column(String(150), nullable=True)
+    fecha_actualizacion = Column(TIMESTAMP, server_default=func.now())
+
+

@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Correos Programados - Aula Segura</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/sidebar.js"></script>
+    <style>
+        body { display: none; }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
+    <script>
+        const API_URL = window.location.origin.includes('127.0.0.1') || window.location.origin.includes('localhost') || window.location.origin.startsWith('file://')
+            ? (window.location.port === '8000' ? 'http://127.0.0.1:8000' : 'http://127.0.0.1:8010')
+            : window.location.origin + '/api';
+
+        (async function () {
+            const token = localStorage.getItem('token');
+            if (!token) { window.location.href = 'index.html'; return; }
+            const resp = await fetch(`${API_URL}/me`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!resp.ok) { window.location.href = 'index.html'; return; }
+            const user = await resp.json();
+            if (user.rol !== 'lawyer' && user.rol !== 'admin') { window.location.href = 'dashboard.html'; return; }
+            document.body.style.display = 'block';
+        })();
+    </script>
+
+    <main class="p-6 lg:p-10 max-w-7xl mx-auto w-full">
+        <!-- HEADER -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+            <div>
+                <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+                    <span class="text-3xl">📬</span> Correos Programados
+                </h2>
+                <p class="text-slate-500 text-sm mt-1">Supervisa, ejecuta manualmente, elimina por lote o cancela la programación de notificaciones automáticas del sistema.</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="cargarEnvios()" class="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-sm rounded-xl shadow-sm transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Actualizar Lista
+                </button>
+            </div>
+        </div>
+
+        <!-- TARJETAS DE MÉTRICAS -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+            <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-wider text-amber-600">Pendientes por Enviar</p>
+                    <h3 id="stat-pendientes" class="text-3xl font-black text-slate-900 mt-1">0</h3>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl font-bold">
+                    ⏳
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-wider text-emerald-600">Enviados Exitosamente</p>
+                    <h3 id="stat-enviados" class="text-3xl font-black text-slate-900 mt-1">0</h3>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-2xl font-bold">
+                    ✉️
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-wider text-rose-600">Cancelados</p>
+                    <h3 id="stat-cancelados" class="text-3xl font-black text-slate-900 mt-1">0</h3>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-2xl font-bold">
+                    🚫
+                </div>
+            </div>
+        </div>
+
+        <!-- FILTROS Y ACCIONES EN LOTE -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div class="relative w-full md:w-80">
+                <input type="text" id="search-input" onkeyup="filtrarTabla()" placeholder="Buscar por alumno, RUT o asunto..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+                <svg class="w-5 h-5 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+                <div class="flex items-center gap-2">
+                    <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Estado:</label>
+                    <select id="filter-estado" onchange="cargarEnvios()" class="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+                        <option value="todos">Todos los estados</option>
+                        <option value="pendiente" selected>Solo Pendientes</option>
+                        <option value="enviado">Solo Enviados</option>
+                        <option value="cancelado">Solo Cancelados</option>
+                    </select>
+                </div>
+
+                <!-- Botón Eliminar Seleccionados (Lote) -->
+                <button id="btn-eliminar-lote" onclick="eliminarLoteSeleccionado()" class="hidden px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs rounded-xl shadow-xs transition flex items-center gap-1.5">
+                    🗑️ Eliminar Seleccionados (<span id="count-selected">0</span>)
+                </button>
+
+                <!-- Botón Eliminar Todos -->
+                <button onclick="eliminarTodosFiltro()" class="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/80 font-medium text-xs rounded-xl transition flex items-center gap-1.5" title="Eliminar todos los correos en la vista actual">
+                    ⚠️ Eliminar Todos
+                </button>
+            </div>
+        </div>
+
+        <!-- TABLA DE ENVÍOS PROGRAMADOS -->
+        <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-100/80 border-b border-slate-200 text-xs uppercase font-bold text-slate-500 tracking-wider">
+                        <tr>
+                            <th class="py-3.5 px-4 text-center w-10">
+                                <input type="checkbox" id="check-all" onclick="toggleSelectAll(this)" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                            </th>
+                            <th class="py-3.5 px-5">Estudiante</th>
+                            <th class="py-3.5 px-5">Etapa Proceso</th>
+                            <th class="py-3.5 px-5">Fecha Programada</th>
+                            <th class="py-3.5 px-5">Destinatarios</th>
+                            <th class="py-3.5 px-5">Estado</th>
+                            <th class="py-3.5 px-5 text-right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="envios-tbody" class="divide-y divide-slate-100">
+                        <tr>
+                            <td colspan="7" class="text-center py-10 text-slate-400">
+                                Cargando correos programados...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL DE PREVISUALIZACIÓN DE CORREO -->
+    <div id="modal-preview" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[2000] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-100 flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center pb-4 border-b border-slate-100 mb-4">
+                <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    ✉️ Previsualización de Correo
+                </h3>
+                <button onclick="cerrarModalPreview()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
+            </div>
+
+            <div class="space-y-3 overflow-y-auto pr-1 flex-1">
+                <div>
+                    <label class="text-xs font-bold uppercase text-slate-400">Asunto</label>
+                    <p id="modal-asunto" class="font-semibold text-slate-800 text-sm bg-slate-50 p-2.5 rounded-lg border border-slate-200 mt-1"></p>
+                </div>
+
+                <div>
+                    <label class="text-xs font-bold uppercase text-slate-400">Destinatarios</label>
+                    <div id="modal-destinatarios" class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 mt-1 flex flex-wrap gap-2 text-xs"></div>
+                </div>
+
+                <div>
+                    <label class="text-xs font-bold uppercase text-slate-400 mb-1 block">Cuerpo del Mensaje</label>
+                    <div id="modal-cuerpo" class="bg-slate-900 text-slate-100 p-4 rounded-xl text-xs font-mono whitespace-pre-wrap max-h-72 overflow-y-auto border border-slate-800 leading-relaxed"></div>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 mt-4 flex justify-end gap-3">
+                <button onclick="cerrarModalPreview()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm rounded-xl transition">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let enviosCache = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarEnvios();
+        });
+
+        async function cargarEnvios() {
+            const token = localStorage.getItem('token');
+            const estado = document.getElementById('filter-estado').value;
+            const tbody = document.getElementById('envios-tbody');
+            const checkAll = document.getElementById('check-all');
+            if (checkAll) checkAll.checked = false;
+            updateBatchButtons();
+
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-10 text-slate-400">Cargando correos programados...</td></tr>';
+
+            try {
+                const resp = await fetch(`${API_URL}/envios-programados?estado=${estado}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!resp.ok) throw new Error('Error al cargar correos');
+
+                enviosCache = await resp.json();
+                actualizarMetricas(enviosCache);
+                renderizarTabla(enviosCache);
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-10 text-red-500 font-medium">Error al cargar la lista de correos programados.</td></tr>';
+            }
+        }
+
+        function actualizarMetricas(data) {
+            let p = 0, e = 0, c = 0;
+            data.forEach(item => {
+                if (item.estado === 'pendiente') p++;
+                else if (item.estado === 'enviado') e++;
+                else if (item.estado === 'cancelado') c++;
+            });
+            document.getElementById('stat-pendientes').innerText = p;
+            document.getElementById('stat-enviados').innerText = e;
+            document.getElementById('stat-cancelados').innerText = c;
+        }
+
+        function renderizarTabla(data) {
+            const tbody = document.getElementById('envios-tbody');
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-10 text-slate-400">No se encontraron correos programados en este estado.</td></tr>';
+                updateBatchButtons();
+                return;
+            }
+
+            const searchVal = document.getElementById('search-input').value.toLowerCase().trim();
+
+            const filtrados = data.filter(item => {
+                if (!searchVal) return true;
+                return item.estudiante_nombre.toLowerCase().includes(searchVal) ||
+                       item.estudiante_rut.toLowerCase().includes(searchVal) ||
+                       (item.asunto && item.asunto.toLowerCase().includes(searchVal));
+            });
+
+            if (filtrados.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-10 text-slate-400">No hay coincidencias con la búsqueda.</td></tr>';
+                updateBatchButtons();
+                return;
+            }
+
+            tbody.innerHTML = filtrados.map(item => {
+                const destCount = Array.isArray(item.destinatarios) ? item.destinatarios.length : 0;
+                
+                let estadoBadge = '<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-amber-100 text-amber-700">⏳ Pendiente</span>';
+                if (item.estado === 'enviado') {
+                    estadoBadge = '<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-700">✉️ Enviado</span>';
+                } else if (item.estado === 'cancelado') {
+                    estadoBadge = '<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-rose-100 text-rose-700">🚫 Cancelado</span>';
+                }
+
+                const fechaText = item.fecha ? `${item.fecha} (${item.hora || '08:00'})` : '-';
+                let timingBadge = '';
+                if (item.fecha && item.estado === 'pendiente') {
+                    const hoy = new Date().toISOString().split('T')[0];
+                    if (item.fecha === hoy) {
+                        timingBadge = '<span class="ml-2 text-[10px] font-extrabold bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">HOY</span>';
+                    } else if (item.fecha < hoy) {
+                        timingBadge = '<span class="ml-2 text-[10px] font-extrabold bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded">VENCIDO</span>';
+                    }
+                }
+
+                const etapaNombre = (item.etapa || 'Fase').replace(/_/g, ' ').toUpperCase();
+
+                return `
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="py-3.5 px-4 text-center">
+                            <input type="checkbox" value="${item.id}" class="item-checkbox w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer" onchange="updateBatchButtons()">
+                        </td>
+                        <td class="py-3.5 px-5">
+                            <a href="registro.html?id=${item.estudiante_id}" class="font-bold text-slate-900 hover:text-indigo-600 transition block">
+                                ${item.estudiante_nombre}
+                            </a>
+                            <span class="text-xs text-slate-400 font-mono">RUT: ${item.estudiante_rut} | Col: ${item.colegio_id}</span>
+                        </td>
+                        <td class="py-3.5 px-5">
+                            <span class="text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-2.5 py-1 rounded-lg">
+                                ${etapaNombre} ${item.dia_numero !== null ? `(Día ${item.dia_numero})` : ''}
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-5 font-medium text-slate-700 text-xs">
+                            ${fechaText} ${timingBadge}
+                        </td>
+                        <td class="py-3.5 px-5 text-xs text-slate-600">
+                            <span class="font-bold text-slate-800">${destCount}</span> destinatario(s)
+                        </td>
+                        <td class="py-3.5 px-5">
+                            ${estadoBadge}
+                        </td>
+                        <td class="py-3.5 px-5 text-right flex items-center justify-end gap-2">
+                            <button onclick="verPreview(${item.id})" class="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="Previsualizar Correo">
+                                👁️
+                            </button>
+                            ${item.estado === 'pendiente' ? `
+                            <button onclick="ejecutarAhora(${item.id})" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition shadow-xs flex items-center gap-1" title="Forzar envío inmediato">
+                                ⚡ Enviar
+                            </button>
+                            <button onclick="cancelarEnvio(${item.id})" class="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-bold rounded-lg transition" title="Cancelar este correo">
+                                🚫 Cancelar
+                            </button>
+                            ` : ''}
+                            <button onclick="eliminarIndividual(${item.id})" class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition" title="Eliminar registro">
+                                🗑️
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            updateBatchButtons();
+        }
+
+        function toggleSelectAll(master) {
+            const checkboxes = document.querySelectorAll('.item-checkbox');
+            checkboxes.forEach(cb => cb.checked = master.checked);
+            updateBatchButtons();
+        }
+
+        function updateBatchButtons() {
+            const selected = document.querySelectorAll('.item-checkbox:checked');
+            const btnBatch = document.getElementById('btn-eliminar-lote');
+            const countSpan = document.getElementById('count-selected');
+
+            if (selected.length > 0) {
+                btnBatch.classList.remove('hidden');
+                countSpan.innerText = selected.length;
+            } else {
+                btnBatch.classList.add('hidden');
+                countSpan.innerText = '0';
+            }
+        }
+
+        function filtrarTabla() {
+            renderizarTabla(enviosCache);
+        }
+
+        function verPreview(id) {
+            const item = enviosCache.find(x => x.id === id);
+            if (!item) return;
+
+            document.getElementById('modal-asunto').innerText = item.asunto || '(Sin Asunto)';
+            document.getElementById('modal-cuerpo').innerText = item.cuerpo || '(Cuerpo del mensaje no especificado)';
+
+            const destBox = document.getElementById('modal-destinatarios');
+            if (Array.isArray(item.destinatarios) && item.destinatarios.length > 0) {
+                destBox.innerHTML = item.destinatarios.map(d => 
+                    `<span class="bg-indigo-100 text-indigo-800 px-2 py-1 rounded border border-indigo-200 font-mono">
+                        ${d.nombre || ''} &lt;${d.email || d}&gt;
+                    </span>`
+                ).join('');
+            } else {
+                destBox.innerHTML = '<span class="text-slate-400 italic">No hay destinatarios registrados.</span>';
+            }
+
+            document.getElementById('modal-preview').classList.remove('hidden');
+        }
+
+        function cerrarModalPreview() {
+            document.getElementById('modal-preview').classList.add('hidden');
+        }
+
+        async function ejecutarAhora(id) {
+            if (!confirm('¿Deseas enviar inmediatamente este correo programado?')) return;
+            const token = localStorage.getItem('token');
+
+            try {
+                const resp = await fetch(`${API_URL}/envios-programados/${id}/ejecutar`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const data = await resp.json();
+                if (resp.ok) {
+                    alert(`✅ Correo ejecutado con éxito. Enviados: ${data.enviados}, Fallidos: ${data.fallidos}`);
+                    cargarEnvios();
+                } else {
+                    alert(`❌ Error: ${data.detail || 'No se pudo enviar el correo.'}`);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('❌ Error de conexión al intentar enviar el correo.');
+            }
+        }
+
+        async function cancelarEnvio(id) {
+            if (!confirm('¿Seguro que deseas cancelar este envío programado?')) return;
+            const token = localStorage.getItem('token');
+
+            try {
+                const resp = await fetch(`${API_URL}/envios-programados/${id}/cancelar`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (resp.ok) {
+                    alert('✅ Envío programado cancelado correctamente.');
+                    cargarEnvios();
+                } else {
+                    const data = await resp.json();
+                    alert(`❌ Error: ${data.detail || 'No se pudo cancelar el envío.'}`);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('❌ Error de conexión al cancelar el envío.');
+            }
+        }
+
+        async function eliminarIndividual(id) {
+            if (!confirm('¿Seguro que deseas eliminar definitivamente este registro de correo programado?')) return;
+            const token = localStorage.getItem('token');
+
+            try {
+                const resp = await fetch(`${API_URL}/envios-programados/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (resp.ok) {
+                    cargarEnvios();
+                } else {
+                    const data = await resp.json();
+                    alert(`❌ Error: ${data.detail || 'No se pudo eliminar el registro.'}`);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('❌ Error de conexión al eliminar el registro.');
+            }
+        }
+
+        async function eliminarLoteSeleccionado() {
+            const selected = Array.from(document.querySelectorAll('.item-checkbox:checked')).map(cb => parseInt(cb.value));
+            if (selected.length === 0) return;
+
+            if (!confirm(`¿Seguro que deseas eliminar los ${selected.length} correos programados seleccionados?`)) return;
+
+            const token = localStorage.getItem('token');
+            try {
+                const resp = await fetch(`${API_URL}/envios-programados/eliminar-lote`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ ids: selected })
+                });
+
+                const data = await resp.json();
+                if (resp.ok) {
+                    alert(`✅ ${data.message}`);
+                    cargarEnvios();
+                } else {
+                    alert(`❌ Error: ${data.detail || 'No se pudieron eliminar los registros.'}`);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('❌ Error de conexión al eliminar en lote.');
+            }
+        }
+
+        async function eliminarTodosFiltro() {
+            const estado = document.getElementById('filter-estado').value;
+            const estadoTexto = estado === 'todos' ? 'TODOS los correos programados' : `todos los correos en estado "${estado.toUpperCase()}"`;
+
+            if (!confirm(`⚠️ ATENCIÓN: ¿Estás completamente seguro de que deseas eliminar ${estadoTexto}? Esta acción no se puede deshacer.`)) return;
+
+            const token = localStorage.getItem('token');
+            try {
+                const resp = await fetch(`${API_URL}/envios-programados/eliminar-lote`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ eliminar_todos: true, estado_filtro: estado })
+                });
+
+                const data = await resp.json();
+                if (resp.ok) {
+                    alert(`✅ ${data.message}`);
+                    cargarEnvios();
+                } else {
+                    alert(`❌ Error: ${data.detail || 'No se pudieron eliminar los registros.'}`);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('❌ Error de conexión al eliminar los registros.');
+            }
+        }
+    </script>
+</body>
+
+</html>

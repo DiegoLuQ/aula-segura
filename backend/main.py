@@ -10,9 +10,18 @@ import shutil
 import uuid
 import pikepdf
 from datetime import datetime
+import json
 import models, schemas, auth, database, notifications
 
 app = FastAPI(title="Sistema Aula Segura API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.on_event("startup")
 def _startup():
@@ -87,6 +96,29 @@ def _ensure_columns():
             pass  # la columna ya existe u otra causa no crítica
 
 _ensure_columns()
+
+def _seed_default_config_fases():
+    db = database.SessionLocal()
+    try:
+        count = db.query(models.ConfigFase).count()
+        if count == 0:
+            defaults = [
+                {"etapa": "inicio_proceso", "nombre_etapa": "Inicio de Proceso", "plazo_dias": 10, "dias_recordatorio": "0,3,5,7,9"},
+                {"etapa": "medida", "nombre_etapa": "Notificación de Medida y Apelación", "plazo_dias": 10, "dias_recordatorio": "0,3,5,7,9"},
+                {"etapa": "apelacion", "nombre_etapa": "Recepción de Descargos / Apelación", "plazo_dias": 10, "dias_recordatorio": "0,3,5,7,9"},
+                {"etapa": "consejo", "nombre_etapa": "Consejo de Profesores", "plazo_dias": 10, "dias_recordatorio": "0,3,5,7,9"},
+                {"etapa": "final_medida", "nombre_etapa": "Notificación Final", "plazo_dias": 10, "dias_recordatorio": "0,3,5,7,9"},
+            ]
+            for item in defaults:
+                db.add(models.ConfigFase(**item))
+            db.commit()
+    except Exception as e:
+        print("Error al sembrar config fases:", e)
+    finally:
+        db.close()
+
+_seed_default_config_fases()
+
 
 @app.post("/login", response_model=schemas.Token)
 def login(request: schemas.LoginRequest, db: Session = Depends(database.get_db)):
@@ -187,16 +219,37 @@ def delete_estudiante(
     db: Session = Depends(database.get_db),
     current_user: dict = Depends(auth.get_current_user)
 ):
-    if current_user["rol"] != "lawyer":
-        raise HTTPException(status_code=403, detail="Solo el rol abogado puede eliminar registros")
+    if current_user["rol"] != "lawyer" and current_user["rol"] != "admin":
+        raise HTTPException(status_code=403, detail="Solo administradores o abogados pueden eliminar registros")
     
     db_estudiante = db.query(models.Estudiante).filter(models.Estudiante.id == id).first()
     if not db_estudiante:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     
-    db_estudiante.estado = False
+    # 1. Eliminar documentos adjuntos del estudiante y borrar archivos de disco
+    documentos = db.query(models.Documento).filter(models.Documento.estudiante_id == id).all()
+    for doc in documentos:
+        if doc.ruta_archivo and os.path.exists(doc.ruta_archivo):
+            try:
+                os.remove(doc.ruta_archivo)
+            except Exception as e:
+                print(f"Error borrando archivo de documento {doc.id}: {e}")
+        db.delete(doc)
+
+    # 2. Eliminar logs de notificaciones del estudiante
+    db.query(models.NotificacionLog).filter(models.NotificacionLog.estudiante_id == id).delete(synchronize_session=False)
+
+    # 3. Eliminar envíos programados del estudiante
+    db.query(models.EnvioProgramado).filter(models.EnvioProgramado.estudiante_id == id).delete(synchronize_session=False)
+
+    # 4. Eliminar notificaciones creadas para el estudiante
+    db.query(models.Notificacion).filter(models.Notificacion.estudiante_id == id).delete(synchronize_session=False)
+
+    # 5. Eliminar el registro del estudiante
+    db.delete(db_estudiante)
     db.commit()
-    return {"message": "Estudiante eliminado exitosamente"}
+
+    return {"message": "Estudiante y todos sus registros asociados fueron eliminados exitosamente"}
 
 # --- GESTIÓN DE DOCUMENTOS ---
 
@@ -1254,3 +1307,305 @@ def registrar_consejo(
         "enviados": enviados,
         "fallidos": fallidos,
     }
+
+# --- CONFIGURACIÓN DE PLAZOS Y RECORDATORIOS POR FASE ---
+
+@app.get("/configuracion/fases", response_model=List[schemas.ConfigFase])
+def get_config_fases(
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    _require_editor(current_user)
+    return db.query(models.ConfigFase).order_by(models.ConfigFase.id.asc()).all()
+
+@app.put("/configuracion/fases/{etapa}", response_model=schemas.ConfigFase)
+def update_config_fase(
+    etapa: str,
+    data: schemas.ConfigFaseUpdate,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    _require_editor(current_user)
+    fase = db.query(models.ConfigFase).filter(models.ConfigFase.etapa == etapa).first()
+    if not fase:
+        raise HTTPException(status_code=404, detail="Configuración de fase no encontrada")
+    
+    if data.plazo_dias is not None:
+        fase.plazo_dias = data.plazo_dias
+    if data.dias_recordatorio is not None:
+        fase.dias_recordatorio = data.dias_recordatorio
+    
+    db.commit()
+    db.refresh(fase)
+    return fase
+
+
+# --- MÓDULO GLOBAL DE ENVÍOS PROGRAMADOS DE CORREO ---
+
+@app.get("/envios-programados")
+def get_envios_programados(
+    estado: Optional[str] = None,
+    search: Optional[str] = None,
+    colegio_id: Optional[str] = None,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    """Retorna la lista global de envíos programados de correos con información del estudiante."""
+    _require_editor(current_user)
+    query = (
+        db.query(models.EnvioProgramado, models.Estudiante)
+        .outerjoin(models.Estudiante, models.EnvioProgramado.estudiante_id == models.Estudiante.id)
+    )
+
+    if current_user.get("role") != "admin" and not current_user.get("is_global") and current_user.get("id_colegio"):
+        query = query.filter(models.Estudiante.id_colegio == current_user.get("id_colegio"))
+    elif colegio_id:
+        query = query.filter(models.Estudiante.id_colegio == colegio_id)
+
+    if estado and estado != "todos":
+        query = query.filter(models.EnvioProgramado.estado == estado)
+
+    results = query.order_by(models.EnvioProgramado.fecha.desc(), models.EnvioProgramado.id.desc()).all()
+
+    items = []
+    for env, est in results:
+        nombre_estudiante = est.nombre_estudiante if (est and est.nombre_estudiante) else "Estudiante Desconocido"
+        rut_estudiante = est.rut if est else "-"
+        col_id = est.id_colegio if est else "-"
+
+        if search:
+            s = search.lower()
+            if s not in nombre_estudiante.lower() and s not in rut_estudiante.lower() and s not in (env.asunto or "").lower():
+                continue
+
+        destinatarios_parsed = []
+        if env.destinatarios:
+            try:
+                destinatarios_parsed = json.loads(env.destinatarios)
+            except Exception:
+                destinatarios_parsed = []
+
+        items.append({
+            "id": env.id,
+            "notificacion_id": env.notificacion_id,
+            "estudiante_id": env.estudiante_id,
+            "estudiante_nombre": nombre_estudiante,
+            "estudiante_rut": rut_estudiante,
+            "colegio_id": col_id,
+            "etapa": env.etapa,
+            "asunto": env.asunto,
+            "cuerpo": env.cuerpo,
+            "destinatarios": destinatarios_parsed,
+            "fecha": env.fecha.isoformat() if env.fecha else None,
+            "hora": env.hora,
+            "dia_numero": env.dia_numero,
+            "estado": env.estado,
+            "enviado": env.enviado,
+            "fecha_envio_real": env.fecha_envio_real.isoformat() if env.fecha_envio_real else None,
+            "fecha_creacion": env.fecha_creacion.isoformat() if env.fecha_creacion else None,
+        })
+
+    return items
+
+
+@app.post("/envios-programados/{envio_id}/ejecutar")
+def ejecutar_envio_programado_manual(
+    envio_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    """Ejecuta inmediatamente un envío programado pendiente."""
+    _require_editor(current_user)
+    env = db.query(models.EnvioProgramado).filter(models.EnvioProgramado.id == envio_id).first()
+    if not env:
+        raise HTTPException(status_code=404, detail="Envío programado no encontrado")
+    if env.estado == "enviado":
+        raise HTTPException(status_code=400, detail="Este correo ya fue enviado previamente")
+
+    enviados, fallidos = notifications._enviar_programado(db, env)
+    notifications._actualizar_notificacion_padre(db, env.notificacion_id)
+
+    return {
+        "message": "Envío ejecutado",
+        "enviados": enviados,
+        "fallidos": fallidos,
+        "estado": env.estado,
+    }
+
+
+@app.post("/envios-programados/{envio_id}/cancelar")
+def cancelar_envio_programado(
+    envio_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    """Cancela un envío programado pendiente."""
+    _require_editor(current_user)
+    env = db.query(models.EnvioProgramado).filter(models.EnvioProgramado.id == envio_id).first()
+    if not env:
+        raise HTTPException(status_code=404, detail="Envío programado no encontrado")
+    
+    env.estado = "cancelado"
+    db.commit()
+    notifications._actualizar_notificacion_padre(db, env.notificacion_id)
+    return {"message": "Envío programado cancelado exitosamente"}
+
+
+@app.delete("/envios-programados/{envio_id}")
+def eliminar_envio_programado_individual(
+    envio_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    """Elimina permanentemente un envío programado de la base de datos."""
+    _require_editor(current_user)
+    env = db.query(models.EnvioProgramado).filter(models.EnvioProgramado.id == envio_id).first()
+    if not env:
+        raise HTTPException(status_code=404, detail="Envío programado no encontrado")
+    
+    notif_id = env.notificacion_id
+    db.delete(env)
+    db.commit()
+    notifications._actualizar_notificacion_padre(db, notif_id)
+    return {"message": "Envío programado eliminado correctamente"}
+
+
+@app.post("/envios-programados/eliminar-lote")
+def eliminar_envios_programados_lote(
+    data: schemas.EliminarLoteEnvios,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    """Elimina envíos programados por lote de IDs o elimina todos los que coincidan con los filtros."""
+    _require_editor(current_user)
+    
+    query = db.query(models.EnvioProgramado)
+
+    # Restricción por colegio si no es admin o global
+    if current_user.get("role") != "admin" and not current_user.get("is_global") and current_user.get("id_colegio"):
+        query = query.join(models.Estudiante, models.EnvioProgramado.estudiante_id == models.Estudiante.id).filter(
+            models.Estudiante.id_colegio == current_user.get("id_colegio")
+        )
+
+    if data.eliminar_todos:
+        if data.estado_filtro and data.estado_filtro != "todos":
+            query = query.filter(models.EnvioProgramado.estado == data.estado_filtro)
+        registros = query.all()
+    elif data.ids and len(data.ids) > 0:
+        registros = query.filter(models.EnvioProgramado.id.in_(data.ids)).all()
+    else:
+        raise HTTPException(status_code=400, detail="Debe especificar los IDs a eliminar o marcar eliminar_todos")
+
+    cant = len(registros)
+    notif_ids = set(r.notificacion_id for r in registros if r.notificacion_id)
+
+    for r in registros:
+        db.delete(r)
+    db.commit()
+
+    for nid in notif_ids:
+        notifications._actualizar_notificacion_padre(db, nid)
+
+    return {"message": f"Se eliminaron {cant} envíos programados correctamente", "eliminados": cant}
+
+
+# --- ARQUITECTURA Y SWITCH GLOBAL DE CORREOS ---
+
+@app.get("/configuracion/email", response_model=schemas.ConfigEmail)
+def get_configuracion_email(
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    """Obtiene la configuración global del sistema de correo y estado del switch master."""
+    _require_editor(current_user)
+    return notifications.get_config_email(db)
+
+
+@app.put("/configuracion/email", response_model=schemas.ConfigEmail)
+def update_configuracion_email(
+    data: schemas.ConfigEmailUpdate,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    """Actualiza el switch master de envíos de correo y credenciales SMTP globales."""
+    _require_editor(current_user)
+    conf = notifications.get_config_email(db)
+
+    if data.envio_activo is not None:
+        conf.envio_activo = data.envio_activo
+    if data.smtp_host is not None:
+        conf.smtp_host = data.smtp_host
+    if data.smtp_port is not None:
+        conf.smtp_port = data.smtp_port
+    if data.smtp_user is not None:
+        conf.smtp_user = data.smtp_user
+    if data.smtp_password is not None:
+        conf.smtp_password = data.smtp_password
+    if data.smtp_use_tls is not None:
+        conf.smtp_use_tls = data.smtp_use_tls
+    if data.remitente_nombre is not None:
+        conf.remitente_nombre = data.remitente_nombre
+    if data.remitente_email is not None:
+        conf.remitente_email = data.remitente_email
+
+    db.commit()
+    db.refresh(conf)
+    return conf
+
+
+@app.post("/configuracion/email/test")
+def test_conexion_email(
+    data: schemas.TestEmailPayload,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    """Realiza una prueba de envío de correo SMTP en tiempo real."""
+    _require_editor(current_user)
+    conf = notifications.get_config_email(db)
+
+    import smtplib, ssl
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+
+    host = conf.smtp_host or notifications.SMTP_SERVER
+    port = conf.smtp_port or notifications.SMTP_PORT
+    user = conf.smtp_user or os.getenv("SMTP_USER")
+    password = conf.smtp_password or os.getenv("SMTP_PASSWORD")
+    remitente = conf.remitente_email or user
+
+    if not user or not password:
+        raise HTTPException(status_code=400, detail="Faltan credenciales SMTP (Usuario / Clave)")
+
+    try:
+        context = ssl.create_default_context()
+        if port == 465:
+            server = smtplib.SMTP_SSL(host, port, context=context)
+        else:
+            server = smtplib.SMTP(host, port)
+            if conf.smtp_use_tls:
+                server.starttls(context=context)
+
+        server.login(user, password)
+
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = "Prueba de Conexión - Sistema Aula Segura"
+        msg["From"] = f"{conf.remitente_nombre or 'Aula Segura'} <{remitente}>"
+        msg["To"] = data.email_destino
+
+        html_body = """
+        <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f8fafc; border-radius: 10px; color: #1e293b;">
+            <h2 style="color: #4f46e5;">🛡️ Aula Segura - Correo de Prueba</h2>
+            <p>Este es un correo de prueba enviado desde el <strong>Módulo de Arquitectura de Envíos de Correo</strong>.</p>
+            <p style="font-size: 13px; color: #64748b;">Si recibes este mensaje, la configuración SMTP del sistema está funcionando correctamente.</p>
+        </div>
+        """
+        msg.attach(MIMEText(html_body, "html"))
+        server.sendmail(remitente, data.email_destino, msg.as_string())
+        server.quit()
+        return {"message": f"Correo de prueba enviado con éxito a {data.email_destino}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al conectar con servidor SMTP: {str(e)}")
+
+
+
+

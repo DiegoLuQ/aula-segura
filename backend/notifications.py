@@ -36,6 +36,27 @@ SMTP_SERVER = os.getenv("SMTP_SERVER", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 465))
 
 
+def get_config_email(db):
+    """Obtiene o inicializa la configuración global de correo en BD."""
+    conf = db.query(models.ConfigEmail).first()
+    if not conf:
+        conf = models.ConfigEmail(
+            envio_activo=True,
+            smtp_host=SMTP_SERVER,
+            smtp_port=SMTP_PORT,
+            smtp_user=os.getenv("SMTP_USER", ""),
+            smtp_password=os.getenv("SMTP_PASSWORD", ""),
+            smtp_use_tls=True,
+            remitente_nombre="Aula Segura",
+            remitente_email=os.getenv("SMTP_USER", ""),
+        )
+        db.add(conf)
+        db.commit()
+        db.refresh(conf)
+    return conf
+
+
+
 def _parse_hora(valor, default=(8, 0)):
     """Convierte 'HH:MM' en (hora, minuto). Si es inválido, retorna default (08:00)."""
     if not valor:
@@ -177,10 +198,15 @@ def _fmt_fecha(value):
         return str(value)
 
 
-def _aplicar_placeholders(texto, estudiante, nombre_colegio):
-    """Reemplaza las etiquetas {..} por los datos del estudiante. {estado} = la medida/estado elegido."""
+def _aplicar_placeholders(texto, estudiante, nombre_colegio, dia_numero=0, plazo_total=10):
+    """Reemplaza las etiquetas {..} por los datos del estudiante y el progreso del plazo."""
     if not texto:
         return texto
+    
+    dia_actual = int(dia_numero) if dia_numero is not None else 0
+    plazo_max = int(plazo_total) if plazo_total is not None else 10
+    dias_restantes = max(0, plazo_max - dia_actual)
+
     replacements = {
         "{rut}": estudiante.rut or "-",
         "{nombre}": estudiante.nombre_estudiante or "-",
@@ -191,16 +217,41 @@ def _aplicar_placeholders(texto, estudiante, nombre_colegio):
         "{estado}": estudiante.medida or "-",
         "{fecha_medida}": _fmt_fecha(estudiante.fecha_notificacion_medida),
         "{colegio}": nombre_colegio or "-",
+        "{dia_numero}": str(dia_actual),
+        "{dias_transcurridos}": str(dia_actual),
+        "{plazo_total}": str(plazo_max),
+        "{dias_restantes}": str(dias_restantes),
     }
     for placeholder, val in replacements.items():
         texto = texto.replace(placeholder, str(val))
     return texto
 
 
-def construir_mensaje(estudiante, nombre_colegio, etapa="inicio_proceso", cuerpo_personalizado=None, asunto_personalizado=None):
-    """Resumen del proceso (asunto + cuerpo HTML), según la etapa."""
+def construir_mensaje(
+    estudiante,
+    nombre_colegio,
+    etapa="inicio_proceso",
+    cuerpo_personalizado=None,
+    asunto_personalizado=None,
+    dia_numero=0,
+    plazo_total=10,
+):
+    """Resumen del proceso (asunto + cuerpo HTML), según la etapa e incluyendo el avance del plazo."""
+    banner_plazo = f"""
+    <div style="background:#eef2ff; border:1px solid #c7d2fe; border-left:4px solid #4f46e5; border-radius:8px; padding:12px 16px; margin:16px 0; color:#1e1b4b;">
+        <p style="margin:0; font-size:13px; font-weight:bold;">
+            ⏱️ Progreso del Plazo: Acaban de pasar {dia_numero} de {plazo_total} días
+        </p>
+        <p style="margin:4px 0 0 0; font-size:12px; color:#4338ca;">
+            Te recordamos que esta fase es importante dentro del proceso de Aula Segura.
+        </p>
+    </div>
+    """
+
     if cuerpo_personalizado:
-        texto = _aplicar_placeholders(cuerpo_personalizado, estudiante, nombre_colegio)
+        texto = _aplicar_placeholders(
+            cuerpo_personalizado, estudiante, nombre_colegio, dia_numero, plazo_total
+        )
 
         asunto = f"Notificación del Proceso - {estudiante.nombre_estudiante or 'Estudiante'}"
         if etapa == "medida":
@@ -212,12 +263,15 @@ def construir_mensaje(estudiante, nombre_colegio, etapa="inicio_proceso", cuerpo
         elif etapa == "final_medida":
             asunto = f"Notificación Final de la Medida - {estudiante.nombre_estudiante or 'Estudiante'}"
         if asunto_personalizado:
-            asunto = _aplicar_placeholders(asunto_personalizado, estudiante, nombre_colegio)
+            asunto = _aplicar_placeholders(
+                asunto_personalizado, estudiante, nombre_colegio, dia_numero, plazo_total
+            )
 
         cuerpo = f"""
         <div style="font-family: Arial, sans-serif; color:#1e293b; max-width:600px;">
           <h2 style="color:#312e81;">Notificación de Proceso Aula Segura</h2>
           <p>Estimado/a,</p>
+          {banner_plazo}
           <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:16px; margin:16px 0; line-height:1.6; white-space: pre-line;">
             {texto}
           </div>
@@ -225,6 +279,7 @@ def construir_mensaje(estudiante, nombre_colegio, etapa="inicio_proceso", cuerpo
         </div>
         """
         return asunto, cuerpo
+
 
     fila = (
         '<tr><td style="padding:6px 10px; font-weight:bold; background:#eef2ff;">{k}</td>'
@@ -290,6 +345,7 @@ def construir_mensaje(estudiante, nombre_colegio, etapa="inicio_proceso", cuerpo
       <h2 style="color:#312e81;">{titulo}</h2>
       <p>Estimado/a,</p>
       <p>{intro}</p>
+      {banner_plazo}
       <table style="border-collapse:collapse; width:100%; margin:16px 0;">
         {''.join(filas)}
       </table>
@@ -298,7 +354,10 @@ def construir_mensaje(estudiante, nombre_colegio, etapa="inicio_proceso", cuerpo
     </div>
     """
     if asunto_personalizado:
-        asunto = _aplicar_placeholders(asunto_personalizado, estudiante, nombre_colegio)
+        asunto = _aplicar_placeholders(
+            asunto_personalizado, estudiante, nombre_colegio, dia_numero, plazo_total
+        )
+
     return asunto, cuerpo
 
 
@@ -366,33 +425,38 @@ def enviar_correos(db, estudiante, notificacion):
                 pass
         return enviados, fallidos
 
-    for d in destinatarios:
+    emails_list = [d.email for d in destinatarios if d.email]
+    to_header = ", ".join(emails_list)
+
+    if emails_list:
         try:
             msg = MIMEMultipart("alternative")
             msg["Subject"] = asunto
             msg["From"] = f"{_remitente} <{sender_email}>"
-            msg["To"] = d.email
+            msg["To"] = to_header
             msg.attach(MIMEText(cuerpo, "html"))
-            server.sendmail(sender_email, d.email, msg.as_string())
-            db.add(models.NotificacionLog(
-                notificacion_id=notificacion.id,
-                estudiante_id=estudiante.id,
-                destinatario_email=d.email,
-                destinatario_nombre=d.nombre,
-                exito=True,
-                detalle="Enviado",
-            ))
-            enviados += 1
+            server.sendmail(sender_email, emails_list, msg.as_string())
+            for d in destinatarios:
+                db.add(models.NotificacionLog(
+                    notificacion_id=notificacion.id,
+                    estudiante_id=estudiante.id,
+                    destinatario_email=d.email,
+                    destinatario_nombre=d.nombre,
+                    exito=True,
+                    detalle="Enviado",
+                ))
+                enviados += 1
         except Exception as e:
-            db.add(models.NotificacionLog(
-                notificacion_id=notificacion.id,
-                estudiante_id=estudiante.id,
-                destinatario_email=d.email,
-                destinatario_nombre=d.nombre,
-                exito=False,
-                detalle=str(e)[:255],
-            ))
-            fallidos += 1
+            for d in destinatarios:
+                db.add(models.NotificacionLog(
+                    notificacion_id=notificacion.id,
+                    estudiante_id=estudiante.id,
+                    destinatario_email=d.email,
+                    destinatario_nombre=d.nombre,
+                    exito=False,
+                    detalle=str(e)[:255],
+                ))
+                fallidos += 1
 
     try:
         server.quit()
@@ -473,21 +537,20 @@ def _proxima_fecha_habil(fecha):
     return fecha
 
 
-def calcular_fechas_dias_habiles(base_date, dias_envio_str, incluir_dia1=True):
+def calcular_fechas_dias_habiles(base_date, dias_envio_str, incluir_dia1=False):
     """Devuelve [(dia_numero, fecha), ...] para el modo días hábiles.
 
-    - El día 1 es la fecha base (hoy). Si incluir_dia1=True, siempre se agrega.
-    - día N -> base + (N-1) días corridos; si cae fin de semana, se mueve al lunes.
+    - El día 0 o 1 es la fecha base (hoy). Si cae fin de semana, se mueve al lunes.
     """
     try:
         dias = {int(x.strip()) for x in str(dias_envio_str).split(",") if x.strip().isdigit()}
     except Exception:
         dias = set()
-    if incluir_dia1:
-        dias = dias | {1}
+    if incluir_dia1 and not dias:
+        dias = {0}
     resultado = []
-    for n in sorted(d for d in dias if d >= 1):
-        fecha = base_date + timedelta(days=n - 1)
+    for n in sorted(d for d in dias if d >= 0):
+        fecha = base_date + timedelta(days=n)
         fecha = _proxima_fecha_habil(fecha)
         resultado.append((n, fecha))
     return resultado
@@ -569,6 +632,11 @@ def _enviar_programado(db, env):
     estudiante = (
         db.query(models.Estudiante).filter(models.Estudiante.id == env.estudiante_id).first()
     )
+    conf = get_config_email(db)
+    if not conf.envio_activo:
+        print("💡 Envío de correos pausado por el switch global.")
+        return (0, 0)
+
     if not estudiante:
         env.estado = "cancelado"
         db.commit()
@@ -585,9 +653,21 @@ def _enviar_programado(db, env):
     except Exception:
         destinatarios = []
 
+    etapa_key = env.etapa or "inicio_proceso"
+    cfg = db.query(models.ConfigFase).filter(models.ConfigFase.etapa == etapa_key).first()
+    plazo_max = cfg.plazo_dias if cfg else 10
+    dia_num = env.dia_numero if env.dia_numero is not None else 0
+
     asunto, cuerpo = construir_mensaje(
-        estudiante, nombre_colegio, env.etapa or "inicio_proceso", env.cuerpo, env.asunto
+        estudiante,
+        nombre_colegio,
+        etapa_key,
+        env.cuerpo,
+        env.asunto,
+        dia_numero=dia_num,
+        plazo_total=plazo_max,
     )
+
 
     enviados, fallidos = 0, 0
 
@@ -640,47 +720,59 @@ def _enviar_programado(db, env):
         _cerrar()
         return (enviados, fallidos)
 
-    for d in destinatarios:
+    emails_list = [d.get("email") for d in destinatarios if d.get("email")]
+    to_header = ", ".join(emails_list)
+
+    if emails_list:
         try:
             msg = MIMEMultipart("alternative")
             msg["Subject"] = asunto
             msg["From"] = f"{remitente} <{sender_email}>"
-            msg["To"] = d.get("email")
+            msg["To"] = to_header
             msg.attach(MIMEText(cuerpo, "html"))
-            server.sendmail(sender_email, d.get("email"), msg.as_string())
-            db.add(models.NotificacionLog(
-                notificacion_id=env.notificacion_id,
-                estudiante_id=estudiante.id,
-                destinatario_email=d.get("email"),
-                destinatario_nombre=d.get("nombre"),
-                exito=True,
-                detalle="Enviado",
-            ))
-            enviados += 1
+            server.sendmail(sender_email, emails_list, msg.as_string())
+            for d in destinatarios:
+                db.add(models.NotificacionLog(
+                    notificacion_id=env.notificacion_id,
+                    estudiante_id=estudiante.id,
+                    destinatario_email=d.get("email"),
+                    destinatario_nombre=d.get("nombre"),
+                    exito=True,
+                    detalle="Enviado",
+                ))
+                enviados += 1
         except Exception as e:
-            db.add(models.NotificacionLog(
-                notificacion_id=env.notificacion_id,
-                estudiante_id=estudiante.id,
-                destinatario_email=d.get("email"),
-                destinatario_nombre=d.get("nombre"),
-                exito=False,
-                detalle=str(e)[:255],
-            ))
-            fallidos += 1
+            for d in destinatarios:
+                db.add(models.NotificacionLog(
+                    notificacion_id=env.notificacion_id,
+                    estudiante_id=estudiante.id,
+                    destinatario_email=d.get("email"),
+                    destinatario_nombre=d.get("nombre"),
+                    exito=False,
+                    detalle=str(e)[:255],
+                ))
+                fallidos += 1
 
     try:
         server.quit()
     except Exception:
         pass
 
-    _cerrar()
+    if enviados > 0:
+        env.estado = "enviado"
+        env.enviado = True
+        env.fecha_envio_real = datetime.now()
+        db.commit()
+        _actualizar_notificacion_padre(db, env.notificacion_id)
+
     return (enviados, fallidos)
 
 
-def enviar_programados_vencidos(db, notif_id=None):
+def enviar_programados_vencidos(db, notif_id=None, forzar_dia0=False):
     """Envía los envios_programados pendientes cuya fecha+hora ya pasó.
 
-    Si notif_id se indica, solo procesa los de esa notificación (útil al crearla).
+    Si forzar_dia0=True (o si el envío es para el mismo día de creación), 
+    se envía inmediatamente sin importar si aún no se cumple la hora fijada.
     """
     ahora = datetime.now()
     q = db.query(models.EnvioProgramado).filter(models.EnvioProgramado.estado == "pendiente")
@@ -689,11 +781,16 @@ def enviar_programados_vencidos(db, notif_id=None):
     enviados_total, fallidos_total = 0, 0
     for env in q.all():
         hh, mm = _parse_hora(env.hora)
-        if ahora >= datetime.combine(env.fecha, dtime(hh, mm)):
+        es_hoy_o_pasado = (env.fecha <= ahora.date())
+        es_dia_cero_o_uno = (env.dia_numero in (0, 1))
+        
+        # Enviar si ya pasó el horario O si se fuerza el envío del Día 0 al crearla
+        if (forzar_dia0 and es_dia_cero_o_uno and es_hoy_o_pasado) or ahora >= datetime.combine(env.fecha, dtime(hh, mm)) or (es_dia_cero_o_uno and es_hoy_o_pasado):
             e, f = _enviar_programado(db, env)
             enviados_total += e
             fallidos_total += f
     return enviados_total, fallidos_total
+
 
 
 def revisar_envios_programados():

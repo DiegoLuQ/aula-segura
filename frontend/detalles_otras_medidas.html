@@ -5,13 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detalles - Otras Medidas</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/sidebar.js"></script>
     <style>body { display: none; }</style>
 </head>
-<body class="bg-slate-50 text-slate-800 font-sans p-4 lg:p-8">
+<body class="bg-slate-50 text-slate-800 font-sans">
     <script>
         const API_URL = window.location.origin.includes('127.0.0.1') || window.location.origin.includes('localhost') || window.location.origin.startsWith('file://')
-            ? 'http://127.0.0.1:8000'
+            ? (window.location.port === '8000' ? 'http://127.0.0.1:8000' : 'http://127.0.0.1:8010')
             : window.location.origin + '/api';
+
 
         (async function() {
             const token = localStorage.getItem('token');
