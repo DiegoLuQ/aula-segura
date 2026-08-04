@@ -5,7 +5,7 @@
 (function() {
     // Detectar página actual
     const currentPage = window.location.pathname.split('/').pop() || 'dashboard.html';
-    // Por defecto inicia colapsado en desktop para un diseño limpio
+    // Estado colapsado/expandido
     const isCollapsed = localStorage.getItem('sidebar_collapsed') !== 'false';
 
     // CSS para el Sidebar y ajuste del layout principal
@@ -18,8 +18,11 @@
         body {
             background-color: #f8fafc !important;
             min-height: 100vh;
+            padding-left: var(--sidebar-width) !important;
+            transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        body.sidebar-collapsed {
             padding-left: var(--sidebar-collapsed-width) !important;
-            transition: none !important;
         }
         
         .app-sidebar {
@@ -39,23 +42,6 @@
         .app-sidebar.collapsed {
             width: var(--sidebar-collapsed-width);
             box-shadow: 2px 0 12px rgba(0,0,0,0.1);
-        }
-
-        /* OVERLAY TAPAR EL FONDO (DESKTOP) */
-        #desktop-sidebar-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(15, 23, 42, 0.55);
-            backdrop-filter: blur(3px);
-            -webkit-backdrop-filter: blur(3px);
-            z-index: 999;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-        }
-        #desktop-sidebar-overlay.active {
-            opacity: 1;
-            pointer-events: auto;
         }
 
         /* BRAND / CABECERA */
@@ -130,7 +116,7 @@
             flex-shrink: 0;
         }
         .app-sidebar.collapsed .sidebar-toggle-btn {
-            display: none !important;
+            display: flex !important;
         }
         .sidebar-toggle-btn:hover {
             background: #6366f1;
@@ -251,9 +237,6 @@
             }
         }
         @media (max-width: 1023px) {
-            #desktop-sidebar-overlay {
-                display: none !important;
-            }
             .app-sidebar {
                 transform: translateX(-100%);
                 width: 260px !important;
@@ -294,12 +277,10 @@
             oldHeader.style.display = 'none';
         }
         renderSidebar();
-        document.body.classList.add('sidebar-collapsed');
-
-        // Si previamente estaba expandido en desktop, activar overlay
-        if (!isCollapsed && window.innerWidth >= 1024) {
-            const overlay = document.getElementById('desktop-sidebar-overlay');
-            if (overlay) overlay.classList.add('active');
+        if (isCollapsed) {
+            document.body.classList.add('sidebar-collapsed');
+        } else {
+            document.body.classList.remove('sidebar-collapsed');
         }
     });
 
@@ -331,9 +312,6 @@
             <!-- Overlay Móvil -->
             <div id="sidebar-overlay" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] hidden lg:hidden"></div>
 
-            <!-- Overlay Desktop (Tapar el fondo) -->
-            <div id="desktop-sidebar-overlay" onclick="toggleDesktopSidebar()" class="${!isCollapsed ? 'active' : ''}"></div>
-
             <!-- Sidebar Principal -->
             <aside id="app-sidebar-root" class="app-sidebar ${isCollapsed ? 'collapsed' : ''}">
                 <div class="app-sidebar-brand">
@@ -344,8 +322,8 @@
                             <span class="text-[10px] text-indigo-300 font-medium tracking-wider uppercase">Colegios de Chile</span>
                         </div>
                     </div>
-                    <button id="sidebar-toggle-btn" onclick="toggleDesktopSidebar()" class="sidebar-toggle-btn" title="Contraer Menú">
-                        ◀
+                    <button id="sidebar-toggle-btn" onclick="toggleDesktopSidebar()" class="sidebar-toggle-btn" title="${isCollapsed ? 'Expandir Menú' : 'Contraer Menú'}">
+                        ${isCollapsed ? '▶' : '◀'}
                     </button>
                 </div>
 
@@ -437,13 +415,15 @@
 
     window.toggleDesktopSidebar = function() {
         const sidebar = document.getElementById('app-sidebar-root');
-        const overlay = document.getElementById('desktop-sidebar-overlay');
         if (!sidebar) return;
 
         const isNowCollapsed = sidebar.classList.toggle('collapsed');
-        
-        if (overlay) {
-            overlay.classList.toggle('active', !isNowCollapsed);
+        document.body.classList.toggle('sidebar-collapsed', isNowCollapsed);
+
+        const toggleBtn = document.getElementById('sidebar-toggle-btn');
+        if (toggleBtn) {
+            toggleBtn.innerText = isNowCollapsed ? '▶' : '◀';
+            toggleBtn.title = isNowCollapsed ? 'Expandir Menú' : 'Contraer Menú';
         }
 
         localStorage.setItem('sidebar_collapsed', isNowCollapsed ? 'true' : 'false');

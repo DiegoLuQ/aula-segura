@@ -1078,10 +1078,21 @@ def crear_notificacion(
                 detail="Ya existe una notificación de esta fase para esa fecha. Cancélala si necesitas enviarla de nuevo.",
             )
 
-    # En la etapa 'medida' se guarda el estado elegido en el campo del estudiante
-    if etapa == "medida" and data.medida:
-        estudiante.medida = data.medida
-        db.commit()
+    # Actualizar la fecha correspondiente en la ficha del estudiante
+    if etapa == "inicio_proceso":
+        estudiante.fecha_inicio_proceso = fecha_nueva
+    elif etapa == "medida":
+        estudiante.fecha_notificacion_medida = fecha_nueva
+        if data.medida:
+            estudiante.medida = data.medida
+    elif etapa == "apelacion":
+        estudiante.fecha_recepcion_apelacion = fecha_nueva
+    elif etapa == "consejo":
+        estudiante.fecha_consejo_profesores = fecha_nueva
+    elif etapa == "final_medida":
+        estudiante.fecha_notificacion_final = fecha_nueva
+
+    db.commit()
 
     grupo_ids_str = ",".join(str(g) for g in data.grupo_ids) if data.grupo_ids else None
 
@@ -1116,6 +1127,7 @@ def crear_notificacion(
             "notificacion_id": notif.id,
             "programada": True,
             "fecha_programada": str(data.fecha_programada),
+            "fecha_proceso": str(fecha_nueva),
         }
 
     if data.modo == "dias_habiles":
@@ -1132,6 +1144,7 @@ def crear_notificacion(
             "dias_envio": data.dias_habiles_envio,
             "enviados": enviados,
             "fallidos": fallidos,
+            "fecha_proceso": str(fecha_nueva),
         }
 
     enviados, fallidos = notifications.procesar_notificacion(db, notif)
@@ -1140,6 +1153,7 @@ def crear_notificacion(
         "notificacion_id": notif.id,
         "enviados": enviados,
         "fallidos": fallidos,
+        "fecha_proceso": str(fecha_nueva),
     }
 
 @app.get("/estudiantes/{id}/notificaciones", response_model=List[schemas.Notificacion])

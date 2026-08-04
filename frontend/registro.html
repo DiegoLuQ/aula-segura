@@ -2082,11 +2082,26 @@
                 });
                 const data = await resp.json();
                 if (resp.ok) {
-                    // En etapa 'medida' el backend guardó el estado en el estudiante;
-                    // reflejarlo en el selector "Medida Aplicada" del formulario.
-                    if (currentEtapa === 'medida' && payload.medida) {
-                        const medidaSel = document.getElementById('medida');
-                        if (medidaSel) medidaSel.value = payload.medida;
+                    const fIso = data.fecha_proceso || new Date().toISOString().split('T')[0];
+                    if (currentEtapa === 'inicio_proceso') {
+                        const inp = document.getElementById('fecha_inicio_proceso');
+                        if (inp) inp.value = fIso;
+                    } else if (currentEtapa === 'medida') {
+                        const inp = document.getElementById('fecha_notificacion_medida');
+                        if (inp) inp.value = fIso;
+                        if (payload.medida) {
+                            const medidaSel = document.getElementById('medida');
+                            if (medidaSel) medidaSel.value = payload.medida;
+                        }
+                    } else if (currentEtapa === 'apelacion') {
+                        const inp = document.getElementById('fecha_recepcion_apelacion');
+                        if (inp) inp.value = fIso;
+                    } else if (currentEtapa === 'consejo') {
+                        const inp = document.getElementById('fecha_consejo_profesores');
+                        if (inp) inp.value = fIso;
+                    } else if (currentEtapa === 'final_medida') {
+                        const inp = document.getElementById('fecha_notificacion_final');
+                        if (inp) inp.value = fIso;
                     }
                     if (data.programada) {
                         result.className = 'text-sm mt-2 text-indigo-600 font-medium';
