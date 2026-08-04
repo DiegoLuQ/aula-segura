@@ -57,8 +57,18 @@ def get_config_email(db):
 
 
 
-def _parse_hora(valor, default=(8, 0)):
-    """Convierte 'HH:MM' en (hora, minuto). Si es inválido, retorna default (08:00)."""
+from zoneinfo import ZoneInfo
+
+SANTIAGO_TZ = ZoneInfo("America/Santiago")
+
+
+def obtener_ahora_santiago():
+    """Devuelve datetime.now() en zona horaria Santiago de Chile (naive para DB)."""
+    return datetime.now(SANTIAGO_TZ).replace(tzinfo=None)
+
+
+def _parse_hora(valor, default=(9, 0)):
+    """Convierte 'HH:MM' en (hora, minuto). Si es inválido, retorna default (09:00)."""
     if not valor:
         return default
     try:
@@ -558,9 +568,9 @@ def calcular_fechas_dias_habiles(base_date, dias_envio_str, incluir_dia1=False):
 
 def programar_envios_dias_habiles(db, notificacion, estudiante, base_date=None):
     """Crea una fila en envios_programados por cada día de envío (con snapshot de correos)."""
-    base = base_date or datetime.now().date()
+    base = base_date or obtener_ahora_santiago().date()
     pares = calcular_fechas_dias_habiles(base, notificacion.dias_habiles_envio, incluir_dia1=True)
-    hora = notificacion.hora_envio or "08:00"
+    hora = notificacion.hora_envio or "09:00"
 
     # Snapshot de los destinatarios actuales (se congelan)
     dests = get_destinatarios_para_estudiante(db, estudiante, notificacion.grupo_ids)
@@ -615,10 +625,10 @@ def _actualizar_notificacion_padre(db, notif_id):
         .all()
     )
     notif.veces_enviado = enviados
-    notif.ultimo_envio = datetime.now()
+    notif.ultimo_envio = obtener_ahora_santiago()
     if pendientes:
         prox = pendientes[0]
-        hh, mm = _parse_hora(prox.hora)
+        hh, mm = _parse_hora(prox.hora, default=(9, 0))
         notif.proximo_envio = datetime.combine(prox.fecha, dtime(hh, mm))
     else:
         notif.proximo_envio = None
@@ -761,31 +771,52 @@ def _enviar_programado(db, env):
     if enviados > 0:
         env.estado = "enviado"
         env.enviado = True
-        env.fecha_envio_real = datetime.now()
+        env.fecha_envio_real = obtener_ahora_santiago()
         db.commit()
         _actualizar_notificacion_padre(db, env.notificacion_id)
 
     return (enviados, fallidos)
 
 
-def enviar_programados_vencidos(db, notif_id=None, forzar_dia0=False):
+def enviar_programados_vencidos(db, notif_id=None, forzar_primer_envio=False):
     """Envía los envios_programados pendientes cuya fecha+hora ya pasó.
 
-    Si forzar_dia0=True (o si el envío es para el mismo día de creación), 
-    se envía inmediatamente sin importar si aún no se cumple la hora fijada.
+    El primer envío de cada notificación se envía de inmediato al crearse si forzar_primer_envio=True.
+    Los envíos posteriores solo se envían si en el horario de Santiago de Chile ya se cumplió la fecha
+    y hora programada (por defecto 09:00 AM).
     """
-    ahora = datetime.now()
+    ahora = obtener_ahora_santiago()
     q = db.query(models.EnvioProgramado).filter(models.EnvioProgramado.estado == "pendiente")
     if notif_id is not None:
         q = q.filter(models.EnvioProgramado.notificacion_id == notif_id)
+    
+    items = q.all()
+    if not items:
+        return 0, 0
+
+    # Obtener el menor dia_numero para cada notificación para identificar su primer correo
+    min_dias = {}
+    for env in items:
+        nid = env.notificacion_id
+        d = env.dia_numero if env.dia_numero is not None else 0
+        if nid not in min_dias or d < min_dias[nid]:
+            min_dias[nid] = d
+
     enviados_total, fallidos_total = 0, 0
-    for env in q.all():
-        hh, mm = _parse_hora(env.hora)
+    for env in items:
+        hh, mm = _parse_hora(env.hora, default=(9, 0))
         es_hoy_o_pasado = (env.fecha <= ahora.date())
-        es_dia_cero_o_uno = (env.dia_numero in (0, 1))
+        d_num = env.dia_numero if env.dia_numero is not None else 0
+        es_primer_envio = (d_num == min_dias.get(env.notificacion_id))
+        fecha_hora_prog = datetime.combine(env.fecha, dtime(hh, mm))
         
-        # Enviar si ya pasó el horario O si se fuerza el envío del Día 0 al crearla
-        if (forzar_dia0 and es_dia_cero_o_uno and es_hoy_o_pasado) or ahora >= datetime.combine(env.fecha, dtime(hh, mm)) or (es_dia_cero_o_uno and es_hoy_o_pasado):
+        debe_enviar = False
+        if forzar_primer_envio and es_primer_envio and es_hoy_o_pasado:
+            debe_enviar = True
+        elif ahora >= fecha_hora_prog:
+            debe_enviar = True
+
+        if debe_enviar:
             e, f = _enviar_programado(db, env)
             enviados_total += e
             fallidos_total += f
@@ -808,7 +839,7 @@ def revisar_pendientes():
     """Una pasada del scheduler: envía todas las notificaciones vencidas."""
     db = database.SessionLocal()
     try:
-        ahora = datetime.now()
+        ahora = obtener_ahora_santiago()
         pendientes = (
             db.query(models.Notificacion)
             .filter(models.Notificacion.estado == "activo")

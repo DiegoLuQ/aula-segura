@@ -701,7 +701,7 @@
                                     <div>
                                         <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Hora de
                                             envío</label>
-                                        <input type="time" id="notif-dh-hora" value="08:00"
+                                        <input type="time" id="notif-dh-hora" value="09:00"
                                             class="w-full px-4 py-2 border rounded-lg">
                                     </div>
                                 </div>
@@ -1724,7 +1724,7 @@
 
         function openDiasPreview() {
             const diasStr = document.getElementById('notif-dh-envio').value;
-            const hora = document.getElementById('notif-dh-hora').value || '08:00';
+            const hora = document.getElementById('notif-dh-hora').value || '09:00';
             const cont = document.getElementById('dias-preview-list');
             const fechas = calcularFechasDiasHabiles(diasStr);
             if (!fechas.length) {
@@ -2043,14 +2043,14 @@
                     if (conf) {
                         payload.dias_habiles_total = conf.plazo_dias || 10;
                         payload.dias_habiles_envio = conf.dias_recordatorio || "0,3,5";
-                        payload.hora_envio = "08:00";
+                        payload.hora_envio = "09:00";
                     }
                 }
             } catch (e) {
                 console.error("Error obteniendo configuración de fase:", e);
                 payload.dias_habiles_total = 10;
                 payload.dias_habiles_envio = "0,3,5";
-                payload.hora_envio = "08:00";
+                payload.hora_envio = "09:00";
             }
 
             payload.cuerpo_personalizado = document.getElementById('notif-cuerpo').value;
@@ -2091,7 +2091,7 @@
                     if (data.programada) {
                         result.className = 'text-sm mt-2 text-indigo-600 font-medium';
                         result.innerText = 'Notificación programada con éxito.' +
-                            (data.enviados ? ` Se enviaron ${data.enviados} correo(s) ahora (día 1).` : '');
+                            (data.enviados ? ` Se enviaron ${data.enviados} correo(s) ahora (primer envío).` : '');
                     } else {
                         result.className = 'text-sm mt-2 text-green-600 font-medium';
                         result.innerText = `Correos enviados: ${data.enviados}. Fallidos: ${data.fallidos}.`;

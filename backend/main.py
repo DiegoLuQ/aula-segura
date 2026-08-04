@@ -1055,7 +1055,7 @@ def crear_notificacion(
     # No duplicar: misma fase + misma fecha de envío/programación.
     # Inmediato/días hábiles -> hoy; 'fecha_indicada' -> la fecha programada.
     # Solo bloquean las notificaciones activas o completadas (las canceladas liberan la fase).
-    fecha_nueva = data.fecha_programada if data.modo == "fecha_indicada" else datetime.now().date()
+    fecha_nueva = data.fecha_programada if data.modo == "fecha_indicada" else notifications.obtener_ahora_santiago().date()
     existentes = (
         db.query(models.Notificacion)
         .filter(
@@ -1097,7 +1097,7 @@ def crear_notificacion(
         max_envios=cfg["max"],
         veces_enviado=0,
         fecha_programada=data.fecha_programada if data.modo == "fecha_indicada" else None,
-        proximo_envio=datetime.now() if data.modo != "fecha_indicada" else None,
+        proximo_envio=notifications.obtener_ahora_santiago() if data.modo != "fecha_indicada" else None,
         cuerpo_personalizado=data.cuerpo_personalizado,
         asunto_personalizado=data.asunto_personalizado,
         dias_habiles_total=data.dias_habiles_total if data.modo == "dias_habiles" else None,
@@ -1120,10 +1120,9 @@ def crear_notificacion(
 
     if data.modo == "dias_habiles":
         # Materializar cada día de envío como una tarea en envios_programados
-        # (día 1 = hoy + los días de la lista). Snapshot de destinatarios incluido.
         notifications.programar_envios_dias_habiles(db, notif, estudiante)
-        # Enviar de inmediato los que ya estén vencidos (p. ej. el día 1 = hoy si pasó la hora).
-        enviados, fallidos = notifications.enviar_programados_vencidos(db, notif.id)
+        # Enviar de inmediato el primer correo del plan
+        enviados, fallidos = notifications.enviar_programados_vencidos(db, notif.id, forzar_primer_envio=True)
         # Reflejar el próximo envío pendiente (o completar) en el registro del job.
         notifications._actualizar_notificacion_padre(db, notif.id)
         return {

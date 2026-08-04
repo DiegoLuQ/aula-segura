@@ -251,7 +251,7 @@
                     estadoBadge = '<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-rose-100 text-rose-700">🚫 Cancelado</span>';
                 }
 
-                const fechaText = item.fecha ? `${item.fecha} (${item.hora || '08:00'})` : '-';
+                const fechaText = item.fecha ? `${item.fecha} (${item.hora || '09:00'})` : '-';
                 let timingBadge = '';
                 if (item.fecha && item.estado === 'pendiente') {
                     const hoy = new Date().toISOString().split('T')[0];

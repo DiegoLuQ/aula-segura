@@ -169,6 +169,12 @@ class EnvioProgramado(Base):
     fecha_envio_real = Column(DateTime, nullable=True)
     fecha_creacion = Column(TIMESTAMP, server_default=func.now())
 
+from zoneinfo import ZoneInfo
+SANTIAGO_TZ = ZoneInfo("America/Santiago")
+
+def obtener_ahora_santiago():
+    return datetime.now(SANTIAGO_TZ).replace(tzinfo=None)
+
 class NotificacionLog(Base):
     """Registro de cada correo enviado (para ver el estado de envío)."""
     __tablename__ = "pro_aula_segura_notificaciones_log"
@@ -179,7 +185,7 @@ class NotificacionLog(Base):
     destinatario_nombre = Column(String(150))
     exito = Column(Boolean, default=False)
     detalle = Column(String(255), nullable=True)
-    fecha_envio = Column(DateTime, default=datetime.now)
+    fecha_envio = Column(DateTime, default=obtener_ahora_santiago)
 
 class ConfigFase(Base):
     """Configuración de plazo y días de recordatorio por etapa del proceso disciplinario."""
