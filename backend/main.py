@@ -222,11 +222,30 @@ def update_estudiante(
     db_estudiante = db.query(models.Estudiante).filter(models.Estudiante.id == id).first()
     if not db_estudiante:
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
-    
+
+    # Fechas de cada fase ANTES de guardar: si alguna cambia hay que recalcular sus
+    # recordatorios pendientes (si no, seguirian saliendo en las fechas viejas).
+    fechas_previas = {
+        etapa: _fecha_etapa_estudiante(db_estudiante, etapa)
+        for etapa in ETAPA_FECHA_ATTR
+    }
+
     for key, value in estudiante.dict().items():
         setattr(db_estudiante, key, value)
-    
+
     db.commit()
+    db.refresh(db_estudiante)
+
+    # En orden del proceso, para que las fases anteriores tomen fecha primero y las
+    # posteriores esquiven las ya ocupadas.
+    for etapa in notifications.ORDEN_FASES:
+        if etapa not in ETAPA_FECHA_ATTR:
+            continue
+        nueva = _fecha_etapa_estudiante(db_estudiante, etapa)
+        if nueva == fechas_previas.get(etapa):
+            continue
+        notifications.reprogramar_envios_por_cambio_fecha(db, db_estudiante, etapa, nueva)
+
     db.refresh(db_estudiante)
     return db_estudiante
 
@@ -1173,6 +1192,12 @@ def crear_notificacion(
         }
 
     if data.modo == "dias_habiles":
+        # El proceso avanzó: los recordatorios pendientes de las fases anteriores ya
+        # no corresponden. Además garantiza que dos fases del mismo alumno nunca
+        # queden agendadas el mismo día.
+        fases_canceladas = notifications.cancelar_fases_anteriores(
+            db, id, etapa, excluir_notif_id=notif.id
+        )
         # Materializar cada día de envío como una tarea en envios_programados,
         # contando días hábiles desde la fecha de la etapa.
         notifications.programar_envios_dias_habiles(db, notif, estudiante, base_date=fecha_nueva)
@@ -1180,6 +1205,16 @@ def crear_notificacion(
         enviados, fallidos = notifications.enviar_programados_vencidos(db, notif.id, forzar_primer_envio=True)
         # Reflejar el próximo envío pendiente (o completar) en el registro del job.
         notifications._actualizar_notificacion_padre(db, notif.id)
+        # Recordatorios que quedaron en el pasado: no se mandan correos retroactivos,
+        # solo el más reciente. Se informa para que la pantalla lo pueda avisar.
+        descartados = (
+            db.query(models.EnvioProgramado)
+            .filter(
+                models.EnvioProgramado.notificacion_id == notif.id,
+                models.EnvioProgramado.estado == "cancelado",
+            )
+            .count()
+        )
         return {
             "message": "Notificación por días hábiles programada",
             "notificacion_id": notif.id,
@@ -1188,6 +1223,8 @@ def crear_notificacion(
             "enviados": enviados,
             "fallidos": fallidos,
             "fecha_proceso": str(fecha_nueva),
+            "descartados": descartados,
+            "fases_previas_canceladas": fases_canceladas,
         }
 
     enviados, fallidos = notifications.procesar_notificacion(db, notif)
@@ -1198,6 +1235,48 @@ def crear_notificacion(
         "fallidos": fallidos,
         "fecha_proceso": str(fecha_nueva),
     }
+
+@app.get("/estudiantes/{id}/fechas-ocupadas")
+def fechas_ocupadas_estudiante(
+    id: int,
+    etapa: Optional[str] = None,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    """Días del alumno que ya tienen un recordatorio agendado o enviado.
+
+    La previsualización del modal las usa para mostrar el MISMO plan que va a
+    calcular el backend. Si viene `etapa`, se descuentan los pendientes de las fases
+    anteriores, porque al notificar esa etapa esos envíos se cancelan.
+    """
+    _require_editor(current_user)
+    estudiante = db.query(models.Estudiante).filter(models.Estudiante.id == id).first()
+    if not estudiante:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+
+    previas = set()
+    if etapa and etapa in notifications.ORDEN_FASES:
+        previas = set(notifications.ORDEN_FASES[:notifications.ORDEN_FASES.index(etapa)])
+
+    filas = (
+        db.query(models.EnvioProgramado)
+        .filter(
+            models.EnvioProgramado.estudiante_id == id,
+            models.EnvioProgramado.estado.in_(["pendiente", "enviado"]),
+        )
+        .order_by(models.EnvioProgramado.fecha.asc())
+        .all()
+    )
+
+    ocupadas, vistas = [], set()
+    for f in filas:
+        if not f.fecha or f.fecha in vistas:
+            continue
+        if f.estado == "pendiente" and f.etapa in previas:
+            continue  # se cancelará al notificar esta etapa
+        vistas.add(f.fecha)
+        ocupadas.append({"fecha": str(f.fecha), "etapa": f.etapa, "estado": f.estado})
+    return {"fechas": ocupadas}
 
 @app.get("/estudiantes/{id}/notificaciones", response_model=List[schemas.Notificacion])
 def notificaciones_de_estudiante(
@@ -1335,8 +1414,12 @@ def registrar_consejo(
 
     correo_enviado = False
     enviados, fallidos = 0, 0
+    fases_canceladas = 0
 
     if data.enviar_correo:
+        # Misma regla que en /notificar: el proceso avanzó a esta fase, así que los
+        # recordatorios pendientes de las fases anteriores se cancelan.
+        fases_canceladas = notifications.cancelar_fases_anteriores(db, id, "consejo")
         grupo_ids_str = ",".join(str(g) for g in data.grupo_ids) if data.grupo_ids else None
         notif = models.Notificacion(
             estudiante_id=id,
@@ -1363,6 +1446,7 @@ def registrar_consejo(
         "correo_enviado": correo_enviado,
         "enviados": enviados,
         "fallidos": fallidos,
+        "fases_previas_canceladas": fases_canceladas,
     }
 
 # --- CONFIGURACIÓN DE PLAZOS Y RECORDATORIOS POR FASE ---

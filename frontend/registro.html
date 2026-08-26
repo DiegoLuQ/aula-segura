@@ -1353,6 +1353,13 @@
                         document.getElementById('tab-expediente').classList.remove('hidden');
                     }
 
+                    // Si cambió la fecha de una fase YA notificada, el backend recalcula sus
+                    // recordatorios pendientes: hay que avisarle al usuario.
+                    const reprogramadas = FASES_NOTIF
+                        .filter(f => FASES_NOTIFICADAS[f.etapa] &&
+                            normFecha(SAVED_FECHAS[f.fecha]) !== normFecha(payload[f.fecha]))
+                        .map(f => ETAPA_LABEL[f.etapa] || f.etapa);
+
                     setProcesoLock(false);
                     if (!keepPhase || wasNew) formPhaseGoto(2);
 
@@ -1362,6 +1369,9 @@
 
                     if (wasNew) {
                         alert('✅ Registro del alumno guardado con éxito. Has avanzado a la Fase 2: Proceso y Notificaciones.');
+                    } else if (reprogramadas.length) {
+                        alert('✅ Registro actualizado. Se recalcularon los recordatorios pendientes de: ' +
+                            reprogramadas.join(', ') + '.');
                     } else {
                         alert('✅ Registro actualizado con éxito.');
                     }
@@ -1736,6 +1746,7 @@
             notifStepGoto(1);
             NOTIF_HISTORY_CACHE = [];
             await loadFeriados();
+            await loadFechasOcupadas();
             loadDefaultMessage();
             await loadPlantillas();
             loadFaseConfigInfo();
@@ -1848,7 +1859,8 @@
                 wrapDh.classList.remove('hidden');
                 btn.innerText = 'Programar días hábiles';
             } else {
-                btn.innerText = 'Enviar ahora';
+                // El envío siempre se programa como plan de días hábiles (ver enviarNotificacion).
+                btn.innerText = 'Programar recordatorios';
             }
             checkDuplicadoFase();
         }
@@ -1903,6 +1915,34 @@
             return !FERIADOS_SET.has(isoDeFecha(d));
         }
 
+        // Días del alumno que ya tienen un recordatorio de otra fase: ninguna fase puede
+        // chocar en fecha con otra (el backend aplica exactamente la misma regla).
+        let FECHAS_OCUPADAS = new Map(); // 'YYYY-MM-DD' -> etapa que la ocupa
+
+        const ETAPA_LABEL = {
+            inicio_proceso: 'Inicio',
+            medida: 'Medida',
+            apelacion: 'Apelación',
+            consejo: 'Consejo',
+            final_medida: 'Final',
+        };
+
+        async function loadFechasOcupadas() {
+            FECHAS_OCUPADAS = new Map();
+            if (!studentId) return;
+            const token = localStorage.getItem('token');
+            try {
+                const url = `${API_URL}/estudiantes/${studentId}/fechas-ocupadas?etapa=${encodeURIComponent(currentEtapa)}`;
+                const resp = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    (data.fechas || []).forEach(f => FECHAS_OCUPADAS.set(String(f.fecha).slice(0, 10), f.etapa));
+                }
+            } catch (e) {
+                console.error('Error cargando fechas ocupadas:', e);
+            }
+        }
+
         // Mismo cálculo que el backend: base al siguiente día hábil y luego N días hábiles,
         // saltando fines de semana y feriados.
         function calcularFechasDiasHabiles(diasStr, baseISO) {
@@ -1913,6 +1953,10 @@
             const base = fechaDesdeISO(baseISO || faseFechaBase());
             while (!esDiaHabil(base)) base.setDate(base.getDate() + 1);
 
+            // Igual que el backend: primero los días hábiles y después se corre al
+            // siguiente día libre lo que choque con un recordatorio de otra fase.
+            const tomadas = new Set(FECHAS_OCUPADAS.keys());
+            let anterior = null;
             return dias.map(n => {
                 const d = new Date(base);
                 let restantes = n;
@@ -1920,7 +1964,16 @@
                     d.setDate(d.getDate() + 1);
                     if (esDiaHabil(d)) restantes--;
                 }
-                return { dia: n, fecha: d };
+                const original = isoDeFecha(d);
+                let choque = null;
+                while (!esDiaHabil(d) || tomadas.has(isoDeFecha(d)) || (anterior && isoDeFecha(d) <= anterior)) {
+                    if (!choque) choque = FECHAS_OCUPADAS.get(isoDeFecha(d)) || null;
+                    d.setDate(d.getDate() + 1);
+                }
+                const iso = isoDeFecha(d);
+                tomadas.add(iso);
+                anterior = iso;
+                return { dia: n, fecha: new Date(d), movido: iso !== original, choque };
             });
         }
 
@@ -1946,19 +1999,42 @@
                 cont.innerHTML = '<p class="text-sm text-slate-400 italic text-center p-6">Indica los días de envío (ej. 0,3,5) para ver las fechas.</p>';
             } else {
                 const hoyLocal = hoyStr();
-                cont.innerHTML = fechas.map(f => {
-                    const iso = `${f.fecha.getFullYear()}-${String(f.fecha.getMonth() + 1).padStart(2, '0')}-${String(f.fecha.getDate()).padStart(2, '0')}`;
+                const pasadas = fechas.filter(f => isoDeFecha(f.fecha) < hoyLocal).length;
+                const movidas = fechas.filter(f => f.movido).length;
+                let avisos = '';
+                if (pasadas) {
+                    avisos += `
+                    <div class="p-3 mb-2 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-800">
+                        <strong>${pasadas} recordatorio(s) quedaron en el pasado.</strong> No se mandan correos
+                        retroactivos: al programar sale solo el más reciente de los vencidos y el resto queda
+                        registrado como "No enviado".
+                    </div>`;
+                }
+                if (movidas) {
+                    avisos += `
+                    <div class="p-3 mb-2 rounded-xl bg-indigo-50 border border-indigo-200 text-[11px] text-indigo-800">
+                        <strong>${movidas} recordatorio(s) se corrieron de día</strong> para no chocar con
+                        otra fase del mismo alumno.
+                    </div>`;
+                }
+                cont.innerHTML = avisos + fechas.map(f => {
+                    const iso = isoDeFecha(f.fecha);
                     const esHoy = iso === hoyLocal;
+                    const esPasado = iso < hoyLocal;
+                    const nota = f.movido
+                        ? ` · corrido para no chocar con ${ETAPA_LABEL[f.choque] || 'otra fase'}`
+                        : '';
                     return `
-                    <div class="flex items-center justify-between gap-3 p-3 border rounded-xl ${esHoy ? 'bg-indigo-50 border-indigo-200' : ''}">
+                    <div class="flex items-center justify-between gap-3 p-3 border rounded-xl ${esHoy ? 'bg-indigo-50 border-indigo-200' : ''} ${esPasado ? 'opacity-60' : ''}">
                         <div class="flex items-center gap-3">
                             <span class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center flex-shrink-0">${f.dia}</span>
                             <div>
                                 <p class="text-sm font-bold text-slate-700 capitalize">${fmtFechaLarga(f.fecha)}</p>
-                                <p class="text-[11px] text-slate-400">Día ${f.dia} · ${hora} hrs</p>
+                                <p class="text-[11px] text-slate-400">Día ${f.dia} · ${hora} hrs${nota}</p>
                             </div>
                         </div>
                         ${esHoy ? '<span class="text-[10px] font-bold text-indigo-600 uppercase">Hoy</span>' : ''}
+                        ${esPasado ? '<span class="text-[10px] font-bold text-amber-600 uppercase">Vencido</span>' : ''}
                     </div>`;
                 }).join('');
             }
@@ -2250,7 +2326,16 @@
 
         async function enviarNotificacion() {
             const token = localStorage.getItem('token');
-            let payload = { modo: 'dias_habiles', etapa: currentEtapa };
+            // Los valores por defecto van SIEMPRE en el payload: si la fase no tiene
+            // configuración cargada (o el endpoint responde 403/500) el backend rechazaba
+            // el envío con un 400 "Debe indicar el plazo total y los días de envío".
+            let payload = {
+                modo: 'dias_habiles',
+                etapa: currentEtapa,
+                dias_habiles_total: 10,
+                dias_habiles_envio: "0,3,5",
+                hora_envio: "09:00"
+            };
 
             try {
                 const configResp = await fetch(`${API_URL}/configuracion/fases`, { headers: { 'Authorization': `Bearer ${token}` } });
@@ -2260,14 +2345,10 @@
                     if (conf) {
                         payload.dias_habiles_total = conf.plazo_dias || 10;
                         payload.dias_habiles_envio = conf.dias_recordatorio || "0,3,5";
-                        payload.hora_envio = "09:00";
                     }
                 }
             } catch (e) {
                 console.error("Error obteniendo configuración de fase:", e);
-                payload.dias_habiles_total = 10;
-                payload.dias_habiles_envio = "0,3,5";
-                payload.hora_envio = "09:00";
             }
 
             payload.cuerpo_personalizado = document.getElementById('notif-cuerpo').value;
@@ -2325,8 +2406,15 @@
                     }
                     if (data.programada) {
                         result.className = 'text-sm mt-2 text-indigo-600 font-medium';
-                        result.innerText = 'Notificación programada con éxito.' +
+                        let msg = 'Notificación programada con éxito.' +
                             (data.enviados ? ` Se enviaron ${data.enviados} correo(s) ahora (primer envío).` : '');
+                        if (data.descartados) {
+                            msg += ` ${data.descartados} recordatorio(s) quedaron en el pasado y no se envían (no se mandan correos retroactivos).`;
+                        }
+                        if (data.fases_previas_canceladas) {
+                            msg += ` Se cancelaron ${data.fases_previas_canceladas} recordatorio(s) pendientes de fases anteriores.`;
+                        }
+                        result.innerText = msg;
                     } else {
                         result.className = 'text-sm mt-2 text-green-600 font-medium';
                         result.innerText = `Correos enviados: ${data.enviados}. Fallidos: ${data.fallidos}.`;

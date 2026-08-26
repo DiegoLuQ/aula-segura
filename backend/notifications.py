@@ -652,11 +652,113 @@ def calcular_fechas_dias_habiles(base_date, dias_envio_str, incluir_dia1=False):
     return resultado
 
 
-def programar_envios_dias_habiles(db, notificacion, estudiante, base_date=None):
+# ---------- CHOQUE DE FECHAS ENTRE FASES ----------
+# Orden real del proceso disciplinario. Al notificar una fase, las anteriores ya
+# quedaron atras: sus recordatorios pendientes se cancelan.
+ORDEN_FASES = ["inicio_proceso", "medida", "apelacion", "consejo", "final_medida"]
+
+
+def _indice_fase(etapa):
+    try:
+        return ORDEN_FASES.index(etapa or "inicio_proceso")
+    except ValueError:
+        return -1
+
+
+def fechas_ocupadas(db, estudiante_id, excluir_notif_id=None):
+    """Fechas del alumno que YA tienen un recordatorio (pendiente o enviado).
+
+    Sirven para que dos recordatorios del mismo alumno nunca caigan el mismo dia,
+    sin importar de que fase sean. `excluir_notif_id` deja fuera los PENDIENTES de
+    esa notificacion (son los que se estan recalculando); los que ya salieron siguen
+    ocupando su dia, porque son historia y no se mueven.
+    """
+    filas = (
+        db.query(models.EnvioProgramado)
+        .filter(
+            models.EnvioProgramado.estudiante_id == estudiante_id,
+            models.EnvioProgramado.estado.in_(["pendiente", "enviado"]),
+        )
+        .all()
+    )
+    ocupadas = set()
+    for e in filas:
+        if not e.fecha:
+            continue
+        if (
+            excluir_notif_id is not None
+            and e.notificacion_id == excluir_notif_id
+            and e.estado != "enviado"
+        ):
+            continue
+        ocupadas.add(e.fecha)
+    return ocupadas
+
+
+def cancelar_fases_anteriores(db, estudiante_id, etapa, excluir_notif_id=None):
+    """Cancela los recordatorios pendientes de las fases PREVIAS a `etapa`.
+
+    Si el proceso ya llego a la apelacion, los recordatorios de la medida que
+    todavia no salen dejaron de corresponder. Devuelve cuantos se cancelaron.
+    """
+    idx = _indice_fase(etapa)
+    if idx <= 0:
+        return 0
+    q = db.query(models.EnvioProgramado).filter(
+        models.EnvioProgramado.estudiante_id == estudiante_id,
+        models.EnvioProgramado.estado == "pendiente",
+        models.EnvioProgramado.etapa.in_(ORDEN_FASES[:idx]),
+    )
+    if excluir_notif_id is not None:
+        q = q.filter(models.EnvioProgramado.notificacion_id != excluir_notif_id)
+    pendientes = q.all()
+    if not pendientes:
+        return 0
+    notif_ids = set()
+    for env in pendientes:
+        env.estado = "cancelado"
+        env.enviado = False
+        if env.notificacion_id:
+            notif_ids.add(env.notificacion_id)
+    db.commit()
+    for nid in notif_ids:
+        _actualizar_notificacion_padre(db, nid)
+    return len(pendientes)
+
+
+def _resolver_choques(pares, ocupadas, minimo=None):
+    """Corre al siguiente dia habil libre los recordatorios que chocan con otro.
+
+    `pares` es [(dia_numero, fecha), ...] ordenado por dia. Se respeta el orden del
+    plan: un recordatorio nunca queda el mismo dia ni antes que el anterior, ni antes
+    de `minimo` (la fecha del ultimo recordatorio que ya se envio).
+    """
+    tomadas = {f for f in (ocupadas or set()) if f}
+    resultado = []
+    anterior = minimo
+    for (n, fecha) in pares:
+        if not fecha:
+            continue
+        if isinstance(fecha, datetime):
+            fecha = fecha.date()
+        while (
+            not es_dia_habil(fecha)
+            or fecha in tomadas
+            or (anterior is not None and fecha <= anterior)
+        ):
+            fecha += timedelta(days=1)
+        tomadas.add(fecha)
+        anterior = fecha
+        resultado.append((n, fecha))
+    return resultado
+
+
+def programar_envios_dias_habiles(db, notificacion, estudiante, base_date=None, ocupadas=None):
     """Crea una fila en envios_programados por cada día de envío (con snapshot de correos).
 
     La base del plan es la fecha de la etapa (`notificacion.fecha_base`); solo si no
-    existe se usa el día de hoy. Los días hábiles saltan fines de semana y feriados.
+    existe se usa el día de hoy. Los días hábiles saltan fines de semana y feriados,
+    y también las fechas ya ocupadas por recordatorios de otras fases del alumno.
     """
     base = base_date or getattr(notificacion, "fecha_base", None) or obtener_ahora_santiago().date()
     if isinstance(base, datetime):
@@ -666,6 +768,11 @@ def programar_envios_dias_habiles(db, notificacion, estudiante, base_date=None):
     asegurar_feriados_anio(db, base.year + 1)
     cargar_feriados(db, forzar=True)
     pares = calcular_fechas_dias_habiles(base, notificacion.dias_habiles_envio, incluir_dia1=True)
+    # Ninguna fase del alumno puede chocar en fecha con otra: los dias ya tomados
+    # por otros recordatorios corren al siguiente dia habil libre.
+    if ocupadas is None:
+        ocupadas = fechas_ocupadas(db, estudiante.id, excluir_notif_id=notificacion.id)
+    pares = _resolver_choques(pares, ocupadas)
     hora = notificacion.hora_envio or "09:00"
 
     # Snapshot de los destinatarios actuales (se congelan)
@@ -721,7 +828,8 @@ def _actualizar_notificacion_padre(db, notif_id):
         .all()
     )
     notif.veces_enviado = enviados
-    notif.ultimo_envio = obtener_ahora_santiago()
+    if enviados:
+        notif.ultimo_envio = obtener_ahora_santiago()
     if pendientes:
         prox = pendientes[0]
         hh, mm = _parse_hora(prox.hora, default=(9, 0))
@@ -729,8 +837,91 @@ def _actualizar_notificacion_padre(db, notif_id):
     else:
         notif.proximo_envio = None
         if notif.estado == "activo":
-            notif.estado = "completado"
+            # Sin pendientes: 'completado' si algo salió, 'cancelado' si el plan
+            # quedó sin efecto (por ejemplo, lo superó una fase posterior).
+            notif.estado = "completado" if enviados else "cancelado"
     db.commit()
+
+
+def reprogramar_envios_por_cambio_fecha(db, estudiante, etapa, nueva_fecha):
+    """Recalcula los recordatorios PENDIENTES de una fase cuando cambia su fecha.
+
+    Antes, editar la fecha de la etapa dejaba los envios ya materializados en las
+    fechas viejas. Los envios ya realizados quedan como historial y no se tocan:
+    solo se recalculan los que todavia no salen. Si la fecha se borra, se cancelan.
+    Devuelve (notificacion_id, envios_reprogramados) o (None, 0) si no habia plan.
+    """
+    notif = (
+        db.query(models.Notificacion)
+        .filter(
+            models.Notificacion.estudiante_id == estudiante.id,
+            models.Notificacion.etapa == etapa,
+            models.Notificacion.modo == "dias_habiles",
+            models.Notificacion.estado.in_(["activo", "completado"]),
+        )
+        .order_by(models.Notificacion.id.desc())
+        .first()
+    )
+    if not notif:
+        return (None, 0)
+
+    if isinstance(nueva_fecha, datetime):
+        nueva_fecha = nueva_fecha.date()
+
+    pendientes = (
+        db.query(models.EnvioProgramado)
+        .filter(
+            models.EnvioProgramado.notificacion_id == notif.id,
+            models.EnvioProgramado.estado == "pendiente",
+        )
+        .all()
+    )
+
+    if not nueva_fecha:
+        # La fase se quedo sin fecha: su plan pierde la base y no puede seguir.
+        for env in pendientes:
+            env.estado = "cancelado"
+            env.enviado = False
+        notif.fecha_base = None
+        db.commit()
+        _actualizar_notificacion_padre(db, notif.id)
+        return (notif.id, 0)
+
+    notif.fecha_base = nueva_fecha
+    if not pendientes:
+        db.commit()
+        return (notif.id, 0)
+
+    asegurar_feriados_anio(db, nueva_fecha.year)
+    asegurar_feriados_anio(db, nueva_fecha.year + 1)
+    cargar_feriados(db, forzar=True)
+
+    dias = sorted({(e.dia_numero if e.dia_numero is not None else 0) for e in pendientes})
+    pares = calcular_fechas_dias_habiles(
+        nueva_fecha, ",".join(str(d) for d in dias), incluir_dia1=True
+    )
+    ocupadas = fechas_ocupadas(db, estudiante.id, excluir_notif_id=notif.id)
+    # Un recordatorio que aun no sale no puede quedar antes de uno ya enviado.
+    ya_enviados = [
+        e.fecha
+        for e in db.query(models.EnvioProgramado)
+        .filter(
+            models.EnvioProgramado.notificacion_id == notif.id,
+            models.EnvioProgramado.estado == "enviado",
+        )
+        .all()
+        if e.fecha
+    ]
+    minimo = max(ya_enviados) if ya_enviados else None
+    nuevas = dict(_resolver_choques(pares, ocupadas, minimo=minimo))
+
+    for env in pendientes:
+        dia = env.dia_numero if env.dia_numero is not None else 0
+        if dia in nuevas:
+            env.fecha = nuevas[dia]
+    db.commit()
+    _actualizar_notificacion_padre(db, notif.id)
+    return (notif.id, len(pendientes))
 
 
 def _enviar_programado(db, env):
