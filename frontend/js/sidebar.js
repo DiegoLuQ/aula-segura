@@ -373,6 +373,11 @@
                         <span>Plantillas y Plazos</span>
                     </a>
 
+                    <a href="feriados.html" title="Feriados" class="app-sidebar-link ${currentPage === 'feriados.html' ? 'active' : ''}">
+                        <span class="app-sidebar-icon">📅</span>
+                        <span>Feriados</span>
+                    </a>
+
                     ${isLawyer ? `
                     <a href="upload.html" title="Carga Masiva Excel" class="app-sidebar-link ${currentPage === 'upload.html' ? 'active' : ''}">
                         <span class="app-sidebar-icon">📤</span>

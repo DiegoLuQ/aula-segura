@@ -211,6 +211,8 @@ class Notificacion(BaseModel):
     veces_enviado: int
     proximo_envio: Optional[datetime] = None
     fecha_programada: Optional[date] = None
+    # Fecha de la etapa usada como base del plan de envíos
+    fecha_base: Optional[date] = None
     ultimo_envio: Optional[datetime] = None
     cuerpo_personalizado: Optional[str] = None
     asunto_personalizado: Optional[str] = None
@@ -297,6 +299,29 @@ class ConfigFaseUpdate(BaseModel):
 class ConfigFase(ConfigFaseBase):
     id: int
     fecha_actualizacion: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+class FeriadoBase(BaseModel):
+    fecha: date
+    nombre: str
+    # tipo: 'nacional' | 'regional' | 'colegio'
+    tipo: Optional[str] = "nacional"
+    irrenunciable: Optional[bool] = False
+
+class FeriadoCreate(FeriadoBase):
+    pass
+
+class FeriadoUpdate(BaseModel):
+    fecha: Optional[date] = None
+    nombre: Optional[str] = None
+    tipo: Optional[str] = None
+    irrenunciable: Optional[bool] = None
+
+class Feriado(FeriadoBase):
+    id: int
+    origen: Optional[str] = "manual"
 
     class Config:
         from_attributes = True

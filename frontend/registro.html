@@ -178,20 +178,17 @@
                             <div class="flex-1">
                                 <label class="block text-xs font-bold text-indigo-700 uppercase mb-1">Fecha Notificación
                                     Inicio Proceso</label>
-                                <input type="date" id="fecha_inicio_proceso"
+                                <input type="date" id="fecha_inicio_proceso" oninput="refreshFaseButtons()"
                                     class="w-full px-4 py-2 border border-indigo-200 rounded-lg bg-white">
                             </div>
-                            <button type="button" onclick="openNotifModal()"
+                            <button type="button" id="btn-fase-inicio_proceso"
+                                onclick="onFaseBtnClick('inicio_proceso')"
                                 class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 whitespace-nowrap">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
-                                    </path>
-                                </svg>
                                 Enviar Notificación
                             </button>
                         </div>
-                        <p class="text-[11px] text-slate-400 mt-2">Los recordatorios se envían a los destinatarios del
+                        <p id="fase-hint-inicio_proceso" class="text-[11px] text-slate-400 mt-2">Los recordatorios se
+                            envían a los destinatarios del
                             colegio del estudiante (más los que tengan el privilegio <strong>todos_colegios</strong>).
                             Guarde
                             el registro antes de notificar.</p>
@@ -230,19 +227,16 @@
                             <div class="flex-1">
                                 <label class="block text-xs font-bold text-indigo-700 uppercase mb-1">Fecha Notificación
                                     Medida y Apelación</label>
-                                <input type="date" id="fecha_notificacion_medida"
+                                <input type="date" id="fecha_notificacion_medida" oninput="refreshFaseButtons()"
                                     class="w-full px-4 py-2 border border-indigo-200 rounded-lg bg-white">
                             </div>
-                            <button type="button" onclick="openNotifModal('medida')"
+                            <button type="button" id="btn-fase-medida" onclick="onFaseBtnClick('medida')"
                                 class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 whitespace-nowrap">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
                                 Cierre del Proceso
                             </button>
                         </div>
-                        <p class="text-[11px] text-slate-400 mt-2">Abre el modal para elegir el estado del proceso
+                        <p id="fase-hint-medida" class="text-[11px] text-slate-400 mt-2">Abre el modal para elegir el
+                            estado del proceso
                             (medida) y
                             enviar la notificación a los destinatarios. Guarde el registro antes de notificar.</p>
                     </div>
@@ -263,20 +257,16 @@
                                         registra
                                     </label>
                                 </div>
-                                <input type="date" id="fecha_recepcion_apelacion"
+                                <input type="date" id="fecha_recepcion_apelacion" oninput="refreshFaseButtons()"
                                     class="w-full px-4 py-2 border border-indigo-200 rounded-lg bg-white">
                             </div>
-                            <button type="button" onclick="openNotifModal('apelacion')"
+                            <button type="button" id="btn-fase-apelacion" onclick="onFaseBtnClick('apelacion')"
                                 class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 whitespace-nowrap">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
-                                    </path>
-                                </svg>
                                 Enviar Notificación
                             </button>
                         </div>
-                        <p class="text-[11px] text-slate-400 mt-2">Los recordatorios se envían a los destinatarios del
+                        <p id="fase-hint-apelacion" class="text-[11px] text-slate-400 mt-2">Los recordatorios se envían
+                            a los destinatarios del
                             colegio del estudiante (más los que tengan el privilegio <strong>todos_colegios</strong>).
                             Guarde
                             el registro antes de notificar.</p>
@@ -296,15 +286,11 @@
                                             onchange="toggleDate('fecha_consejo_profesores', this.checked)"> No registra
                                     </label>
                                 </div>
-                                <input type="date" id="fecha_consejo_profesores"
+                                <input type="date" id="fecha_consejo_profesores" oninput="refreshFaseButtons()"
                                     class="w-full px-4 py-2 border border-indigo-200 rounded-lg bg-white">
                             </div>
-                            <button type="button" onclick="openConsejoModal()"
+                            <button type="button" id="btn-fase-consejo" onclick="onFaseBtnClick('consejo')"
                                 class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 whitespace-nowrap">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
                                 Registrar Consejo
                             </button>
                         </div>
@@ -319,20 +305,16 @@
                             <div class="flex-1">
                                 <label class="block text-xs font-bold text-indigo-700 uppercase mb-1">Fecha Notificación
                                     Final "MEDIDA"</label>
-                                <input type="date" id="fecha_notificacion_final"
+                                <input type="date" id="fecha_notificacion_final" oninput="refreshFaseButtons()"
                                     class="w-full px-4 py-2 border border-indigo-200 rounded-lg bg-white">
                             </div>
-                            <button type="button" onclick="openNotifModal('final_medida')"
+                            <button type="button" id="btn-fase-final_medida" onclick="onFaseBtnClick('final_medida')"
                                 class="px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 whitespace-nowrap">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
-                                    </path>
-                                </svg>
                                 Enviar Notificación
                             </button>
                         </div>
-                        <p class="text-[11px] text-slate-400 mt-2">Los recordatorios se envían a los destinatarios del
+                        <p id="fase-hint-final_medida" class="text-[11px] text-slate-400 mt-2">Los recordatorios se
+                            envían a los destinatarios del
                             colegio del estudiante (más los que tengan el privilegio <strong>todos_colegios</strong>).
                             Guarde
                             el registro antes de notificar.</p>
@@ -672,6 +654,24 @@
                                         <span class="text-slate-400 italic text-xs">Cargando configuración de la fase...</span>
                                     </div>
                                 </div>
+                                <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-indigo-100">
+                                    <p class="text-[11px] text-indigo-900">
+                                        Los días se cuentan como <strong>días hábiles</strong> (lunes a viernes, sin
+                                        <a href="feriados.html" target="_blank" class="underline font-bold">feriados</a>)
+                                        desde la fecha de esta fase:
+                                        <strong id="fase-config-base">—</strong>. Ningún recordatorio queda agendado
+                                        sábado, domingo ni feriado.
+                                    </p>
+                                    <button type="button" onclick="openDiasPreview()"
+                                        class="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 whitespace-nowrap">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
+                                            </path>
+                                        </svg>
+                                        Ver días de envío
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- Mantenemos el radio activo por defecto (una_vez / automático) de forma no visible para compatibilidad -->
@@ -705,19 +705,11 @@
                                             class="w-full px-4 py-2 border rounded-lg">
                                     </div>
                                 </div>
-                                <p class="text-[11px] text-slate-400 mt-1.5">El <strong>día 1 es hoy</strong> y siempre
-                                    se envía. Los demás días se cuentan corridos desde hoy (día 2 = mañana, día 6 =
-                                    hoy+5); si caen sábado o domingo se mueven al lunes. Cada envío sale a la hora
-                                    elegida y queda registrado como tarea programada.</p>
-                                <button type="button" onclick="openDiasPreview()"
-                                    class="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-700">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z">
-                                        </path>
-                                    </svg>
-                                    Ver días de envío
-                                </button>
+                                <p class="text-[11px] text-slate-400 mt-1.5">El <strong>día 0 es la fecha de la
+                                        fase</strong> (si cae sábado, domingo o feriado se corre al siguiente día
+                                    hábil). Los demás días se cuentan en <strong>días hábiles</strong> desde esa fecha:
+                                    día 3 = 3 días hábiles después. Cada envío sale a la hora elegida y queda registrado
+                                    como tarea programada.</p>
                             </div>
 
                             <div class="mt-5">
@@ -882,7 +874,8 @@
                 <div class="p-5 border-b flex justify-between items-center bg-slate-50">
                     <div>
                         <h4 class="font-bold text-slate-800 text-lg">Días de envío</h4>
-                        <p class="text-xs text-slate-500">Fechas en que saldrán los recordatorios</p>
+                        <p id="dias-preview-base" class="text-xs text-slate-500">Fechas en que saldrán los
+                            recordatorios</p>
                     </div>
                     <button type="button" onclick="closeDiasPreview()"
                         class="p-2 hover:bg-slate-200 rounded-full transition text-slate-500">
@@ -1084,14 +1077,18 @@
             setProcesoLock(!studentId);
             formPhaseGoto(1);
             await loadColegios();
+            loadFeriados();
 
             if (studentId) {
                 document.getElementById('page-title').innerText = 'Editar Registro de Alumno';
                 document.querySelectorAll('.js-btn-save').forEach(b => b.innerText = 'Actualizar Registro');
                 document.getElementById('tab-expediente').classList.remove('hidden');
-                loadStudentData();
+                await loadStudentData();
                 loadDocuments();
                 loadConsejoEstado();
+                loadNotificacionesEstado();
+            } else {
+                refreshFaseButtons();
             }
         }
 
@@ -1120,6 +1117,134 @@
                 el.disabled = false;
                 el.classList.remove('bg-slate-100', 'text-slate-400');
             }
+            refreshFaseButtons();
+        }
+
+        // ============ ESTADO DEL BOTÓN DE CADA FASE ============
+        // 3 estados por fase:
+        //   'actualizar' -> la fecha de la fase todavía no está guardada en el servidor
+        //   'enviar'     -> fecha guardada y sin notificación previa: se puede abrir el modal de envío
+        //   'revisar'    -> ya existe una notificación (activa o completada) de esa fase
+        const FASES_NOTIF = [
+            { etapa: 'inicio_proceso', fecha: 'fecha_inicio_proceso', enviar: 'Enviar Notificación', icono: 'mail' },
+            {
+                etapa: 'medida', fecha: 'fecha_notificacion_medida', enviar: 'Cierre del Proceso', icono: 'check',
+                hintEnviar: 'Fecha guardada. Abre el modal para elegir el <strong>estado del proceso</strong> (medida) y notificar a los destinatarios del colegio.'
+            },
+            { etapa: 'apelacion', fecha: 'fecha_recepcion_apelacion', enviar: 'Enviar Notificación', icono: 'mail' },
+            { etapa: 'consejo', fecha: 'fecha_consejo_profesores', enviar: 'Registrar Consejo', icono: 'check' },
+            { etapa: 'final_medida', fecha: 'fecha_notificacion_final', enviar: 'Enviar Notificación', icono: 'mail' },
+        ];
+
+        // Fechas tal como están guardadas en el servidor (para detectar cambios sin guardar)
+        let SAVED_FECHAS = {};
+        // etapa -> true si ya existe una notificación activa/completada
+        let FASES_NOTIFICADAS = {};
+
+        const FASE_ICONOS = {
+            mail: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>',
+            check: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
+            save: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>',
+            eye: '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>',
+        };
+
+        const FASE_BTN_CLASS = {
+            actualizar: 'px-6 py-2.5 bg-amber-500 text-white font-bold rounded-lg hover:bg-amber-600 transition shadow-lg shadow-amber-200 flex items-center justify-center gap-2 whitespace-nowrap',
+            enviar: 'px-6 py-2.5 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 whitespace-nowrap',
+            revisar: 'px-6 py-2.5 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition shadow-lg shadow-emerald-200 flex items-center justify-center gap-2 whitespace-nowrap',
+        };
+
+        const FASE_HINTS = {
+            actualizar: 'Ingrese la fecha de esta fase y presione <strong>Actualizar</strong> para guardarla. Mientras la fecha no esté guardada no se puede notificar.',
+            enviar: 'Fecha guardada. Los recordatorios se envían a los destinatarios del colegio del estudiante (más los que tengan el privilegio <strong>todos_colegios</strong>).',
+            revisar: 'Esta fase ya fue notificada. Presione <strong>Revisar</strong> para ver el detalle de los envíos (o eliminar la notificación si necesita volver a enviarla).',
+        };
+
+        function normFecha(v) {
+            if (v === null || v === undefined) return '';
+            let s = v.toString().trim();
+            if (/^\d{4}-\d{2}-\d{2}[ T]/.test(s)) s = s.split(/[ T]/)[0];
+            return s;
+        }
+
+        function faseEstado(f) {
+            if (FASES_NOTIFICADAS[f.etapa]) return 'revisar';
+            const input = document.getElementById(f.fecha);
+            const actual = normFecha(input ? input.value : '');
+            const guardada = normFecha(SAVED_FECHAS[f.fecha]);
+            if (!studentId || !guardada || actual !== guardada) return 'actualizar';
+            return 'enviar';
+        }
+
+        function refreshFaseButtons() {
+            FASES_NOTIF.forEach(f => {
+                const btn = document.getElementById(`btn-fase-${f.etapa}`);
+                if (!btn) return;
+                const estado = faseEstado(f);
+                btn.dataset.estado = estado;
+                btn.className = FASE_BTN_CLASS[estado];
+
+                let icono, texto;
+                if (estado === 'actualizar') {
+                    icono = 'save';
+                    texto = studentId ? 'Actualizar' : 'Guardar Registro';
+                } else if (estado === 'revisar') {
+                    icono = 'eye';
+                    texto = 'Revisar';
+                } else {
+                    icono = f.icono;
+                    texto = f.enviar;
+                }
+                btn.innerHTML = `${FASE_ICONOS[icono]}<span>${texto}</span>`;
+
+                const hint = document.getElementById(`fase-hint-${f.etapa}`);
+                if (hint) {
+                    hint.innerHTML = (estado === 'enviar' && f.hintEnviar) ? f.hintEnviar : FASE_HINTS[estado];
+                }
+            });
+        }
+
+        async function onFaseBtnClick(etapa) {
+            const f = FASES_NOTIF.find(x => x.etapa === etapa);
+            if (!f) return;
+            const estado = faseEstado(f);
+
+            if (estado === 'actualizar') {
+                await guardarRegistro({ keepPhase: true });
+                return;
+            }
+            if (etapa === 'consejo') {
+                await openConsejoModal();
+                return;
+            }
+            await openNotifModal(etapa, estado === 'revisar');
+        }
+
+        // Relee las notificaciones del estudiante y recalcula qué fases ya fueron notificadas
+        async function loadNotificacionesEstado() {
+            if (!studentId) {
+                NOTIF_HISTORY_CACHE = [];
+                FASES_NOTIFICADAS = {};
+                refreshFaseButtons();
+                return [];
+            }
+            const token = localStorage.getItem('token');
+            let items = [];
+            try {
+                const resp = await fetch(`${API_URL}/estudiantes/${studentId}/notificaciones`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (resp.ok) items = await resp.json();
+            } catch (e) {
+                console.error('Error cargando notificaciones del estudiante:', e);
+            }
+            NOTIF_HISTORY_CACHE = items;
+            FASES_NOTIFICADAS = {};
+            items.forEach(n => {
+                if (n.estado === 'activo' || n.estado === 'completado') FASES_NOTIFICADAS[n.etapa] = true;
+            });
+            refreshFaseButtons();
+            return items;
         }
 
         async function loadStudentData() {
@@ -1170,16 +1295,27 @@
                     document.getElementById('no_descargados').checked = true;
                     toggleDate('fecha_descargados', true);
                 }
+
+                // Snapshot de las fechas ya guardadas en el servidor (estado de los botones por fase)
+                SAVED_FECHAS = {};
+                FASES_NOTIF.forEach(f => { SAVED_FECHAS[f.fecha] = normFecha(s[f.fecha]); });
+                refreshFaseButtons();
             }
         }
 
         document.getElementById('registro-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const form = e.target;
+            await guardarRegistro();
+        });
+
+        // opciones.keepPhase = true -> no salta a la fase 2 (se guarda desde el botón "Actualizar" de una fase)
+        async function guardarRegistro(opciones) {
+            const keepPhase = !!(opciones && opciones.keepPhase);
+            const form = document.getElementById('registro-form');
             if (!form.checkValidity()) {
                 formPhaseGoto(1);
                 form.reportValidity();
-                return;
+                return false;
             }
             const token = localStorage.getItem('token');
             const payload = {};
@@ -1218,13 +1354,18 @@
                     }
 
                     setProcesoLock(false);
-                    formPhaseGoto(2);
+                    if (!keepPhase || wasNew) formPhaseGoto(2);
+
+                    // Las fechas quedaron guardadas: los botones de fase pasan a "Enviar Notificación"
+                    FASES_NOTIF.forEach(f => { SAVED_FECHAS[f.fecha] = normFecha(payload[f.fecha]); });
+                    await loadNotificacionesEstado();
 
                     if (wasNew) {
                         alert('✅ Registro del alumno guardado con éxito. Has avanzado a la Fase 2: Proceso y Notificaciones.');
                     } else {
                         alert('✅ Registro actualizado con éxito.');
                     }
+                    return true;
                 } else if (response.status === 422) {
                     const errorData = await response.json();
                     showErrorModal(errorData.detail);
@@ -1236,7 +1377,8 @@
                 console.error('Error al guardar registro:', e);
                 alert('❌ Error de conexión con el backend (http://127.0.0.1:8010). Asegúrate de que el servidor Uvicorn esté activo.');
             }
-        });
+            return false;
+        }
 
         function showErrorModal(details) {
             const list = document.getElementById('error-list');
@@ -1546,7 +1688,7 @@
             el.selectionStart = el.selectionEnd = start + placeholder.length;
         }
 
-        async function openNotifModal(etapa) {
+        async function openNotifModal(etapa, revisar) {
             if (!studentId) {
                 alert('Primero guarde el registro del estudiante para poder enviar notificaciones.');
                 return;
@@ -1564,8 +1706,13 @@
                 apelacion: ['Enviar Notificación', 'Notificación de recepción de carta de apelación'],
                 final_medida: ['Enviar Notificación', 'Notificación final de la medida a los destinatarios'],
             };
-            title.innerText = TITULOS[currentEtapa][0];
-            subtitle.innerText = TITULOS[currentEtapa][1];
+            if (revisar) {
+                title.innerText = 'Revisar Notificación';
+                subtitle.innerText = 'Esta fase ya fue notificada: revise los envíos realizados o programados';
+            } else {
+                title.innerText = TITULOS[currentEtapa][0];
+                subtitle.innerText = TITULOS[currentEtapa][1];
+            }
 
             if (currentEtapa === 'medida') {
                 estadoSection.classList.remove('hidden');
@@ -1588,6 +1735,7 @@
             document.getElementById('notif-result').innerText = '';
             notifStepGoto(1);
             NOTIF_HISTORY_CACHE = [];
+            await loadFeriados();
             loadDefaultMessage();
             await loadPlantillas();
             loadFaseConfigInfo();
@@ -1596,14 +1744,25 @@
             populateColegioSelect();
             await loadGrupos();
             loadNotifDestinatarios();
-            loadNotifHistory();
+            await loadNotifHistory();
+            // "Revisar": el usuario viene a ver los envíos ya realizados/programados
+            if (revisar) notifStepGoto(3);
         }
+
+        // Configuración (plazo y días de recordatorio) de la fase abierta en el modal
+        let FASE_CONFIG_ACTUAL = null;
 
         async function loadFaseConfigInfo() {
             const token = localStorage.getItem('token');
             const elNombre = document.getElementById('fase-config-nombre');
             const elPlazo = document.getElementById('fase-config-plazo');
             const elBadges = document.getElementById('fase-config-dias-badges');
+            const elBase = document.getElementById('fase-config-base');
+            FASE_CONFIG_ACTUAL = null;
+            if (elBase) {
+                const baseISO = faseFechaBase();
+                elBase.innerText = baseISO.split('-').reverse().join('-');
+            }
             if (!elBadges) return;
 
             try {
@@ -1612,6 +1771,11 @@
                     const fases = await resp.json();
                     const config = fases.find(f => f.etapa === currentEtapa);
                     if (config) {
+                        FASE_CONFIG_ACTUAL = {
+                            plazo_dias: config.plazo_dias,
+                            dias_recordatorio: config.dias_recordatorio,
+                            hora_envio: '09:00',
+                        };
                         if (elNombre) elNombre.innerText = config.nombre_etapa || currentEtapa;
                         if (elPlazo) elPlazo.innerText = `Plazo Total: ${config.plazo_dias} días`;
 
@@ -1619,7 +1783,7 @@
                         if (diasArr.length > 0) {
                             elBadges.innerHTML = diasArr.map(d => `
                                 <span class="px-2.5 py-1 bg-indigo-600 text-white rounded-md text-xs font-bold shadow-xs">
-                                    ${d === '0' ? 'Día 0 (Envío Inmediato)' : 'Recordatorio Día ' + d}
+                                    ${d === '0' ? 'Día 0 (fecha de la fase)' : 'Recordatorio Día ' + d}
                                 </span>
                             `).join('');
                         } else {
@@ -1702,16 +1866,60 @@
         // ---------- PREVISUALIZACIÓN DE DÍAS DE ENVÍO ----------
         const DOW_ES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
-        function calcularFechasDiasHabiles(diasStr) {
+        // Fecha base del plan de envíos de la fase abierta: la fecha guardada de la etapa.
+        function faseFechaBase() {
+            const f = FASES_NOTIF.find(x => x.etapa === currentEtapa);
+            const guardada = f ? normFecha(SAVED_FECHAS[f.fecha]) : '';
+            return guardada || hoyStr();
+        }
+
+        function fechaDesdeISO(iso) {
+            const [y, m, d] = String(iso).split('-').map(Number);
+            return new Date(y, (m || 1) - 1, d || 1);
+        }
+
+        function isoDeFecha(d) {
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        // Feriados registrados (los mismos que usa el backend para contar días hábiles)
+        let FERIADOS_SET = new Set();
+
+        async function loadFeriados() {
+            const token = localStorage.getItem('token');
+            try {
+                const resp = await fetch(`${API_URL}/feriados`, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (resp.ok) {
+                    const items = await resp.json();
+                    FERIADOS_SET = new Set(items.map(f => String(f.fecha).slice(0, 10)));
+                }
+            } catch (e) {
+                console.error('Error cargando feriados:', e);
+            }
+        }
+
+        function esDiaHabil(d) {
+            if (d.getDay() === 0 || d.getDay() === 6) return false;
+            return !FERIADOS_SET.has(isoDeFecha(d));
+        }
+
+        // Mismo cálculo que el backend: base al siguiente día hábil y luego N días hábiles,
+        // saltando fines de semana y feriados.
+        function calcularFechasDiasHabiles(diasStr, baseISO) {
             let dias = String(diasStr || '').split(',').map(s => parseInt(s.trim()))
-                .filter(x => Number.isInteger(x) && x >= 1);
-            dias = Array.from(new Set([1, ...dias])).sort((a, b) => a - b);
-            const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+                .filter(x => Number.isInteger(x) && x >= 0);
+            dias = Array.from(new Set(dias.length ? dias : [0])).sort((a, b) => a - b);
+
+            const base = fechaDesdeISO(baseISO || faseFechaBase());
+            while (!esDiaHabil(base)) base.setDate(base.getDate() + 1);
+
             return dias.map(n => {
-                const d = new Date(hoy);
-                d.setDate(d.getDate() + (n - 1));            // días corridos
-                while (d.getDay() === 0 || d.getDay() === 6) // sáb/dom -> lunes
+                const d = new Date(base);
+                let restantes = n;
+                while (restantes > 0) {
                     d.setDate(d.getDate() + 1);
+                    if (esDiaHabil(d)) restantes--;
+                }
                 return { dia: n, fecha: d };
             });
         }
@@ -1723,12 +1931,19 @@
         }
 
         function openDiasPreview() {
-            const diasStr = document.getElementById('notif-dh-envio').value;
-            const hora = document.getElementById('notif-dh-hora').value || '09:00';
+            // Los días y la hora salen de la configuración de la fase (Plantillas y Plazos).
+            const diasStr = (FASE_CONFIG_ACTUAL && FASE_CONFIG_ACTUAL.dias_recordatorio)
+                || document.getElementById('notif-dh-envio').value;
+            const hora = (FASE_CONFIG_ACTUAL && FASE_CONFIG_ACTUAL.hora_envio)
+                || document.getElementById('notif-dh-hora').value || '09:00';
             const cont = document.getElementById('dias-preview-list');
-            const fechas = calcularFechasDiasHabiles(diasStr);
+            const baseISO = faseFechaBase();
+            const fechas = calcularFechasDiasHabiles(diasStr, baseISO);
+            const subtitulo = document.getElementById('dias-preview-base');
+            if (subtitulo) subtitulo.innerText =
+                `Días hábiles desde el ${baseISO.split('-').reverse().join('-')} (sin fines de semana ni feriados)`;
             if (!fechas.length) {
-                cont.innerHTML = '<p class="text-sm text-slate-400 italic text-center p-6">Indica los días de envío (ej. 2,3,6) para ver las fechas.</p>';
+                cont.innerHTML = '<p class="text-sm text-slate-400 italic text-center p-6">Indica los días de envío (ej. 0,3,5) para ver las fechas.</p>';
             } else {
                 const hoyLocal = hoyStr();
                 cont.innerHTML = fechas.map(f => {
@@ -1759,7 +1974,9 @@
         }
 
         function notifFechaEfectiva(n) {
-            // 'fecha_indicada' usa fecha_programada; el resto, el día en que se creó/envió.
+            // La fecha base de la etapa es la que identifica al plan; para notificaciones
+            // antiguas (sin fecha_base) se usa la programada o el día de creación.
+            if (n.fecha_base) return String(n.fecha_base).slice(0, 10);
             if (n.fecha_programada) return String(n.fecha_programada).slice(0, 10);
             if (n.fecha_creacion) return String(n.fecha_creacion).slice(0, 10);
             return null;
@@ -1767,11 +1984,11 @@
 
         function currentFechaEfectiva() {
             const modoEl = document.querySelector('input[name="notif-modo"]:checked');
-            if (!modoEl) return hoyStr();
-            if (modoEl.value === 'fecha_indicada') {
+            if (modoEl && modoEl.value === 'fecha_indicada') {
                 return document.getElementById('notif-fecha').value || null; // sin fecha = no se puede comparar aún
             }
-            return hoyStr();
+            // El plan se identifica por la fecha guardada de la fase.
+            return faseFechaBase();
         }
 
         function checkDuplicadoFase() {
@@ -1795,7 +2012,7 @@
                 btn.classList.add('opacity-50', 'cursor-not-allowed');
                 warn.classList.remove('hidden');
                 if (warnText) warnText.innerText =
-                    `Ya existe una notificación de esta fase para el ${fEf}. No se puede enviar de nuevo. Si necesitas reenviar esta fase, elimínala (o cancélala si está activa) en la sección "Notificaciones programadas / enviadas" más abajo.`;
+                    `Ya existe una notificación de esta fase con fecha ${fEf}. No se puede enviar de nuevo. Si necesitas reenviar esta fase, elimínala (o cancélala si está activa) en la sección "Notificaciones programadas / enviadas" más abajo; también puedes cambiar la fecha de la fase, guardarla y volver a notificar.`;
             } else {
                 btn.disabled = false;
                 btn.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -2083,6 +2300,9 @@
                 const data = await resp.json();
                 if (resp.ok) {
                     const fIso = data.fecha_proceso || new Date().toISOString().split('T')[0];
+                    // El backend guarda la fecha de la etapa al notificar
+                    const faseActual = FASES_NOTIF.find(f => f.etapa === currentEtapa);
+                    if (faseActual) SAVED_FECHAS[faseActual.fecha] = normFecha(fIso);
                     if (currentEtapa === 'inicio_proceso') {
                         const inp = document.getElementById('fecha_inicio_proceso');
                         if (inp) inp.value = fIso;
@@ -2128,14 +2348,9 @@
         const ESTADO_LABEL = { activo: 'Activo', completado: 'Completado', cancelado: 'Cancelado' };
 
         async function loadNotifHistory() {
-            const token = localStorage.getItem('token');
             const cont = document.getElementById('notif-history');
-            const resp = await fetch(`${API_URL}/estudiantes/${studentId}/notificaciones`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!resp.ok) { cont.innerHTML = ''; NOTIF_HISTORY_CACHE = []; checkDuplicadoFase(); return; }
-            const items = await resp.json();
-            NOTIF_HISTORY_CACHE = items;
+            // Recarga la lista, recalcula el estado de los botones de cada fase y el anti-duplicado
+            const items = await loadNotificacionesEstado();
             checkDuplicadoFase();
             if (items.length === 0) {
                 cont.innerHTML = '<p class="text-xs text-slate-400 italic">Sin notificaciones registradas.</p>';
@@ -2242,7 +2457,8 @@
                 const EST = {
                     pendiente: ['Pendiente', 'bg-amber-100 text-amber-700'],
                     enviado: ['Enviado', 'bg-green-100 text-green-700'],
-                    cancelado: ['Cancelado', 'bg-slate-200 text-slate-500'],
+                    cancelado: ['No enviado', 'bg-slate-200 text-slate-500'],
+                    fallido: ['Fallido', 'bg-red-100 text-red-600'],
                 };
                 cont.innerHTML = envios.map(e => {
                     let dests = [];
@@ -2366,7 +2582,9 @@
                         document.getElementById('fecha_consejo_profesores').value = fecha;
                         document.getElementById('no_consejo').checked = false;
                         toggleDate('fecha_consejo_profesores', false);
+                        SAVED_FECHAS['fecha_consejo_profesores'] = normFecha(fecha);
                     }
+                    loadNotificacionesEstado();
                     result.className = 'text-sm text-green-600 font-medium';
                     let msg = confirmado ? 'Consejo confirmado.' : 'Consejo cancelado.';
                     if (data.correo_enviado) msg += ` Correos enviados: ${data.enviados}, fallidos: ${data.fallidos}.`;

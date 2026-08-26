@@ -128,6 +128,9 @@ class Notificacion(Base):
     veces_enviado = Column(Integer, default=0)
     proximo_envio = Column(DateTime, nullable=True)
     fecha_programada = Column(Date, nullable=True)  # solo para 'fecha_indicada'
+    # Fecha de la etapa (la guardada en la ficha del estudiante) que sirve de base
+    # para calcular los días hábiles del plan de envíos.
+    fecha_base = Column(Date, nullable=True)
     ultimo_envio = Column(DateTime, nullable=True)
     cuerpo_personalizado = Column(Text, nullable=True)
     dias_habiles_total = Column(Integer, nullable=True)
@@ -197,6 +200,20 @@ class ConfigFase(Base):
     dias_recordatorio = Column(String(255), default="0,3,5,7,9")  # Comas separadas, ej: "0,5,7,9"
     id_colegio = Column(Integer, ForeignKey("pro_aula_segura_colegios.id"), nullable=True)
     fecha_actualizacion = Column(TIMESTAMP, server_default=func.now())
+
+
+class Feriado(Base):
+    """Días feriados que NO cuentan como días hábiles en los recordatorios."""
+    __tablename__ = "pro_aula_segura_feriados"
+    id = Column(Integer, primary_key=True, index=True)
+    fecha = Column(Date, nullable=False, unique=True, index=True)
+    nombre = Column(String(150), nullable=False)
+    # tipo: 'nacional' | 'regional' | 'colegio'
+    tipo = Column(String(30), default="nacional")
+    irrenunciable = Column(Boolean, default=False)
+    # origen: 'sistema' (calculado) | 'api' (importado) | 'manual'
+    origen = Column(String(20), default="manual")
+    fecha_creacion = Column(TIMESTAMP, server_default=func.now())
 
 
 class ConfigEmail(Base):

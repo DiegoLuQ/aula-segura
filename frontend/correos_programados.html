@@ -70,7 +70,7 @@
 
             <div class="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-bold uppercase tracking-wider text-rose-600">Cancelados</p>
+                    <p class="text-xs font-bold uppercase tracking-wider text-rose-600">Cancelados / Fallidos</p>
                     <h3 id="stat-cancelados" class="text-3xl font-black text-slate-900 mt-1">0</h3>
                 </div>
                 <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-2xl font-bold">
@@ -94,6 +94,7 @@
                         <option value="pendiente" selected>Solo Pendientes</option>
                         <option value="enviado">Solo Enviados</option>
                         <option value="cancelado">Solo Cancelados</option>
+                        <option value="fallido">Solo Fallidos</option>
                     </select>
                 </div>
 
@@ -211,7 +212,8 @@
             data.forEach(item => {
                 if (item.estado === 'pendiente') p++;
                 else if (item.estado === 'enviado') e++;
-                else if (item.estado === 'cancelado') c++;
+                // 'fallido' = intento de envío que no salió; se agrupa con los no enviados.
+                else if (item.estado === 'cancelado' || item.estado === 'fallido') c++;
             });
             document.getElementById('stat-pendientes').innerText = p;
             document.getElementById('stat-enviados').innerText = e;
@@ -249,6 +251,8 @@
                     estadoBadge = '<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-700">✉️ Enviado</span>';
                 } else if (item.estado === 'cancelado') {
                     estadoBadge = '<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-rose-100 text-rose-700">🚫 Cancelado</span>';
+                } else if (item.estado === 'fallido') {
+                    estadoBadge = '<span class="px-2.5 py-1 text-xs font-bold rounded-full bg-red-100 text-red-700">⚠️ Fallido</span>';
                 }
 
                 const fechaText = item.fecha ? `${item.fecha} (${item.hora || '09:00'})` : '-';

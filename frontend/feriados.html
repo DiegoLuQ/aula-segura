@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feriados - Aula Segura</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/sidebar.js"></script>
+    <style>
+        body { display: none; }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 font-sans">
+    <script>
+        const API_URL = window.location.origin.includes('127.0.0.1') || window.location.origin.includes('localhost') || window.location.origin.startsWith('file://')
+            ? (window.location.port === '8000' ? 'http://127.0.0.1:8000' : 'http://127.0.0.1:8010')
+            : window.location.origin + '/api';
+
+        let PUEDE_EDITAR = false;
+
+        (async function () {
+            const token = localStorage.getItem('token');
+            if (!token) { window.location.href = 'index.html'; return; }
+            const resp = await fetch(`${API_URL}/me`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!resp.ok) { window.location.href = 'index.html'; return; }
+            const user = await resp.json();
+            PUEDE_EDITAR = (user.rol === 'lawyer' || user.rol === 'admin');
+            document.body.style.display = 'block';
+            initFeriados();
+        })();
+    </script>
+
+    <main class="p-6 lg:p-10 max-w-5xl mx-auto w-full">
+        <!-- HEADER -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <div>
+                <h2 class="text-2xl font-extrabold text-slate-900">Feriados</h2>
+                <p class="text-slate-500 text-sm">Días que el sistema <strong>no cuenta como hábiles</strong> al
+                    programar los recordatorios de cada fase.</p>
+            </div>
+
+            <!-- SELECTOR DE AÑO -->
+            <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-xl p-1 shadow-sm">
+                <button type="button" onclick="cambiarAnio(-1)"
+                    class="px-3 py-1.5 text-slate-500 hover:text-indigo-700 hover:bg-slate-100 rounded-lg font-bold transition">←</button>
+                <span id="anio-actual" class="px-3 text-lg font-extrabold text-slate-900 tabular-nums">—</span>
+                <button type="button" onclick="cambiarAnio(1)"
+                    class="px-3 py-1.5 text-slate-500 hover:text-indigo-700 hover:bg-slate-100 rounded-lg font-bold transition">→</button>
+            </div>
+        </div>
+
+        <!-- EXPLICACIÓN -->
+        <div class="bg-indigo-50/70 border border-indigo-100 rounded-2xl p-5 mb-6 flex items-start gap-3">
+            <span class="text-xl">📅</span>
+            <div class="text-sm text-slate-700 space-y-1">
+                <p><strong>Cómo se usan:</strong> los recordatorios de cada fase se cuentan en días hábiles desde la
+                    fecha de la fase. Un día hábil es de lunes a viernes y que <strong>no esté en esta lista</strong>.
+                    Si un envío cayera en feriado, se corre al siguiente día hábil.</p>
+                <p class="text-xs text-slate-500">Los feriados marcados como <strong>Sistema</strong> se calculan con
+                    las reglas legales permanentes (incluye Semana Santa y los traslados de las leyes 19.973 y 20.299).
+                    Los feriados excepcionales de cada año (elecciones, censos, días adicionales) se agregan a mano o
+                    importando desde la API oficial.</p>
+            </div>
+        </div>
+
+        <!-- ACCIONES -->
+        <div id="acciones-wrap" class="hidden flex-col sm:flex-row gap-3 mb-6">
+            <button type="button" onclick="generarAnio()"
+                class="px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition shadow-lg shadow-indigo-200">
+                ⚙️ Generar feriados legales del año
+            </button>
+            <button type="button" onclick="importarAnio()"
+                class="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 text-sm font-bold rounded-xl hover:bg-slate-100 transition">
+                🌐 Importar desde API oficial
+            </button>
+            <button type="button" onclick="abrirFormulario()"
+                class="px-5 py-2.5 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition shadow-lg shadow-emerald-200 sm:ml-auto">
+                ➕ Agregar feriado
+            </button>
+        </div>
+
+        <p id="msg" class="text-sm mb-4"></p>
+
+        <!-- FORMULARIO -->
+        <div id="form-wrap" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-6">
+            <h3 id="form-titulo" class="text-xs font-extrabold text-indigo-900 uppercase tracking-wider mb-5">Nuevo
+                feriado</h3>
+            <input type="hidden" id="f-id">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fecha</label>
+                    <input type="date" id="f-fecha" class="w-full px-4 py-2 border rounded-lg text-sm">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nombre</label>
+                    <input type="text" id="f-nombre" placeholder='Ej. "Elecciones presidenciales"'
+                        class="w-full px-4 py-2 border rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tipo</label>
+                    <select id="f-tipo" class="w-full px-4 py-2 border rounded-lg bg-white text-sm">
+                        <option value="nacional">Nacional</option>
+                        <option value="regional">Regional</option>
+                        <option value="colegio">Del colegio</option>
+                    </select>
+                </div>
+            </div>
+            <label class="flex items-center gap-2 text-sm text-slate-600 mt-4">
+                <input type="checkbox" id="f-irrenunciable"> Feriado irrenunciable
+            </label>
+            <div class="flex gap-3 mt-5">
+                <button type="button" onclick="guardarFeriado()"
+                    class="px-6 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg hover:bg-indigo-700 transition shadow">Guardar</button>
+                <button type="button" onclick="cerrarFormulario()"
+                    class="px-6 py-2 text-slate-500 text-sm font-bold rounded-lg hover:bg-slate-100 transition">Cancelar</button>
+            </div>
+        </div>
+
+        <!-- LISTA -->
+        <div id="lista" class="space-y-6"></div>
+    </main>
+
+    <script>
+        const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        const DOW = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+        const ORIGEN_BADGE = {
+            sistema: ['Sistema', 'bg-indigo-100 text-indigo-700'],
+            api: ['API oficial', 'bg-sky-100 text-sky-700'],
+            manual: ['Manual', 'bg-amber-100 text-amber-700'],
+        };
+
+        let ANIO = new Date().getFullYear();
+        let FERIADOS = [];
+
+        function token() { return localStorage.getItem('token'); }
+
+        function fechaDesdeISO(iso) {
+            const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number);
+            return new Date(y, m - 1, d);
+        }
+
+        function mostrarMensaje(texto, tipo) {
+            const el = document.getElementById('msg');
+            el.innerText = texto || '';
+            el.className = 'text-sm mb-4 font-medium ' +
+                (tipo === 'error' ? 'text-red-600' : tipo === 'ok' ? 'text-green-600' : 'text-slate-500');
+        }
+
+        function initFeriados() {
+            if (PUEDE_EDITAR) {
+                const acc = document.getElementById('acciones-wrap');
+                acc.classList.remove('hidden');
+                acc.classList.add('flex');
+            }
+            cargarFeriados();
+        }
+
+        function cambiarAnio(delta) {
+            ANIO += delta;
+            cargarFeriados();
+        }
+
+        async function cargarFeriados() {
+            document.getElementById('anio-actual').innerText = ANIO;
+            const lista = document.getElementById('lista');
+            lista.innerHTML = '<p class="text-sm text-slate-400 italic">Cargando feriados...</p>';
+            try {
+                const resp = await fetch(`${API_URL}/feriados?anio=${ANIO}`, {
+                    headers: { 'Authorization': `Bearer ${token()}` }
+                });
+                FERIADOS = resp.ok ? await resp.json() : [];
+            } catch (e) {
+                FERIADOS = [];
+            }
+            renderLista();
+        }
+
+        function renderLista() {
+            const lista = document.getElementById('lista');
+            if (!FERIADOS.length) {
+                lista.innerHTML = `
+                    <div class="bg-white border border-dashed border-slate-300 rounded-2xl p-10 text-center">
+                        <p class="text-slate-500 font-medium">No hay feriados registrados para ${ANIO}.</p>
+                        ${PUEDE_EDITAR ? '<p class="text-xs text-slate-400 mt-1">Use "Generar feriados legales del año" para cargarlos.</p>' : ''}
+                    </div>`;
+                return;
+            }
+
+            const porMes = {};
+            FERIADOS.forEach(f => {
+                const d = fechaDesdeISO(f.fecha);
+                (porMes[d.getMonth()] = porMes[d.getMonth()] || []).push({ ...f, d });
+            });
+
+            lista.innerHTML = Object.keys(porMes).sort((a, b) => a - b).map(m => `
+                <div>
+                    <h3 class="text-xs font-extrabold text-slate-400 uppercase tracking-wider mb-2">${MESES[m]}</h3>
+                    <div class="space-y-2">
+                        ${porMes[m].map(f => filaFeriado(f)).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filaFeriado(f) {
+            const badge = ORIGEN_BADGE[f.origen] || ['—', 'bg-slate-100 text-slate-500'];
+            const finde = f.d.getDay() === 0 || f.d.getDay() === 6;
+            return `
+            <div class="flex items-center justify-between gap-4 bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-xs">
+                <div class="flex items-center gap-4 min-w-0">
+                    <div class="w-12 text-center flex-shrink-0">
+                        <p class="text-lg font-extrabold text-slate-900 leading-none">${String(f.d.getDate()).padStart(2, '0')}</p>
+                        <p class="text-[10px] text-slate-400 uppercase">${DOW[f.d.getDay()].slice(0, 3)}</p>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-sm font-bold text-slate-800 truncate">${f.nombre}</p>
+                        <p class="text-[11px] text-slate-400">
+                            <span class="capitalize">${DOW[f.d.getDay()]}</span>${finde ? ' · ya era inhábil (fin de semana)' : ''}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    ${f.irrenunciable ? '<span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">IRRENUNCIABLE</span>' : ''}
+                    ${f.tipo && f.tipo !== 'nacional' ? `<span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 uppercase">${f.tipo}</span>` : ''}
+                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full ${badge[1]}">${badge[0]}</span>
+                    ${PUEDE_EDITAR ? `
+                        <button type="button" onclick="editarFeriado(${f.id})" class="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition" title="Editar">✏️</button>
+                        <button type="button" onclick="eliminarFeriado(${f.id})" class="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" title="Eliminar">🗑️</button>
+                    ` : ''}
+                </div>
+            </div>`;
+        }
+
+        function abrirFormulario() {
+            document.getElementById('f-id').value = '';
+            document.getElementById('f-fecha').value = '';
+            document.getElementById('f-nombre').value = '';
+            document.getElementById('f-tipo').value = 'nacional';
+            document.getElementById('f-irrenunciable').checked = false;
+            document.getElementById('form-titulo').innerText = 'Nuevo feriado';
+            document.getElementById('form-wrap').classList.remove('hidden');
+        }
+
+        function cerrarFormulario() {
+            document.getElementById('form-wrap').classList.add('hidden');
+        }
+
+        function editarFeriado(id) {
+            const f = FERIADOS.find(x => x.id === id);
+            if (!f) return;
+            document.getElementById('f-id').value = f.id;
+            document.getElementById('f-fecha').value = String(f.fecha).slice(0, 10);
+            document.getElementById('f-nombre').value = f.nombre;
+            document.getElementById('f-tipo').value = f.tipo || 'nacional';
+            document.getElementById('f-irrenunciable').checked = !!f.irrenunciable;
+            document.getElementById('form-titulo').innerText = 'Editar feriado';
+            document.getElementById('form-wrap').classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function guardarFeriado() {
+            const id = document.getElementById('f-id').value;
+            const payload = {
+                fecha: document.getElementById('f-fecha').value,
+                nombre: document.getElementById('f-nombre').value.trim(),
+                tipo: document.getElementById('f-tipo').value,
+                irrenunciable: document.getElementById('f-irrenunciable').checked,
+            };
+            if (!payload.fecha || !payload.nombre) {
+                mostrarMensaje('Indique la fecha y el nombre del feriado.', 'error');
+                return;
+            }
+            const url = id ? `${API_URL}/feriados/${id}` : `${API_URL}/feriados`;
+            try {
+                const resp = await fetch(url, {
+                    method: id ? 'PUT' : 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token()}` },
+                    body: JSON.stringify(payload)
+                });
+                const data = await resp.json();
+                if (!resp.ok) {
+                    mostrarMensaje(data.detail || 'No se pudo guardar el feriado.', 'error');
+                    return;
+                }
+                mostrarMensaje(id ? 'Feriado actualizado.' : 'Feriado agregado.', 'ok');
+                cerrarFormulario();
+                const anioGuardado = parseInt(String(payload.fecha).slice(0, 4));
+                if (anioGuardado && anioGuardado !== ANIO) ANIO = anioGuardado;
+                cargarFeriados();
+            } catch (e) {
+                mostrarMensaje('Error de conexión con el servidor.', 'error');
+            }
+        }
+
+        async function eliminarFeriado(id) {
+            const f = FERIADOS.find(x => x.id === id);
+            if (!confirm(`¿Eliminar el feriado "${f ? f.nombre : ''}"? Los recordatorios volverán a contar ese día como hábil.`)) return;
+            try {
+                const resp = await fetch(`${API_URL}/feriados/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token()}` }
+                });
+                if (!resp.ok) { mostrarMensaje('No se pudo eliminar el feriado.', 'error'); return; }
+                mostrarMensaje('Feriado eliminado.', 'ok');
+                cargarFeriados();
+            } catch (e) {
+                mostrarMensaje('Error de conexión con el servidor.', 'error');
+            }
+        }
+
+        async function generarAnio() {
+            mostrarMensaje('Generando feriados legales...', '');
+            try {
+                const resp = await fetch(`${API_URL}/feriados/generar?anio=${ANIO}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token()}` }
+                });
+                const data = await resp.json();
+                if (!resp.ok) { mostrarMensaje(data.detail || 'No se pudieron generar los feriados.', 'error'); return; }
+                mostrarMensaje(`${data.creados} feriado(s) agregado(s) para ${ANIO}. Los que ya existían no se modificaron.`, 'ok');
+                cargarFeriados();
+            } catch (e) {
+                mostrarMensaje('Error de conexión con el servidor.', 'error');
+            }
+        }
+
+        async function importarAnio() {
+            mostrarMensaje('Consultando la API oficial de feriados...', '');
+            try {
+                const resp = await fetch(`${API_URL}/feriados/importar?anio=${ANIO}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token()}` }
+                });
+                const data = await resp.json();
+                if (!resp.ok) { mostrarMensaje(data.detail || 'No se pudo importar.', 'error'); return; }
+                mostrarMensaje(`${data.creados} feriado(s) importado(s) de ${data.total_api} que entregó la API para ${ANIO}.`, 'ok');
+                cargarFeriados();
+            } catch (e) {
+                mostrarMensaje('Error de conexión con el servidor.', 'error');
+            }
+        }
+    </script>
+</body>
+
+</html>

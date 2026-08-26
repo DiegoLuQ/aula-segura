@@ -9,9 +9,10 @@ import os
 import shutil
 import uuid
 import pikepdf
-from datetime import datetime
+from datetime import datetime, date
 import json
-import models, schemas, auth, database, notifications
+import urllib.request
+import models, schemas, auth, database, notifications, feriados_cl
 
 app = FastAPI(title="Sistema Aula Segura API")
 
@@ -87,6 +88,7 @@ def _ensure_columns():
         "ALTER TABLE pro_aula_segura_notificaciones ADD COLUMN asunto_personalizado VARCHAR(255) NULL",
         "ALTER TABLE pro_aula_segura_envios_programados ADD COLUMN asunto VARCHAR(255) NULL",
         "ALTER TABLE pro_aula_segura_estudiantes ADD COLUMN consejo_confirmado BOOLEAN NULL",
+        "ALTER TABLE pro_aula_segura_notificaciones ADD COLUMN fecha_base DATE NULL",
     ]
     for s in stmts:
         try:
@@ -118,6 +120,21 @@ def _seed_default_config_fases():
         db.close()
 
 _seed_default_config_fases()
+
+
+def _seed_feriados():
+    """Asegura los feriados legales del año en curso y del siguiente."""
+    db = database.SessionLocal()
+    try:
+        anio = datetime.now().year
+        notifications.asegurar_feriados_anio(db, anio)
+        notifications.asegurar_feriados_anio(db, anio + 1)
+    except Exception as e:
+        print("Error al sembrar feriados:", e)
+    finally:
+        db.close()
+
+_seed_feriados()
 
 
 @app.post("/login", response_model=schemas.Token)
@@ -1029,6 +1046,27 @@ MODOS_VALIDOS = {
     "dias_habiles":   {"intervalo": 1, "max": None},
 }
 
+# Campo de la ficha del estudiante que guarda la fecha de cada etapa.
+# Esa fecha es la BASE del plan de envíos (no la fecha en que se presiona "Enviar").
+ETAPA_FECHA_ATTR = {
+    "inicio_proceso": "fecha_inicio_proceso",
+    "medida":         "fecha_notificacion_medida",
+    "apelacion":      "fecha_recepcion_apelacion",
+    "consejo":        "fecha_consejo_profesores",
+    "final_medida":   "fecha_notificacion_final",
+}
+
+
+def _fecha_etapa_estudiante(estudiante, etapa):
+    """Fecha ya guardada en la ficha para esa etapa (o None)."""
+    attr = ETAPA_FECHA_ATTR.get(etapa)
+    if not attr:
+        return None
+    valor = getattr(estudiante, attr, None)
+    if isinstance(valor, datetime):
+        return valor.date()
+    return valor
+
 @app.post("/estudiantes/{id}/notificar")
 def crear_notificacion(
     id: int,
@@ -1052,10 +1090,17 @@ def crear_notificacion(
 
     etapa = data.etapa or "inicio_proceso"
 
-    # No duplicar: misma fase + misma fecha de envío/programación.
-    # Inmediato/días hábiles -> hoy; 'fecha_indicada' -> la fecha programada.
-    # Solo bloquean las notificaciones activas o completadas (las canceladas liberan la fase).
-    fecha_nueva = data.fecha_programada if data.modo == "fecha_indicada" else notifications.obtener_ahora_santiago().date()
+    # La BASE del plan es la fecha de la etapa guardada en la ficha (la que el usuario
+    # ingresó y guardó antes de notificar). Solo si esa fecha no existe se usa hoy.
+    hoy = notifications.obtener_ahora_santiago().date()
+    fecha_guardada = _fecha_etapa_estudiante(estudiante, etapa)
+    if data.modo == "fecha_indicada":
+        fecha_nueva = data.fecha_programada
+    else:
+        fecha_nueva = fecha_guardada or hoy
+
+    # No duplicar: misma fase + misma fecha base. Solo bloquean las notificaciones
+    # activas o completadas (las canceladas liberan la fase).
     existentes = (
         db.query(models.Notificacion)
         .filter(
@@ -1066,7 +1111,9 @@ def crear_notificacion(
         .all()
     )
     for ex in existentes:
-        if ex.fecha_programada:
+        if ex.fecha_base:
+            f_ex = ex.fecha_base
+        elif ex.fecha_programada:
             f_ex = ex.fecha_programada
         elif ex.fecha_creacion:
             f_ex = ex.fecha_creacion.date() if hasattr(ex.fecha_creacion, "date") else ex.fecha_creacion
@@ -1078,19 +1125,13 @@ def crear_notificacion(
                 detail="Ya existe una notificación de esta fase para esa fecha. Cancélala si necesitas enviarla de nuevo.",
             )
 
-    # Actualizar la fecha correspondiente en la ficha del estudiante
-    if etapa == "inicio_proceso":
-        estudiante.fecha_inicio_proceso = fecha_nueva
-    elif etapa == "medida":
-        estudiante.fecha_notificacion_medida = fecha_nueva
-        if data.medida:
-            estudiante.medida = data.medida
-    elif etapa == "apelacion":
-        estudiante.fecha_recepcion_apelacion = fecha_nueva
-    elif etapa == "consejo":
-        estudiante.fecha_consejo_profesores = fecha_nueva
-    elif etapa == "final_medida":
-        estudiante.fecha_notificacion_final = fecha_nueva
+    # Solo se escribe la fecha en la ficha si la etapa aún no tenía una:
+    # nunca se sobrescribe la fecha que el usuario guardó.
+    attr_fecha = ETAPA_FECHA_ATTR.get(etapa)
+    if attr_fecha and not fecha_guardada and fecha_nueva:
+        setattr(estudiante, attr_fecha, fecha_nueva)
+    if etapa == "medida" and data.medida:
+        estudiante.medida = data.medida
 
     db.commit()
 
@@ -1108,6 +1149,7 @@ def crear_notificacion(
         max_envios=cfg["max"],
         veces_enviado=0,
         fecha_programada=data.fecha_programada if data.modo == "fecha_indicada" else None,
+        fecha_base=fecha_nueva,
         proximo_envio=notifications.obtener_ahora_santiago() if data.modo != "fecha_indicada" else None,
         cuerpo_personalizado=data.cuerpo_personalizado,
         asunto_personalizado=data.asunto_personalizado,
@@ -1131,8 +1173,9 @@ def crear_notificacion(
         }
 
     if data.modo == "dias_habiles":
-        # Materializar cada día de envío como una tarea en envios_programados
-        notifications.programar_envios_dias_habiles(db, notif, estudiante)
+        # Materializar cada día de envío como una tarea en envios_programados,
+        # contando días hábiles desde la fecha de la etapa.
+        notifications.programar_envios_dias_habiles(db, notif, estudiante, base_date=fecha_nueva)
         # Enviar de inmediato el primer correo del plan
         enviados, fallidos = notifications.enviar_programados_vencidos(db, notif.id, forzar_primer_envio=True)
         # Reflejar el próximo envío pendiente (o completar) en el registro del job.
@@ -1306,6 +1349,7 @@ def registrar_consejo(
             max_envios=1,
             veces_enviado=0,
             proximo_envio=datetime.now(),
+            fecha_base=_fecha_etapa_estudiante(estudiante, "consejo"),
         )
         db.add(notif)
         db.commit()
@@ -1351,6 +1395,176 @@ def update_config_fase(
     db.commit()
     db.refresh(fase)
     return fase
+
+
+# --- FERIADOS (días que no cuentan como hábiles en los recordatorios) ---
+
+@app.get("/feriados", response_model=List[schemas.Feriado])
+def listar_feriados(
+    anio: Optional[int] = None,
+    desde: Optional[date] = None,
+    hasta: Optional[date] = None,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    """Feriados registrados. Cualquier usuario autenticado puede consultarlos."""
+    q = db.query(models.Feriado)
+    if anio:
+        q = q.filter(models.Feriado.fecha >= date(anio, 1, 1), models.Feriado.fecha <= date(anio, 12, 31))
+    if desde:
+        q = q.filter(models.Feriado.fecha >= desde)
+    if hasta:
+        q = q.filter(models.Feriado.fecha <= hasta)
+    return q.order_by(models.Feriado.fecha.asc()).all()
+
+
+@app.post("/feriados", response_model=schemas.Feriado)
+def crear_feriado(
+    data: schemas.FeriadoCreate,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    _require_editor(current_user)
+    existente = db.query(models.Feriado).filter(models.Feriado.fecha == data.fecha).first()
+    if existente:
+        raise HTTPException(status_code=409, detail="Ya existe un feriado registrado en esa fecha")
+    feriado = models.Feriado(
+        fecha=data.fecha,
+        nombre=data.nombre.strip(),
+        tipo=data.tipo or "nacional",
+        irrenunciable=bool(data.irrenunciable),
+        origen="manual",
+    )
+    db.add(feriado)
+    db.commit()
+    db.refresh(feriado)
+    notifications.invalidar_feriados()
+    return feriado
+
+
+@app.put("/feriados/{feriado_id}", response_model=schemas.Feriado)
+def actualizar_feriado(
+    feriado_id: int,
+    data: schemas.FeriadoUpdate,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    _require_editor(current_user)
+    feriado = db.query(models.Feriado).filter(models.Feriado.id == feriado_id).first()
+    if not feriado:
+        raise HTTPException(status_code=404, detail="Feriado no encontrado")
+    if data.fecha is not None and data.fecha != feriado.fecha:
+        choque = db.query(models.Feriado).filter(
+            models.Feriado.fecha == data.fecha,
+            models.Feriado.id != feriado_id,
+        ).first()
+        if choque:
+            raise HTTPException(status_code=409, detail="Ya existe un feriado registrado en esa fecha")
+        feriado.fecha = data.fecha
+    if data.nombre is not None:
+        feriado.nombre = data.nombre.strip()
+    if data.tipo is not None:
+        feriado.tipo = data.tipo
+    if data.irrenunciable is not None:
+        feriado.irrenunciable = bool(data.irrenunciable)
+    db.commit()
+    db.refresh(feriado)
+    notifications.invalidar_feriados()
+    return feriado
+
+
+@app.delete("/feriados/{feriado_id}")
+def eliminar_feriado(
+    feriado_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    _require_editor(current_user)
+    feriado = db.query(models.Feriado).filter(models.Feriado.id == feriado_id).first()
+    if not feriado:
+        raise HTTPException(status_code=404, detail="Feriado no encontrado")
+    db.delete(feriado)
+    db.commit()
+    notifications.invalidar_feriados()
+    return {"message": "Feriado eliminado"}
+
+
+def _guardar_feriados(db, items, origen):
+    """Inserta los feriados que falten (no pisa los ya registrados). Devuelve cuántos creó."""
+    creados = 0
+    for it in items:
+        if db.query(models.Feriado).filter(models.Feriado.fecha == it["fecha"]).first():
+            continue
+        db.add(models.Feriado(
+            fecha=it["fecha"],
+            nombre=it["nombre"],
+            tipo=it.get("tipo") or "nacional",
+            irrenunciable=bool(it.get("irrenunciable")),
+            origen=origen,
+        ))
+        creados += 1
+    db.commit()
+    if creados:
+        notifications.invalidar_feriados()
+    return creados
+
+
+@app.post("/feriados/generar")
+def generar_feriados(
+    anio: int,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    """Genera los feriados legales permanentes del año con las reglas chilenas."""
+    _require_editor(current_user)
+    if anio < 2000 or anio > 2100:
+        raise HTTPException(status_code=400, detail="Año fuera de rango")
+    creados = _guardar_feriados(db, feriados_cl.generar_feriados_anio(anio), "sistema")
+    return {"message": f"Feriados legales de {anio} generados", "creados": creados, "anio": anio}
+
+
+@app.post("/feriados/importar")
+def importar_feriados(
+    anio: int,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    """Importa los feriados del año desde la API oficial apis.digital.gob.cl.
+
+    Requiere que el servidor tenga salida a internet; si no, use "Generar".
+    """
+    _require_editor(current_user)
+    if anio < 2000 or anio > 2100:
+        raise HTTPException(status_code=400, detail="Año fuera de rango")
+
+    url = f"https://apis.digital.gob.cl/fl/feriados/{anio}"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "AulaSegura/1.0"})
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except Exception as e:
+        raise HTTPException(
+            status_code=502,
+            detail=f"No se pudo consultar la API oficial de feriados ({e}). Use el botón 'Generar feriados legales'.",
+        )
+
+    items = []
+    for it in data if isinstance(data, list) else []:
+        try:
+            f = datetime.strptime(str(it.get("fecha"))[:10], "%Y-%m-%d").date()
+        except Exception:
+            continue
+        items.append({
+            "fecha": f,
+            "nombre": (it.get("nombre") or "Feriado")[:150],
+            "tipo": "nacional" if str(it.get("tipo", "")).lower().startswith("civil") or not it.get("tipo") else "nacional",
+            "irrenunciable": str(it.get("irrenunciable", "0")) in ("1", "true", "True"),
+        })
+    if not items:
+        raise HTTPException(status_code=502, detail="La API oficial no devolvió feriados para ese año")
+
+    creados = _guardar_feriados(db, items, "api")
+    return {"message": f"Feriados de {anio} importados", "creados": creados, "total_api": len(items), "anio": anio}
 
 
 # --- MÓDULO GLOBAL DE ENVÍOS PROGRAMADOS DE CORREO ---

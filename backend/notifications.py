@@ -5,14 +5,19 @@ de Aula Segura.
 - El remitente se elige según el COLEGIO del estudiante (credenciales del .env).
 - Los destinatarios son los que pertenecen al colegio del estudiante MÁS los que
   tienen el privilegio `todos_colegios`, siempre que estén activos (estado=True).
+  Van siempre en COPIA OCULTA (no se ven entre sí).
 - Un hilo en segundo plano (scheduler) revisa periódicamente las notificaciones
   programadas y envía los correos que estén vencidos.
+- El switch global `ConfigEmail.envio_activo` detiene todos los envíos.
 
 Modos:
 - 'una_vez'       -> 1 envío inmediato.
 - 'paulatino'     -> recordatorio diario hasta que se cancele.
 - 'cada_3_dias'   -> envío cada 3 días, máximo 3 veces.
 - 'fecha_indicada'-> 1 envío en la fecha indicada.
+- 'dias_habiles'  -> plan de recordatorios contados en DÍAS HÁBILES desde la fecha de
+                     la etapa (`Notificacion.fecha_base`), materializado en
+                     `EnvioProgramado`. Es el modo que usa el sistema desde la ficha.
 """
 import os
 import ssl
@@ -29,6 +34,7 @@ from dotenv import load_dotenv
 
 import models
 import database
+import feriados_cl
 
 load_dotenv()
 
@@ -85,55 +91,123 @@ def _parse_hora(valor, default=(9, 0)):
 def _objetivos_dias_habiles(notificacion, estudiante):
     """Lista ordenada de datetimes en que esta notificación 'días hábiles' debe enviarse.
 
-    El día 1 corresponde al MISMO día de inicio del proceso (offset 0), el día 3 a
-    2 días hábiles después, etc. Se combina con la hora de envío configurada.
+    La base es la fecha de la etapa (`notificacion.fecha_base`); el día 0 es esa misma
+    fecha y el día N son N días hábiles después. Se combina con la hora de envío.
     """
-    if not estudiante or not estudiante.fecha_inicio_proceso:
+    base = getattr(notificacion, "fecha_base", None)
+    if not base and estudiante:
+        base = estudiante.fecha_inicio_proceso
+    if not base:
         return []
     if not notificacion.dias_habiles_envio:
         return []
-    try:
-        dias_objetivo = sorted(
-            int(x.strip())
-            for x in notificacion.dias_habiles_envio.split(",")
-            if x.strip().isdigit()
-        )
-    except Exception:
-        return []
-    # El "día 1" es el día de inicio; si cae en fin de semana, se mueve al siguiente día hábil
-    # para que ningún recordatorio quede agendado un sábado o domingo.
-    base = estudiante.fecha_inicio_proceso
-    if isinstance(base, datetime):
-        base = base.date()
-    while base.weekday() >= 5:  # 5 = sábado, 6 = domingo
-        base += timedelta(days=1)
 
     hh, mm = _parse_hora(getattr(notificacion, "hora_envio", None))
-    objetivos = []
-    for d in dias_objetivo:
-        fecha = obtener_fecha_dia_habil(base, d - 1)
-        if fecha:
-            objetivos.append(datetime.combine(fecha, dtime(hh, mm)))
+    objetivos = [
+        datetime.combine(fecha, dtime(hh, mm))
+        for _n, fecha in calcular_fechas_dias_habiles(base, notificacion.dias_habiles_envio)
+        if fecha
+    ]
     objetivos.sort()
     return objetivos
 
 
+# ---------- FERIADOS ----------
+# Caché en memoria de los feriados registrados (tabla pro_aula_segura_feriados).
+# Un día hábil es lunes a viernes que además no sea feriado.
+_FERIADOS = set()
+_FERIADOS_TS = 0.0
+_FERIADOS_TTL = 300  # segundos
+
+
+def invalidar_feriados():
+    """Fuerza la recarga del caché de feriados (se llama al crear/editar/borrar uno)."""
+    global _FERIADOS_TS
+    _FERIADOS_TS = 0.0
+
+
+def cargar_feriados(db, forzar=False):
+    """Refresca el caché de feriados desde la base de datos."""
+    global _FERIADOS, _FERIADOS_TS
+    if not forzar and _FERIADOS_TS and (time.time() - _FERIADOS_TS) < _FERIADOS_TTL:
+        return _FERIADOS
+    try:
+        _FERIADOS = {f.fecha for f in db.query(models.Feriado).all() if f.fecha}
+        _FERIADOS_TS = time.time()
+    except Exception:
+        traceback.print_exc()
+    return _FERIADOS
+
+
+def asegurar_feriados_anio(db, anio):
+    """Genera los feriados legales de un año si todavía no hay ninguno registrado.
+
+    Evita que un plan de recordatorios cruce a un año sin feriados cargados y trate
+    esos días como hábiles.
+    """
+    try:
+        hay = (
+            db.query(models.Feriado)
+            .filter(models.Feriado.fecha >= date(anio, 1, 1), models.Feriado.fecha <= date(anio, 12, 31))
+            .count()
+        )
+        if hay:
+            return 0
+        creados = 0
+        for it in feriados_cl.generar_feriados_anio(anio):
+            db.add(models.Feriado(
+                fecha=it["fecha"],
+                nombre=it["nombre"],
+                tipo="nacional",
+                irrenunciable=bool(it["irrenunciable"]),
+                origen="sistema",
+            ))
+            creados += 1
+        db.commit()
+        invalidar_feriados()
+        return creados
+    except Exception:
+        traceback.print_exc()
+        return 0
+
+
+_FERIADOS_CHECK_DIA = None
+
+
+def asegurar_feriados_vigentes(db):
+    """Chequeo diario: que existan los feriados del año en curso y del siguiente."""
+    global _FERIADOS_CHECK_DIA
+    hoy = obtener_ahora_santiago().date()
+    if _FERIADOS_CHECK_DIA == hoy:
+        return
+    _FERIADOS_CHECK_DIA = hoy
+    asegurar_feriados_anio(db, hoy.year)
+    asegurar_feriados_anio(db, hoy.year + 1)
+
+
+def es_dia_habil(fecha) -> bool:
+    """Lunes a viernes y que no sea feriado registrado."""
+    if isinstance(fecha, datetime):
+        fecha = fecha.date()
+    return fecha.weekday() < 5 and fecha not in _FERIADOS
+
+
 def obtener_fecha_dia_habil(fecha_inicio: date, n_dias_habiles: int) -> date:
-    """Retorna la fecha resultante de sumarle n_dias_habiles hábiles (lunes a viernes) a la fecha_inicio."""
+    """Suma n_dias_habiles (lunes a viernes, saltando feriados) a la fecha_inicio."""
     if not fecha_inicio:
         return None
     if isinstance(fecha_inicio, datetime):
         curr = fecha_inicio.date()
     else:
         curr = fecha_inicio
-    
+
     if n_dias_habiles <= 0:
         return curr
-        
+
     dias_contados = 0
     while dias_contados < n_dias_habiles:
         curr += timedelta(days=1)
-        if curr.weekday() < 5:  # Lunes a Viernes
+        if es_dia_habil(curr):
             dias_contados += 1
     return curr
 
@@ -374,6 +448,11 @@ def construir_mensaje(
 def enviar_correos(db, estudiante, notificacion):
     """Envía el correo a todos los destinatarios del estudiante y registra el log.
     Devuelve (enviados, fallidos)."""
+    conf = get_config_email(db)
+    if not conf.envio_activo:
+        print("[correos] Envío pausado por el switch global (ConfigEmail.envio_activo).")
+        return (0, 0)
+
     colegio = (
         db.query(models.Colegio)
         .filter(models.Colegio.id == estudiante.id_colegio)
@@ -436,14 +515,15 @@ def enviar_correos(db, estudiante, notificacion):
         return enviados, fallidos
 
     emails_list = [d.email for d in destinatarios if d.email]
-    to_header = ", ".join(emails_list)
 
     if emails_list:
         try:
             msg = MIMEMultipart("alternative")
             msg["Subject"] = asunto
             msg["From"] = f"{_remitente} <{sender_email}>"
-            msg["To"] = to_header
+            # Los destinatarios van en copia oculta: el header 'To' apunta al remitente y
+            # la entrega real se hace por el sobre SMTP (sendmail), así no se ven entre sí.
+            msg["To"] = f"{_remitente} <{sender_email}>"
             msg.attach(MIMEText(cuerpo, "html"))
             server.sendmail(sender_email, emails_list, msg.as_string())
             for d in destinatarios:
@@ -541,8 +621,10 @@ def _due(notificacion, ahora, estudiante):
 
 
 def _proxima_fecha_habil(fecha):
-    """Si la fecha cae sábado o domingo, la mueve al lunes siguiente."""
-    while fecha.weekday() >= 5:  # 5 = sábado, 6 = domingo
+    """Si la fecha cae sábado, domingo o feriado, la mueve al siguiente día hábil."""
+    if isinstance(fecha, datetime):
+        fecha = fecha.date()
+    while not es_dia_habil(fecha):
         fecha += timedelta(days=1)
     return fecha
 
@@ -550,7 +632,10 @@ def _proxima_fecha_habil(fecha):
 def calcular_fechas_dias_habiles(base_date, dias_envio_str, incluir_dia1=False):
     """Devuelve [(dia_numero, fecha), ...] para el modo días hábiles.
 
-    - El día 0 o 1 es la fecha base (hoy). Si cae fin de semana, se mueve al lunes.
+    - `base_date` es la fecha de la etapa (la guardada en la ficha del estudiante).
+      Si cae sábado o domingo, se corre al lunes siguiente.
+    - El día 0 es la fecha base y cada día N se cuenta como N DÍAS HÁBILES
+      (lunes a viernes) después de la base, nunca días corridos.
     """
     try:
         dias = {int(x.strip()) for x in str(dias_envio_str).split(",") if x.strip().isdigit()}
@@ -558,17 +643,28 @@ def calcular_fechas_dias_habiles(base_date, dias_envio_str, incluir_dia1=False):
         dias = set()
     if incluir_dia1 and not dias:
         dias = {0}
+    if isinstance(base_date, datetime):
+        base_date = base_date.date()
+    base = _proxima_fecha_habil(base_date)
     resultado = []
     for n in sorted(d for d in dias if d >= 0):
-        fecha = base_date + timedelta(days=n)
-        fecha = _proxima_fecha_habil(fecha)
-        resultado.append((n, fecha))
+        resultado.append((n, obtener_fecha_dia_habil(base, n)))
     return resultado
 
 
 def programar_envios_dias_habiles(db, notificacion, estudiante, base_date=None):
-    """Crea una fila en envios_programados por cada día de envío (con snapshot de correos)."""
-    base = base_date or obtener_ahora_santiago().date()
+    """Crea una fila en envios_programados por cada día de envío (con snapshot de correos).
+
+    La base del plan es la fecha de la etapa (`notificacion.fecha_base`); solo si no
+    existe se usa el día de hoy. Los días hábiles saltan fines de semana y feriados.
+    """
+    base = base_date or getattr(notificacion, "fecha_base", None) or obtener_ahora_santiago().date()
+    if isinstance(base, datetime):
+        base = base.date()
+    # El plan puede cruzar de año: asegurar que existan los feriados de ambos.
+    asegurar_feriados_anio(db, base.year)
+    asegurar_feriados_anio(db, base.year + 1)
+    cargar_feriados(db, forzar=True)
     pares = calcular_fechas_dias_habiles(base, notificacion.dias_habiles_envio, incluir_dia1=True)
     hora = notificacion.hora_envio or "09:00"
 
@@ -644,7 +740,7 @@ def _enviar_programado(db, env):
     )
     conf = get_config_email(db)
     if not conf.envio_activo:
-        print("💡 Envío de correos pausado por el switch global.")
+        print("[correos] Envío pausado por el switch global (ConfigEmail.envio_activo).")
         return (0, 0)
 
     if not estudiante:
@@ -682,14 +778,17 @@ def _enviar_programado(db, env):
     enviados, fallidos = 0, 0
 
     def _cerrar(estado="enviado"):
+        """Cierra el envío programado. 'enviado' solo si realmente salió el correo."""
         env.estado = estado
-        env.enviado = True
-        env.fecha_envio_real = datetime.now()
+        env.enviado = (estado == "enviado")
+        env.fecha_envio_real = obtener_ahora_santiago() if estado == "enviado" else None
         db.commit()
         _actualizar_notificacion_padre(db, env.notificacion_id)
 
     if not destinatarios:
-        _cerrar()
+        # Nada que enviar: se cierra como cancelado (no como enviado) para no
+        # mostrar un correo que nunca salió.
+        _cerrar("cancelado")
         return (0, 0)
 
     if not sender_email or not sender_pass:
@@ -703,7 +802,7 @@ def _enviar_programado(db, env):
                 detalle="Sin credenciales de remitente para el colegio",
             ))
             fallidos += 1
-        _cerrar()
+        _cerrar("fallido")
         return (enviados, fallidos)
 
     context = ssl.create_default_context()
@@ -727,18 +826,19 @@ def _enviar_programado(db, env):
                 server.quit()
             except Exception:
                 pass
-        _cerrar()
+        _cerrar("fallido")
         return (enviados, fallidos)
 
     emails_list = [d.get("email") for d in destinatarios if d.get("email")]
-    to_header = ", ".join(emails_list)
 
     if emails_list:
         try:
             msg = MIMEMultipart("alternative")
             msg["Subject"] = asunto
             msg["From"] = f"{remitente} <{sender_email}>"
-            msg["To"] = to_header
+            # Copia oculta: el header 'To' apunta al remitente y la entrega real se hace
+            # por el sobre SMTP (sendmail), así los destinatarios no se ven entre sí.
+            msg["To"] = f"{remitente} <{sender_email}>"
             msg.attach(MIMEText(cuerpo, "html"))
             server.sendmail(sender_email, emails_list, msg.as_string())
             for d in destinatarios:
@@ -769,11 +869,10 @@ def _enviar_programado(db, env):
         pass
 
     if enviados > 0:
-        env.estado = "enviado"
-        env.enviado = True
-        env.fecha_envio_real = obtener_ahora_santiago()
-        db.commit()
-        _actualizar_notificacion_padre(db, env.notificacion_id)
+        _cerrar("enviado")
+    else:
+        # Ningún correo salió (error de envío): queda registrado como fallido.
+        _cerrar("fallido")
 
     return (enviados, fallidos)
 
@@ -781,45 +880,55 @@ def _enviar_programado(db, env):
 def enviar_programados_vencidos(db, notif_id=None, forzar_primer_envio=False):
     """Envía los envios_programados pendientes cuya fecha+hora ya pasó.
 
-    El primer envío de cada notificación se envía de inmediato al crearse si forzar_primer_envio=True.
-    Los envíos posteriores solo se envían si en el horario de Santiago de Chile ya se cumplió la fecha
-    y hora programada (por defecto 09:00 AM).
+    Regla anti-ráfaga: si una notificación tiene VARIOS recordatorios vencidos a la vez
+    (porque la fecha de la etapa es anterior a hoy, o porque el servidor estuvo detenido),
+    solo se envía el MÁS RECIENTE; los vencidos anteriores se marcan 'cancelado' para no
+    mandar correos retroactivos. Los envíos futuros quedan pendientes para el scheduler.
+
+    `forzar_primer_envio=True` (al crear la notificación) permite mandar de inmediato el
+    recordatorio de hoy sin esperar a su hora programada; los días futuros nunca se adelantan.
     """
     ahora = obtener_ahora_santiago()
     q = db.query(models.EnvioProgramado).filter(models.EnvioProgramado.estado == "pendiente")
     if notif_id is not None:
         q = q.filter(models.EnvioProgramado.notificacion_id == notif_id)
-    
+
     items = q.all()
     if not items:
         return 0, 0
 
-    # Obtener el menor dia_numero para cada notificación para identificar su primer correo
-    min_dias = {}
+    # Agrupar por notificación para decidir por plan, no por fila suelta.
+    por_notif = {}
     for env in items:
-        nid = env.notificacion_id
-        d = env.dia_numero if env.dia_numero is not None else 0
-        if nid not in min_dias or d < min_dias[nid]:
-            min_dias[nid] = d
+        por_notif.setdefault(env.notificacion_id, []).append(env)
 
     enviados_total, fallidos_total = 0, 0
-    for env in items:
-        hh, mm = _parse_hora(env.hora, default=(9, 0))
-        es_hoy_o_pasado = (env.fecha <= ahora.date())
-        d_num = env.dia_numero if env.dia_numero is not None else 0
-        es_primer_envio = (d_num == min_dias.get(env.notificacion_id))
-        fecha_hora_prog = datetime.combine(env.fecha, dtime(hh, mm))
-        
-        debe_enviar = False
-        if forzar_primer_envio and es_primer_envio and es_hoy_o_pasado:
-            debe_enviar = True
-        elif ahora >= fecha_hora_prog:
-            debe_enviar = True
+    for nid, envios in por_notif.items():
+        vencidos = []
+        for env in envios:
+            hh, mm = _parse_hora(env.hora, default=(9, 0))
+            fecha_hora_prog = datetime.combine(env.fecha, dtime(hh, mm))
+            if ahora >= fecha_hora_prog:
+                vencidos.append((fecha_hora_prog, env))
+            elif forzar_primer_envio and env.fecha <= ahora.date():
+                # Recordatorio de hoy: se adelanta a su hora al crear la notificación.
+                vencidos.append((fecha_hora_prog, env))
 
-        if debe_enviar:
-            e, f = _enviar_programado(db, env)
-            enviados_total += e
-            fallidos_total += f
+        if not vencidos:
+            continue
+
+        vencidos.sort(key=lambda par: par[0])
+        # Descartar los recordatorios atrasados: no se envían correos retroactivos.
+        for _fh, env in vencidos[:-1]:
+            env.estado = "cancelado"
+        if len(vencidos) > 1:
+            db.commit()
+
+        e, f = _enviar_programado(db, vencidos[-1][1])
+        enviados_total += e
+        fallidos_total += f
+        if len(vencidos) > 1:
+            _actualizar_notificacion_padre(db, nid)
     return enviados_total, fallidos_total
 
 
@@ -839,6 +948,8 @@ def revisar_pendientes():
     """Una pasada del scheduler: envía todas las notificaciones vencidas."""
     db = database.SessionLocal()
     try:
+        asegurar_feriados_vigentes(db)
+        cargar_feriados(db)
         ahora = obtener_ahora_santiago()
         pendientes = (
             db.query(models.Notificacion)
