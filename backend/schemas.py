@@ -5,6 +5,13 @@ from typing import Optional, List
 class Token(BaseModel):
     access_token: str
     token_type: str
+    nombre: Optional[str] = None
+    rol: Optional[str] = None
+
+class SidebarPermisosUpdate(BaseModel):
+    rol: Optional[str] = None
+    modulos: Optional[List[str]] = None
+    permisos: Optional[dict] = None
 
 class TokenData(BaseModel):
     username: Optional[str] = None

@@ -142,64 +142,116 @@
 
         <!-- SECCIÓN 2: GESTIÓN DE USUARIOS (Admin) -->
         <div id="section-usuarios" class="hidden space-y-6">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h2 class="text-2xl font-bold text-slate-900">Gestión de Usuarios</h2>
-                    <p class="text-slate-500 text-sm">Administre cuentas de acceso, roles asignados, contraseñas y permisos por colegio.</p>
+            <!-- SUB-TABS DENTRO DE USUARIOS -->
+            <div class="flex border-b border-slate-200 gap-4">
+                <button id="subtab-btn-cuentas" onclick="switchUserSubTab('cuentas')" class="flex items-center gap-2 pb-3 font-bold text-sm border-b-2 border-indigo-600 text-indigo-600 transition">
+                    <span>👤 Cuentas de Usuario</span>
+                </button>
+                <button id="subtab-btn-permisos" onclick="switchUserSubTab('permisos')" class="flex items-center gap-2 pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition">
+                    <span>🛡️ Visibilidad del Menú (Sidebar)</span>
+                </button>
+            </div>
+
+            <!-- SUB-SECCIÓN 1: CUENTAS DE USUARIOS -->
+            <div id="subtab-cuentas" class="space-y-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900">Gestión de Usuarios</h2>
+                        <p class="text-slate-500 text-sm">Administre cuentas de acceso, roles asignados, contraseñas y permisos por colegio.</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <button onclick="openUserModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-lg shadow-indigo-600/20 flex items-center gap-2 text-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            + Nuevo Usuario
+                        </button>
+                    </div>
                 </div>
-                <div class="flex gap-3">
-                    <button onclick="openUserModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-lg shadow-indigo-600/20 flex items-center gap-2 text-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                        + Nuevo Usuario
-                    </button>
+
+                <!-- FILTROS DE USUARIOS -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-4 gap-4 items-end text-sm">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Buscar Usuario</label>
+                        <input type="text" id="filter-user-search" oninput="applyUserFilters()" placeholder="Nombre de usuario..." class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Filtrar por Rol</label>
+                        <select id="filter-user-role" onchange="applyUserFilters()" class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="">Todos los roles</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Filtrar por Colegio</label>
+                        <select id="filter-user-colegio" onchange="applyUserFilters()" class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="">Todos los colegios</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Estado</label>
+                        <select id="filter-user-status" onchange="applyUserFilters()" class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="">Todos los estados</option>
+                            <option value="activo">Activos</option>
+                            <option value="inactivo">Inactivos</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- TABLA DE USUARIOS -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden w-full">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm min-w-[750px]">
+                            <thead>
+                                <tr class="bg-indigo-50 text-indigo-900 uppercase text-xs border-b border-indigo-100">
+                                    <th class="px-6 py-3.5 text-left font-bold">Usuario</th>
+                                    <th class="px-6 py-3.5 text-left font-bold">Rol</th>
+                                    <th class="px-6 py-3.5 text-left font-bold">Colegio Asignado</th>
+                                    <th class="px-6 py-3.5 text-left font-bold">Estado</th>
+                                    <th class="px-6 py-3.5 text-right font-bold">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                    <div id="users-loading-state" class="p-10 text-center text-slate-400">Cargando usuarios...</div>
                 </div>
             </div>
 
-            <!-- FILTROS DE USUARIOS -->
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-4 gap-4 items-end text-sm">
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Buscar Usuario</label>
-                    <input type="text" id="filter-user-search" oninput="applyUserFilters()" placeholder="Nombre de usuario..." class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+            <!-- SUB-SECCIÓN 2: CONFIGURACIÓN DE PERMISOS DEL SIDEBAR -->
+            <div id="subtab-permisos" class="hidden space-y-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-900">Visibilidad del Menú (Sidebar)</h2>
+                        <p class="text-slate-500 text-sm">Configure qué módulos y secciones del menú lateral puede visualizar y acceder cada rol del sistema.</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <button onclick="resetDefaultSidebarPermisos()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition border border-slate-200">
+                            ↺ Restaurar Predeterminados
+                        </button>
+                        <button onclick="saveSidebarPermisos()" id="btn-save-permisos" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-lg shadow-indigo-600/20 flex items-center gap-2 text-xs">
+                            💾 Guardar Permisos
+                        </button>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Filtrar por Rol</label>
-                    <select id="filter-user-role" onchange="applyUserFilters()" class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
-                        <option value="">Todos los roles</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Filtrar por Colegio</label>
-                    <select id="filter-user-colegio" onchange="applyUserFilters()" class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
-                        <option value="">Todos los colegios</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Estado</label>
-                    <select id="filter-user-status" onchange="applyUserFilters()" class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
-                        <option value="">Todos los estados</option>
-                        <option value="activo">Activos</option>
-                        <option value="inactivo">Inactivos</option>
-                    </select>
-                </div>
-            </div>
 
-            <!-- TABLA DE USUARIOS -->
-            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden w-full">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm min-w-[750px]">
-                        <thead>
-                            <tr class="bg-indigo-50 text-indigo-900 uppercase text-xs border-b border-indigo-100">
-                                <th class="px-6 py-3.5 text-left font-bold">Usuario</th>
-                                <th class="px-6 py-3.5 text-left font-bold">Rol</th>
-                                <th class="px-6 py-3.5 text-left font-bold">Colegio Asignado</th>
-                                <th class="px-6 py-3.5 text-left font-bold">Estado</th>
-                                <th class="px-6 py-3.5 text-right font-bold">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="users-table-body" class="divide-y divide-slate-100"></tbody>
-                    </table>
+                <div id="permisos-feedback" class="hidden p-4 rounded-xl text-sm font-semibold transition-all"></div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden w-full">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm min-w-[700px]">
+                            <thead>
+                                <tr class="bg-indigo-50 text-indigo-950 uppercase text-xs border-b border-indigo-100">
+                                    <th class="px-6 py-4 text-left font-extrabold w-2/5">Módulo del Menú Lateral</th>
+                                    <th class="px-4 py-4 text-center font-bold text-purple-700">👑 Administrador<br><span class="text-[10px] text-purple-500 font-normal">Acceso total</span></th>
+                                    <th class="px-4 py-4 text-center font-bold text-indigo-700">⚖️ Abogado<br><span class="text-[10px] text-indigo-500 font-normal">Gestión legal</span></th>
+                                    <th class="px-4 py-4 text-center font-bold text-emerald-700">👁️ Super Lector<br><span class="text-[10px] text-emerald-500 font-normal">Todos colegios</span></th>
+                                    <th class="px-4 py-4 text-center font-bold text-slate-700">📖 Lector<br><span class="text-[10px] text-slate-500 font-normal">Su colegio</span></th>
+                                </tr>
+                            </thead>
+                            <tbody id="permisos-matrix-body" class="divide-y divide-slate-100">
+                                <!-- Filas de matriz de permisos -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <div id="users-loading-state" class="p-10 text-center text-slate-400">Cargando usuarios...</div>
             </div>
         </div>
     </main>
@@ -394,6 +446,7 @@
                     
                     await loadRolesAndColegios();
                     loadUsers();
+                    loadSidebarPermisosMatrix();
 
                     if (window.location.hash === '#usuarios' || new URLSearchParams(window.location.search).get('tab') === 'usuarios') {
                         switchMainTab('usuarios');
@@ -606,7 +659,7 @@
                             Ver
                         </button>`;
                         
-                        if (currentUser && currentUser.rol === 'lawyer') {
+                        if (currentUser && (currentUser.rol === 'lawyer' || currentUser.rol === 'admin')) {
                             content += `
                             <a href="registro.html?id=${s.id}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white rounded-lg font-bold text-xs transition-all shadow-sm border border-indigo-100">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
@@ -1050,6 +1103,216 @@
                 btnSave.innerText = 'Guardar';
             }
         });
+
+        // ================= VISIBILIDAD DE MÓDULOS DEL SIDEBAR POR ROL =================
+
+        const SIDEBAR_MODULES = [
+            { id: 'alumnos', label: '📊 Listado Alumnos', category: 'Navegación Aula Segura', desc: 'Tabla general de expedientes de alumnos' },
+            { id: 'nuevo_alumno', label: '➕ Nuevo Alumno', category: 'Navegación Aula Segura', desc: 'Formulario de registro de estudiante' },
+            { id: 'otras_medidas', label: '📋 Listado Otras Medidas', category: 'Otras Medidas', desc: 'Listado de otras medidas disciplinarias' },
+            { id: 'registrar_medida', label: '📝 Registrar Medida', category: 'Otras Medidas', desc: 'Formulario para registrar otra medida' },
+            { id: 'destinatarios', label: '👥 Destinatarios y Grupos', category: 'Configuración', desc: 'Gestión de correos y grupos de contacto' },
+            { id: 'correos_programados', label: '📬 Correos Programados', category: 'Configuración', desc: 'Calendario y monitoreo de notificaciones' },
+            { id: 'plantillas', label: '📧 Plantillas y Plazos', category: 'Configuración', desc: 'Editor de plantillas y reglas de días' },
+            { id: 'feriados', label: '📅 Feriados', category: 'Configuración', desc: 'Días inhábiles para cálculo de plazos' },
+            { id: 'carga_masiva', label: '📤 Carga Masiva Excel', category: 'Configuración', desc: 'Importación por lote de estudiantes u otras medidas' },
+            { id: 'usuarios', label: '👥 Usuarios y Permisos', category: 'Configuración', desc: 'Panel de cuentas y visibilidad de roles' }
+        ];
+
+        const ROLES_ORDER = [
+            { key: 'admin', label: '👑 Administrador', headerClass: 'text-purple-700' },
+            { key: 'lawyer', label: '⚖️ Abogado', headerClass: 'text-indigo-700' },
+            { key: 'super_viewer', label: '👁️ Super Lector', headerClass: 'text-emerald-700' },
+            { key: 'viewer', label: '📖 Lector', headerClass: 'text-slate-700' }
+        ];
+
+        let currentPermisosMatrix = {
+            admin: ["alumnos", "nuevo_alumno", "otras_medidas", "registrar_medida", "destinatarios", "correos_programados", "plantillas", "feriados", "carga_masiva", "usuarios"],
+            lawyer: ["alumnos", "nuevo_alumno", "otras_medidas", "registrar_medida", "destinatarios", "correos_programados", "plantillas", "feriados", "carga_masiva"],
+            super_viewer: ["alumnos", "otras_medidas", "destinatarios", "correos_programados", "plantillas", "feriados"],
+            viewer: ["alumnos", "otras_medidas"]
+        };
+
+        const DEFAULT_PERMISOS_RESET = JSON.parse(JSON.stringify(currentPermisosMatrix));
+
+        function switchUserSubTab(subtab) {
+            const subCuentas = document.getElementById('subtab-cuentas');
+            const subPermisos = document.getElementById('subtab-permisos');
+            const btnCuentas = document.getElementById('subtab-btn-cuentas');
+            const btnPermisos = document.getElementById('subtab-btn-permisos');
+
+            if (subtab === 'permisos') {
+                if (subCuentas) subCuentas.classList.add('hidden');
+                if (subPermisos) subPermisos.classList.remove('hidden');
+                if (btnCuentas) {
+                    btnCuentas.className = "flex items-center gap-2 pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition";
+                }
+                if (btnPermisos) {
+                    btnPermisos.className = "flex items-center gap-2 pb-3 font-bold text-sm border-b-2 border-indigo-600 text-indigo-600 transition";
+                }
+                loadSidebarPermisosMatrix();
+            } else {
+                if (subPermisos) subPermisos.classList.add('hidden');
+                if (subCuentas) subCuentas.classList.remove('hidden');
+                if (btnCuentas) {
+                    btnCuentas.className = "flex items-center gap-2 pb-3 font-bold text-sm border-b-2 border-indigo-600 text-indigo-600 transition";
+                }
+                if (btnPermisos) {
+                    btnPermisos.className = "flex items-center gap-2 pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition";
+                }
+            }
+        }
+
+        async function loadSidebarPermisosMatrix() {
+            const token = localStorage.getItem('token');
+            try {
+                const resp = await fetch(`${API_URL}/admin/sidebar-permisos`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    if (data && typeof data === 'object') {
+                        currentPermisosMatrix = data;
+                    }
+                }
+            } catch (e) {
+                console.error("Error al cargar matriz de permisos:", e);
+            }
+            renderPermisosMatrix();
+        }
+
+        function renderPermisosMatrix() {
+            const tbody = document.getElementById('permisos-matrix-body');
+            if (!tbody) return;
+
+            let html = '';
+            let currentCat = '';
+
+            SIDEBAR_MODULES.forEach(mod => {
+                if (mod.category !== currentCat) {
+                    currentCat = mod.category;
+                    html += `
+                        <tr class="bg-slate-50/80">
+                            <td colspan="5" class="px-6 py-2 text-[11px] font-extrabold uppercase tracking-wider text-slate-500 bg-slate-100/60 border-y border-slate-200">
+                                ${currentCat}
+                            </td>
+                        </tr>
+                    `;
+                }
+
+                html += `
+                    <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                        <td class="px-6 py-3.5">
+                            <div class="flex flex-col">
+                                <span class="font-bold text-slate-800 text-sm">${mod.label}</span>
+                                <span class="text-xs text-slate-400">${mod.desc}</span>
+                            </div>
+                        </td>
+                        ${ROLES_ORDER.map(r => {
+                            const isChecked = currentPermisosMatrix[r.key] && currentPermisosMatrix[r.key].includes(mod.id);
+                            const isDisabled = (r.key === 'admin' && mod.id === 'usuarios');
+                            return `
+                                <td class="px-4 py-3.5 text-center">
+                                    <label class="inline-flex items-center justify-center p-2 rounded-lg hover:bg-slate-100 cursor-pointer">
+                                        <input type="checkbox" 
+                                            class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer ${isDisabled ? 'opacity-70 cursor-not-allowed' : ''}"
+                                            ${isChecked ? 'checked' : ''}
+                                            ${isDisabled ? 'disabled title="El administrador siempre tiene acceso a la gestión de usuarios"' : ''}
+                                            onchange="togglePermisoCheckbox('${r.key}', '${mod.id}', this.checked)"
+                                        >
+                                    </label>
+                                </td>
+                            `;
+                        }).join('')}
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        function togglePermisoCheckbox(role, moduloId, checked) {
+            if (!currentPermisosMatrix[role]) {
+                currentPermisosMatrix[role] = [];
+            }
+            if (checked) {
+                if (!currentPermisosMatrix[role].includes(moduloId)) {
+                    currentPermisosMatrix[role].push(moduloId);
+                }
+            } else {
+                currentPermisosMatrix[role] = currentPermisosMatrix[role].filter(m => m !== moduloId);
+            }
+        }
+
+        async function saveSidebarPermisos() {
+            const token = localStorage.getItem('token');
+            const btnSave = document.getElementById('btn-save-permisos');
+            const feedback = document.getElementById('permisos-feedback');
+
+            if (btnSave) {
+                btnSave.disabled = true;
+                btnSave.innerText = 'Guardando...';
+            }
+            if (feedback) feedback.classList.add('hidden');
+
+            try {
+                const resp = await fetch(`${API_URL}/admin/sidebar-permisos`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ permisos: currentPermisosMatrix })
+                });
+
+                if (resp.ok) {
+                    localStorage.setItem('sidebar_permisos', JSON.stringify(currentPermisosMatrix));
+                    
+                    if (window.reloadSidebarPermissions) {
+                        window.reloadSidebarPermissions();
+                    }
+
+                    if (feedback) {
+                        feedback.className = "p-4 rounded-xl text-sm font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-2";
+                        feedback.innerHTML = `
+                            <svg class="w-5 h-5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            <span>¡Permisos de visibilidad del menú guardados exitosamente! Los cambios se aplican de inmediato en el sidebar de cada rol.</span>
+                        `;
+                        feedback.classList.remove('hidden');
+                    }
+                } else {
+                    const err = await resp.json();
+                    if (feedback) {
+                        feedback.className = "p-4 rounded-xl text-sm font-semibold bg-red-50 text-red-800 border border-red-200 flex items-center gap-2";
+                        feedback.innerHTML = `<span>Error al guardar permisos: ${err.detail || 'Error en servidor'}</span>`;
+                        feedback.classList.remove('hidden');
+                    }
+                }
+            } catch (e) {
+                if (feedback) {
+                    feedback.className = "p-4 rounded-xl text-sm font-semibold bg-red-50 text-red-800 border border-red-200 flex items-center gap-2";
+                    feedback.innerHTML = `<span>Error de conexión al guardar permisos.</span>`;
+                    feedback.classList.remove('hidden');
+                }
+            } finally {
+                if (btnSave) {
+                    btnSave.disabled = false;
+                    btnSave.innerText = '💾 Guardar Permisos';
+                }
+            }
+        }
+
+        function resetDefaultSidebarPermisos() {
+            if (!confirm('¿Desea restaurar la configuración predeterminada de visibilidad de módulos para todos los roles?')) return;
+            currentPermisosMatrix = JSON.parse(JSON.stringify(DEFAULT_PERMISOS_RESET));
+            renderPermisosMatrix();
+            const feedback = document.getElementById('permisos-feedback');
+            if (feedback) {
+                feedback.className = "p-4 rounded-xl text-sm font-semibold bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-2";
+                feedback.innerHTML = `<span>Valores predeterminados cargados en la pantalla. Recuerde hacer clic en "Guardar Permisos" para confirmarlos en el servidor.</span>`;
+                feedback.classList.remove('hidden');
+            }
+        }
 
         init();
     </script>

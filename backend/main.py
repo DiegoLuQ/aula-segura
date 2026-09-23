@@ -136,6 +136,44 @@ def _seed_feriados():
 
 _seed_feriados()
 
+DEFAULT_SIDEBAR_PERMISOS = {
+    "admin": [
+        "alumnos", "nuevo_alumno", "otras_medidas", "registrar_medida",
+        "destinatarios", "correos_programados", "plantillas", "feriados",
+        "carga_masiva", "usuarios"
+    ],
+    "lawyer": [
+        "alumnos", "nuevo_alumno", "otras_medidas", "registrar_medida",
+        "destinatarios", "correos_programados", "plantillas", "feriados",
+        "carga_masiva"
+    ],
+    "super_viewer": [
+        "alumnos", "otras_medidas", "destinatarios", "correos_programados",
+        "plantillas", "feriados"
+    ],
+    "viewer": [
+        "alumnos", "otras_medidas"
+    ]
+}
+
+def _seed_default_rol_permisos():
+    db = database.SessionLocal()
+    try:
+        count = db.query(models.RolPermiso).count()
+        if count == 0:
+            for rol, mods in DEFAULT_SIDEBAR_PERMISOS.items():
+                db.add(models.RolPermiso(
+                    rol=rol,
+                    modulos=json.dumps(mods)
+                ))
+            db.commit()
+    except Exception as e:
+        print("Error al sembrar permisos de roles por defecto:", e)
+    finally:
+        db.close()
+
+_seed_default_rol_permisos()
+
 
 @app.post("/login", response_model=schemas.Token)
 def login(request: schemas.LoginRequest, db: Session = Depends(database.get_db)):
@@ -153,7 +191,12 @@ def login(request: schemas.LoginRequest, db: Session = Depends(database.get_db))
     access_token = auth.create_access_token(
         data={"sub": user.nombre, "role": rol_name, "id_colegio": user.id_colegio}
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "nombre": user.nombre,
+        "rol": rol_name
+    }
 
 @app.get("/me", response_model=schemas.UsuarioResponse)
 def get_me(current_user: dict = Depends(auth.get_current_user)):
@@ -502,8 +545,8 @@ def delete_otra_medida(
     db: Session = Depends(database.get_db),
     current_user: dict = Depends(auth.get_current_user)
 ):
-    if current_user["rol"] != "lawyer":
-        raise HTTPException(status_code=403, detail="Solo abogados pueden eliminar")
+    if current_user["rol"] not in ["lawyer", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores o abogados pueden eliminar")
     db_item = db.query(models.OtraMedida).filter(models.OtraMedida.id == id).first()
     if not db_item:
         raise HTTPException(status_code=404, detail="Registro no encontrado")
@@ -815,6 +858,59 @@ def delete_user(
         "status": "deleted",
         "message": f"Usuario '{db_user.nombre}' eliminado correctamente."
     }
+
+# --- PERMISOS DE VISIBILIDAD DEL SIDEBAR POR ROL ---
+
+@app.get("/admin/sidebar-permisos")
+def get_sidebar_permisos(
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    """Devuelve la configuración de módulos visibles en el sidebar para cada rol."""
+    permisos = {k: list(v) for k, v in DEFAULT_SIDEBAR_PERMISOS.items()}
+    try:
+        rows = db.query(models.RolPermiso).all()
+        for r in rows:
+            try:
+                permisos[r.rol] = json.loads(r.modulos)
+            except Exception:
+                pass
+    except Exception as e:
+        print("Error leyendo RolPermiso:", e)
+    return permisos
+
+@app.put("/admin/sidebar-permisos")
+def update_sidebar_permisos(
+    data: schemas.SidebarPermisosUpdate,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    """Actualiza los módulos visibles en el sidebar para los roles del sistema."""
+    if current_user["rol"] != "admin":
+        raise HTTPException(status_code=403, detail="Acceso denegado: sólo administradores pueden modificar los permisos")
+
+    if data.permisos:
+        for rol, mods in data.permisos.items():
+            db_row = db.query(models.RolPermiso).filter(models.RolPermiso.rol == rol).first()
+            if not db_row:
+                db_row = models.RolPermiso(rol=rol, modulos=json.dumps(mods))
+                db.add(db_row)
+            else:
+                db_row.modulos = json.dumps(mods)
+        db.commit()
+        return {"message": "Permisos del sidebar actualizados exitosamente"}
+
+    if data.rol and data.modulos is not None:
+        db_row = db.query(models.RolPermiso).filter(models.RolPermiso.rol == data.rol).first()
+        if not db_row:
+            db_row = models.RolPermiso(rol=data.rol, modulos=json.dumps(data.modulos))
+            db.add(db_row)
+        else:
+            db_row.modulos = json.dumps(data.modulos)
+        db.commit()
+        return {"message": f"Permisos para el rol '{data.rol}' actualizados exitosamente"}
+
+    raise HTTPException(status_code=400, detail="Datos de permisos inválidos")
 
 # --- DESTINATARIOS DE NOTIFICACIONES ---
 

@@ -270,29 +270,211 @@
     `;
     document.head.appendChild(style);
 
-    // Ocultar header original si existe para evitar duplicados
-    window.addEventListener('DOMContentLoaded', () => {
-        const oldHeader = document.querySelector('header');
-        if (oldHeader && !oldHeader.classList.contains('mobile-header')) {
-            oldHeader.style.display = 'none';
+    const API_BASE_URL = window.location.origin.includes('127.0.0.1') || window.location.origin.includes('localhost') || window.location.origin.startsWith('file://')
+        ? (window.location.port === '8000' ? 'http://127.0.0.1:8000' : 'http://127.0.0.1:8010')
+        : window.location.origin + '/api';
+
+    const DEFAULT_PERMISOS = {
+        admin: [
+            "alumnos", "nuevo_alumno", "otras_medidas", "registrar_medida",
+            "destinatarios", "correos_programados", "plantillas", "feriados",
+            "carga_masiva", "usuarios"
+        ],
+        lawyer: [
+            "alumnos", "nuevo_alumno", "otras_medidas", "registrar_medida",
+            "destinatarios", "correos_programados", "plantillas", "feriados",
+            "carga_masiva"
+        ],
+        super_viewer: [
+            "alumnos", "otras_medidas", "destinatarios", "correos_programados",
+            "plantillas", "feriados"
+        ],
+        viewer: [
+            "alumnos", "otras_medidas"
+        ]
+    };
+
+    const SIDEBAR_SECTIONS = [
+        {
+            heading: 'Navegación Aula Segura',
+            items: [
+                {
+                    id: 'alumnos',
+                    title: 'Listado Alumnos',
+                    icon: '📊',
+                    url: 'dashboard.html',
+                    action: "if(window.location.pathname.endsWith('dashboard.html') && window.switchMainTab) { switchMainTab('alumnos'); return false; }"
+                },
+                {
+                    id: 'nuevo_alumno',
+                    title: 'Nuevo Alumno',
+                    icon: '➕',
+                    url: 'registro.html'
+                }
+            ]
+        },
+        {
+            heading: 'Otras Medidas',
+            items: [
+                {
+                    id: 'otras_medidas',
+                    title: 'Otras Medidas',
+                    icon: '📋',
+                    url: 'otras_medidas.html'
+                },
+                {
+                    id: 'registrar_medida',
+                    title: 'Registrar Medida',
+                    icon: '📝',
+                    url: 'registro_otras_medidas.html'
+                }
+            ]
+        },
+        {
+            heading: 'Configuración',
+            items: [
+                {
+                    id: 'destinatarios',
+                    title: 'Destinatarios y Grupos',
+                    icon: '👥',
+                    url: 'destinatarios.html'
+                },
+                {
+                    id: 'correos_programados',
+                    title: 'Correos Programados',
+                    icon: '📬',
+                    url: 'correos_programados.html'
+                },
+                {
+                    id: 'plantillas',
+                    title: 'Plantillas y Plazos',
+                    icon: '📧',
+                    url: 'plantillas.html'
+                },
+                {
+                    id: 'feriados',
+                    title: 'Feriados',
+                    icon: '📅',
+                    url: 'feriados.html'
+                },
+                {
+                    id: 'carga_masiva',
+                    title: 'Carga Masiva Excel',
+                    icon: '📤',
+                    url: 'upload.html'
+                },
+                {
+                    id: 'usuarios',
+                    title: 'Usuarios y Permisos',
+                    icon: '👥',
+                    url: 'dashboard.html#usuarios',
+                    action: "if(window.location.pathname.endsWith('dashboard.html') && window.switchMainTab) { switchMainTab('usuarios'); return false; }"
+                }
+            ]
         }
-        renderSidebar();
-        if (isCollapsed) {
-            document.body.classList.add('sidebar-collapsed');
-        } else {
-            document.body.classList.remove('sidebar-collapsed');
+    ];
+
+    function getSessionUser() {
+        let role = localStorage.getItem('role');
+        let userName = localStorage.getItem('userName');
+        const token = localStorage.getItem('token');
+        if ((!role || !userName || userName === 'Usuario') && token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                const payload = JSON.parse(jsonPayload);
+                if (payload.role) {
+                    role = payload.role;
+                    localStorage.setItem('role', role);
+                }
+                if (payload.sub) {
+                    userName = payload.sub;
+                    localStorage.setItem('userName', userName);
+                }
+            } catch (e) {}
         }
-    });
+        return {
+            role: (role || 'viewer').toLowerCase(),
+            userName: userName || 'Usuario'
+        };
+    }
+
+    function getRolePermissions(role) {
+        try {
+            const raw = localStorage.getItem('sidebar_permisos');
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed && parsed[role]) {
+                    return parsed[role];
+                }
+            }
+        } catch(e) {}
+        return DEFAULT_PERMISOS[role] || DEFAULT_PERMISOS.viewer;
+    }
+
+    function buildMenuHTML(role) {
+        const allowed = getRolePermissions(role);
+        let html = '';
+
+        SIDEBAR_SECTIONS.forEach((sec, idx) => {
+            const visibleItems = sec.items.filter(item => allowed.includes(item.id));
+            if (visibleItems.length === 0) return;
+
+            const mtClass = idx > 0 ? 'mt-3' : '';
+            html += `<div class="app-sidebar-heading ${mtClass}">${sec.heading}</div>`;
+
+            visibleItems.forEach(item => {
+                const isActive = (currentPage === item.url || 
+                    (item.id === 'alumnos' && currentPage === 'dashboard.html' && window.location.hash !== '#usuarios') || 
+                    (item.id === 'usuarios' && (currentPage === 'admin.html' || window.location.hash === '#usuarios')));
+                const activeClass = isActive ? 'active' : '';
+                const onclickAttr = item.action ? `onclick="${item.action}"` : '';
+
+                html += `
+                    <a href="${item.url}" ${onclickAttr} title="${item.title}" class="app-sidebar-link ${activeClass}">
+                        <span class="app-sidebar-icon">${item.icon}</span>
+                        <span>${item.title}</span>
+                    </a>
+                `;
+            });
+        });
+
+        return html;
+    }
+
+    function updateUserInfoUI(name, role) {
+        const avatar = document.querySelector('.app-sidebar-avatar');
+        const nameEl = document.getElementById('sidebar-user-name');
+        const roleEl = document.getElementById('sidebar-user-role');
+        const mobileRoleEl = document.getElementById('mobile-sidebar-role');
+        
+        const initial = (name || 'U').charAt(0).toUpperCase();
+        if (avatar) {
+            avatar.innerText = initial;
+            avatar.title = name;
+        }
+        if (nameEl) nameEl.innerText = name;
+        if (roleEl) roleEl.innerText = (role || 'viewer').toUpperCase();
+        if (mobileRoleEl) mobileRoleEl.innerText = (role || 'viewer').toUpperCase();
+    }
 
     function renderSidebar() {
-        if (document.getElementById('app-sidebar-root')) return;
+        const { role, userName } = getSessionUser();
+        const menuHTML = buildMenuHTML(role);
 
-        const role = localStorage.getItem('role') || 'viewer';
-        const userName = localStorage.getItem('userName') || 'Usuario';
-        const isLawyer = role === 'lawyer' || role === 'admin';
-        const isAdmin = role === 'admin';
+        const existingSidebar = document.getElementById('app-sidebar-root');
+        if (existingSidebar) {
+            const menuContainer = existingSidebar.querySelector('.app-sidebar-menu');
+            if (menuContainer) menuContainer.innerHTML = menuHTML;
+            updateUserInfoUI(userName, role);
+            return;
+        }
 
-        // Contenedor Sidebar HTML
+        const isCollapsedNow = localStorage.getItem('sidebar_collapsed') !== 'false';
+
         const sidebarHTML = `
             <!-- Header Móvil -->
             <div class="mobile-header">
@@ -305,7 +487,7 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <span class="text-xs bg-indigo-500/20 text-indigo-300 font-bold px-2 py-0.5 rounded border border-indigo-500/30 uppercase">${role}</span>
+                    <span id="mobile-sidebar-role" class="text-xs bg-indigo-500/20 text-indigo-300 font-bold px-2 py-0.5 rounded border border-indigo-500/30 uppercase">${role}</span>
                 </div>
             </div>
 
@@ -313,7 +495,7 @@
             <div id="sidebar-overlay" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] hidden lg:hidden"></div>
 
             <!-- Sidebar Principal -->
-            <aside id="app-sidebar-root" class="app-sidebar ${isCollapsed ? 'collapsed' : ''}">
+            <aside id="app-sidebar-root" class="app-sidebar ${isCollapsedNow ? 'collapsed' : ''}">
                 <div class="app-sidebar-brand">
                     <div class="app-sidebar-brand-info" onclick="if(document.getElementById('app-sidebar-root')?.classList.contains('collapsed')) toggleDesktopSidebar()" title="Desplegar Menú">
                         <div class="app-sidebar-logo">🛡️</div>
@@ -322,75 +504,13 @@
                             <span class="text-[10px] text-indigo-300 font-medium tracking-wider uppercase">Colegios de Chile</span>
                         </div>
                     </div>
-                    <button id="sidebar-toggle-btn" onclick="toggleDesktopSidebar()" class="sidebar-toggle-btn" title="${isCollapsed ? 'Expandir Menú' : 'Contraer Menú'}">
-                        ${isCollapsed ? '▶' : '◀'}
+                    <button id="sidebar-toggle-btn" onclick="toggleDesktopSidebar()" class="sidebar-toggle-btn" title="${isCollapsedNow ? 'Expandir Menú' : 'Contraer Menú'}">
+                        ${isCollapsedNow ? '▶' : '◀'}
                     </button>
                 </div>
 
                 <div class="app-sidebar-menu">
-                    <div class="app-sidebar-heading">Navegación Aula Segura</div>
-                    
-                    <a href="dashboard.html" onclick="${currentPage === 'dashboard.html' ? 'if(window.switchMainTab) { switchMainTab(\'alumnos\'); return false; }' : ''}" title="Listado Alumnos" class="app-sidebar-link ${currentPage === 'dashboard.html' ? 'active' : ''}">
-                        <span class="app-sidebar-icon">📊</span>
-                        <span>Listado Alumnos</span>
-                    </a>
-
-                    ${isLawyer ? `
-                    <a href="registro.html" title="Nuevo Alumno" class="app-sidebar-link ${currentPage === 'registro.html' ? 'active' : ''}">
-                        <span class="app-sidebar-icon">➕</span>
-                        <span>Nuevo Alumno</span>
-                    </a>
-                    ` : ''}
-
-                    <div class="app-sidebar-heading mt-3">Otras Medidas</div>
-
-                    <a href="otras_medidas.html" title="Otras Medidas" class="app-sidebar-link ${currentPage === 'otras_medidas.html' ? 'active' : ''}">
-                        <span class="app-sidebar-icon">📋</span>
-                        <span>Otras Medidas</span>
-                    </a>
-
-                    ${isLawyer ? `
-                    <a href="registro_otras_medidas.html" title="Registrar Medida" class="app-sidebar-link ${currentPage === 'registro_otras_medidas.html' ? 'active' : ''}">
-                        <span class="app-sidebar-icon">📝</span>
-                        <span>Registrar Medida</span>
-                    </a>
-                    ` : ''}
-
-                    <div class="app-sidebar-heading mt-3">Configuración</div>
-
-                    <a href="destinatarios.html" title="Destinatarios y Grupos" class="app-sidebar-link ${currentPage === 'destinatarios.html' ? 'active' : ''}">
-                        <span class="app-sidebar-icon">👥</span>
-                        <span>Destinatarios y Grupos</span>
-                    </a>
-
-                    <a href="correos_programados.html" title="Correos Programados" class="app-sidebar-link ${currentPage === 'correos_programados.html' ? 'active' : ''}">
-                        <span class="app-sidebar-icon">📬</span>
-                        <span>Correos Programados</span>
-                    </a>
-
-                    <a href="plantillas.html" title="Plantillas y Plazos" class="app-sidebar-link ${currentPage === 'plantillas.html' ? 'active' : ''}">
-                        <span class="app-sidebar-icon">📧</span>
-                        <span>Plantillas y Plazos</span>
-                    </a>
-
-                    <a href="feriados.html" title="Feriados" class="app-sidebar-link ${currentPage === 'feriados.html' ? 'active' : ''}">
-                        <span class="app-sidebar-icon">📅</span>
-                        <span>Feriados</span>
-                    </a>
-
-                    ${isLawyer ? `
-                    <a href="upload.html" title="Carga Masiva Excel" class="app-sidebar-link ${currentPage === 'upload.html' ? 'active' : ''}">
-                        <span class="app-sidebar-icon">📤</span>
-                        <span>Carga Masiva Excel</span>
-                    </a>
-                    ` : ''}
-
-                    ${isAdmin ? `
-                    <a href="${currentPage === 'dashboard.html' ? '#usuarios' : 'dashboard.html#usuarios'}" onclick="${currentPage === 'dashboard.html' ? 'if(window.switchMainTab) { switchMainTab(\'usuarios\'); return false; }' : ''}" title="Usuarios y Permisos" class="app-sidebar-link ${currentPage === 'admin.html' ? 'active' : ''}">
-                        <span class="app-sidebar-icon">👥</span>
-                        <span>Usuarios y Permisos</span>
-                    </a>
-                    ` : ''}
+                    ${menuHTML}
                 </div>
 
                 <div class="app-sidebar-footer">
@@ -398,7 +518,7 @@
                         <div class="app-sidebar-avatar" title="${userName}">${(userName[0] || 'U').toUpperCase()}</div>
                         <div class="app-sidebar-user-details truncate">
                             <span class="text-sm font-bold text-white truncate" id="sidebar-user-name">${userName}</span>
-                            <span class="text-xs text-indigo-400 font-semibold uppercase">${role}</span>
+                            <span class="text-xs text-indigo-400 font-semibold uppercase" id="sidebar-user-role">${role}</span>
                         </div>
                     </div>
                     <div class="app-sidebar-footer-buttons flex gap-2 pt-1 border-t border-slate-800">
@@ -414,9 +534,79 @@
         `;
 
         const div = document.createElement('div');
+        div.id = 'app-sidebar-container';
         div.innerHTML = sidebarHTML;
         document.body.appendChild(div);
     }
+
+    function syncWithServer() {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        // 1. Sincronizar datos de usuario
+        fetch(`${API_BASE_URL}/me`, { headers: { 'Authorization': `Bearer ${token}` } })
+            .then(res => res.ok ? res.json() : null)
+            .then(user => {
+                if (user && user.nombre && user.rol) {
+                    const prevRole = localStorage.getItem('role');
+                    localStorage.setItem('userName', user.nombre);
+                    localStorage.setItem('role', user.rol);
+                    updateUserInfoUI(user.nombre, user.rol);
+                    if (prevRole !== user.rol) {
+                        renderSidebar();
+                    }
+                }
+            })
+            .catch(() => {});
+
+        // 2. Sincronizar configuración de permisos del sidebar
+        fetch(`${API_BASE_URL}/admin/sidebar-permisos`, { headers: { 'Authorization': `Bearer ${token}` } })
+            .then(res => res.ok ? res.json() : null)
+            .then(permisos => {
+                if (permisos) {
+                    localStorage.setItem('sidebar_permisos', JSON.stringify(permisos));
+                    renderSidebar();
+                }
+            })
+            .catch(() => {});
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        const oldHeader = document.querySelector('header');
+        if (oldHeader && !oldHeader.classList.contains('mobile-header')) {
+            oldHeader.style.display = 'none';
+        }
+        renderSidebar();
+        const isCollapsedNow = localStorage.getItem('sidebar_collapsed') !== 'false';
+        if (isCollapsedNow) {
+            document.body.classList.add('sidebar-collapsed');
+        } else {
+            document.body.classList.remove('sidebar-collapsed');
+        }
+        syncWithServer();
+    });
+
+    window.updateSidebarUser = function(name, role) {
+        if (!name && !role) return;
+        if (name) localStorage.setItem('userName', name);
+        if (role) localStorage.setItem('role', role);
+        updateUserInfoUI(name, role);
+        renderSidebar();
+    };
+
+    window.reloadSidebarPermissions = function() {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        fetch(`${API_BASE_URL}/admin/sidebar-permisos`, { headers: { 'Authorization': `Bearer ${token}` } })
+            .then(res => res.ok ? res.json() : null)
+            .then(permisos => {
+                if (permisos) {
+                    localStorage.setItem('sidebar_permisos', JSON.stringify(permisos));
+                    renderSidebar();
+                }
+            })
+            .catch(() => {});
+    };
 
     window.toggleDesktopSidebar = function() {
         const sidebar = document.getElementById('app-sidebar-root');
@@ -448,3 +638,4 @@
         window.location.href = 'index.html';
     };
 })();
+

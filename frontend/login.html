@@ -52,6 +52,17 @@
                 if (response.ok) {
                     const data = await response.json();
                     localStorage.setItem('token', data.access_token);
+                    let userRole = data.rol;
+                    let userName = data.nombre || nombre;
+                    if (!userRole) {
+                        try {
+                            const payload = JSON.parse(atob(data.access_token.split('.')[1]));
+                            userRole = payload.role;
+                            userName = payload.sub || userName;
+                        } catch(e) {}
+                    }
+                    localStorage.setItem('role', userRole || 'viewer');
+                    localStorage.setItem('userName', userName || 'Usuario');
                     window.location.href = 'dashboard.html';
                 } else {
                     const err = await response.json();

@@ -230,4 +230,13 @@ class ConfigEmail(Base):
     remitente_email = Column(String(150), nullable=True)
     fecha_actualizacion = Column(TIMESTAMP, server_default=func.now())
 
+class RolPermiso(Base):
+    """Configuración de permisos y visibilidad de módulos en el sidebar por rol."""
+    __tablename__ = "pro_aula_segura_rol_permisos"
+    id = Column(Integer, primary_key=True, index=True)
+    rol = Column(String(50), nullable=False, unique=True, index=True)
+    modulos = Column(Text, nullable=False)  # JSON string con lista de IDs de módulos
+    fecha_actualizacion = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+
 
