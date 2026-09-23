@@ -780,6 +780,42 @@ def update_user(
     db.commit()
     return {"message": "Usuario actualizado"}
 
+@app.delete("/admin/users/{user_id}")
+def delete_user(
+    user_id: int,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    if current_user["rol"] != "admin":
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    
+    if current_user["id"] == user_id:
+        raise HTTPException(status_code=400, detail="No puedes eliminar tu propia cuenta en sesión")
+        
+    db_user = db.query(models.Usuario).filter(models.Usuario.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    # Verificar si tiene registros vinculados que impidan eliminación física por integridad referencial
+    tiene_estudiantes = db.query(models.Estudiante).filter(models.Estudiante.id_usuario == user_id).first()
+    tiene_medidas = db.query(models.OtraMedida).filter(models.OtraMedida.id_usuario == user_id).first()
+    tiene_notifs = db.query(models.Notificacion).filter(models.Notificacion.id_usuario == user_id).first()
+
+    if tiene_estudiantes or tiene_medidas or tiene_notifs:
+        db_user.estado = False
+        db.commit()
+        return {
+            "status": "deactivated",
+            "message": f"El usuario '{db_user.nombre}' tiene registros históricos asociados. Ha sido desactivado en lugar de eliminado permanentemente."
+        }
+
+    db.delete(db_user)
+    db.commit()
+    return {
+        "status": "deleted",
+        "message": f"Usuario '{db_user.nombre}' eliminado correctamente."
+    }
+
 # --- DESTINATARIOS DE NOTIFICACIONES ---
 
 def _require_editor(current_user):

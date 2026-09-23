@@ -35,11 +35,11 @@
             <span id="user-role-badge" class="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs font-bold rounded uppercase"></span>
         </div>
         <nav class="flex gap-4">
-            <a href="dashboard.html" class="text-indigo-600 font-bold border-b-2 border-indigo-600 pb-1">Registros</a>
+            <a href="dashboard.html" id="nav-registros" onclick="switchMainTab('alumnos'); return false;" class="text-indigo-600 font-bold border-b-2 border-indigo-600 pb-1 cursor-pointer">Registros</a>
             <a href="otras_medidas.html" class="text-slate-500 hover:text-indigo-600 transition">Otras Medidas</a>
             <a href="plantillas.html" class="text-slate-500 hover:text-indigo-600 transition">Plantillas</a>
             <a href="upload.html" id="nav-upload" class="hidden text-slate-500 hover:text-indigo-600 transition">Subir Excel</a>
-            <a href="admin.html" id="nav-admin" class="hidden text-slate-500 hover:text-indigo-600 transition">Usuarios</a>
+            <a href="#usuarios" id="nav-admin" onclick="switchMainTab('usuarios'); return false;" class="hidden text-slate-500 hover:text-indigo-600 transition cursor-pointer">Usuarios</a>
         </nav>
         <div class="flex items-center gap-6">
             <div class="flex flex-col items-end">
@@ -51,78 +51,156 @@
     </header>
 
     <main class="p-4 lg:p-6 w-full">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-            <div>
-                <h2 class="text-2xl font-bold">Listado de Alumnos</h2>
-                <p class="text-slate-500">Gestión de procesos de Aula Segura</p>
-            </div>
-            <div class="flex flex-wrap gap-3 justify-end">
-                <button id="btn-sort-recent" onclick="toggleSortRecent()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-700 transition shadow-sm flex items-center gap-1.5 text-sm" title="Ordenar recién registrados primero">
-                    <span id="sort-icon">⬇️</span> <span id="sort-label">Más Recientes Primero</span>
-                </button>
-                <div class="relative">
-                    <button onclick="toggleColumnsDropdown(event)" class="bg-white text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-50 transition border border-slate-200 text-sm">
-                        ⚙ Columnas
-                    </button>
+        <!-- TABS DE NAVEGACIÓN PRINCIPAL (Admin) -->
+        <div id="admin-main-tabs" class="hidden mb-6 flex border-b border-slate-200 gap-2">
+            <button id="tab-btn-alumnos" onclick="switchMainTab('alumnos')" class="flex items-center gap-2 px-5 py-3 font-bold text-sm border-b-2 border-indigo-600 text-indigo-600 transition">
+                <span>🎓 Listado de Alumnos</span>
+                <span id="badge-total-alumnos" class="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs rounded-full font-bold">0</span>
+            </button>
+            <button id="tab-btn-usuarios" onclick="switchMainTab('usuarios')" class="flex items-center gap-2 px-5 py-3 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition">
+                <span>👥 Gestión de Usuarios</span>
+                <span id="badge-total-usuarios" class="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs rounded-full font-bold">0</span>
+            </button>
+        </div>
 
-                    <div id="columns-dropdown" class="absolute right-0 top-full mt-2 w-64 bg-white border rounded-xl shadow-xl p-4 hidden z-[60]">
-                        <h4 class="text-xs font-bold text-slate-400 uppercase mb-3">Mostrar Columnas</h4>
-                        <div id="column-toggles" class="space-y-2 max-h-64 overflow-y-auto text-sm">
-                            <!-- Checkboxes dinámicos -->
+        <!-- SECCIÓN 1: LISTADO DE ALUMNOS -->
+        <div id="section-alumnos" class="space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold">Listado de Alumnos</h2>
+                    <p class="text-slate-500">Gestión de procesos de Aula Segura</p>
+                </div>
+                <div class="flex flex-wrap gap-3 justify-end">
+                    <button id="btn-sort-recent" onclick="toggleSortRecent()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-indigo-700 transition shadow-sm flex items-center gap-1.5 text-sm" title="Ordenar recién registrados primero">
+                        <span id="sort-icon">⬇️</span> <span id="sort-label">Más Recientes Primero</span>
+                    </button>
+                    <div class="relative">
+                        <button onclick="toggleColumnsDropdown(event)" class="bg-white text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-50 transition border border-slate-200 text-sm">
+                            ⚙ Columnas
+                        </button>
+
+                        <div id="columns-dropdown" class="absolute right-0 top-full mt-2 w-64 bg-white border rounded-xl shadow-xl p-4 hidden z-[60]">
+                            <h4 class="text-xs font-bold text-slate-400 uppercase mb-3">Mostrar Columnas</h4>
+                            <div id="column-toggles" class="space-y-2 max-h-64 overflow-y-auto text-sm">
+                                <!-- Checkboxes dinámicos -->
+                            </div>
                         </div>
                     </div>
+                    <div id="lawyer-actions" class="hidden flex gap-3">
+                        <button onclick="window.location.href='upload.html'" class="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg font-bold hover:bg-indigo-100 transition border border-indigo-200">
+                            ⬆ Carga Masiva
+                        </button>
+                        <button onclick="window.location.href='registro.html'" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700 transition shadow-lg">
+                            + Agregar Alumno
+                        </button>
+                    </div>
                 </div>
-                <div id="lawyer-actions" class="hidden flex gap-3">
-                    <button onclick="window.location.href='upload.html'" class="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg font-bold hover:bg-indigo-100 transition border border-indigo-200">
-                        ⬆ Carga Masiva
-                    </button>
-                    <button onclick="window.location.href='registro.html'" class="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-700 transition shadow-lg">
-                        + Agregar Alumno
-                    </button>
+            </div>
+
+            <!-- FILTROS -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Buscar (Nombre o RUT)</label>
+                    <input type="text" id="filter-search" oninput="applyFilters()" placeholder="Ej: Juan Perez..." class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Año</label>
+                    <select id="filter-year" onchange="applyFilters()" class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Colegio</label>
+                    <select id="filter-colegio" onchange="applyFilters()" class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="">Todos los colegios</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Desde</label>
+                    <input type="date" id="filter-date-from" onchange="applyFilters()" class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Hasta</label>
+                    <input type="date" id="filter-date-to" onchange="applyFilters()" class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden w-full">
+                <div class="table-container">
+                    <table id="main-table" class="text-sm">
+                        <thead>
+                            <tr id="table-header" class="bg-indigo-50 text-indigo-700 uppercase text-xs">
+                                <!-- Header dinámico -->
+                            </tr>
+                        </thead>
+                        <tbody id="students-table-body" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+                <div id="loading-state" class="p-10 text-center text-slate-400">Cargando...</div>
             </div>
         </div>
 
-        <!-- FILTROS -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-            <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Buscar (Nombre o RUT)</label>
-                <input type="text" id="filter-search" oninput="applyFilters()" placeholder="Ej: Juan Perez..." class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+        <!-- SECCIÓN 2: GESTIÓN DE USUARIOS (Admin) -->
+        <div id="section-usuarios" class="hidden space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-900">Gestión de Usuarios</h2>
+                    <p class="text-slate-500 text-sm">Administre cuentas de acceso, roles asignados, contraseñas y permisos por colegio.</p>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="openUserModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold transition shadow-lg shadow-indigo-600/20 flex items-center gap-2 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        + Nuevo Usuario
+                    </button>
+                </div>
             </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Año</label>
-                <select id="filter-year" onchange="applyFilters()" class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
-                    <option value="">Todos</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Colegio</label>
-                <select id="filter-colegio" onchange="applyFilters()" class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
-                    <option value="">Todos los colegios</option>
-                </select>
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Desde</label>
-                <input type="date" id="filter-date-from" onchange="applyFilters()" class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
-            </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Hasta</label>
-                <input type="date" id="filter-date-to" onchange="applyFilters()" class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
-            </div>
-        </div>
 
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden w-full">
-            <div class="table-container">
-                <table id="main-table" class="text-sm">
-                    <thead>
-                        <tr id="table-header" class="bg-indigo-50 text-indigo-700 uppercase text-xs">
-                            <!-- Header dinámico -->
-                        </tr>
-                    </thead>
-                    <tbody id="students-table-body" class="divide-y divide-slate-100"></tbody>
-                </table>
+            <!-- FILTROS DE USUARIOS -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-4 gap-4 items-end text-sm">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Buscar Usuario</label>
+                    <input type="text" id="filter-user-search" oninput="applyUserFilters()" placeholder="Nombre de usuario..." class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Filtrar por Rol</label>
+                    <select id="filter-user-role" onchange="applyUserFilters()" class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="">Todos los roles</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Filtrar por Colegio</label>
+                    <select id="filter-user-colegio" onchange="applyUserFilters()" class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="">Todos los colegios</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Estado</label>
+                    <select id="filter-user-status" onchange="applyUserFilters()" class="w-full px-4 py-2 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="">Todos los estados</option>
+                        <option value="activo">Activos</option>
+                        <option value="inactivo">Inactivos</option>
+                    </select>
+                </div>
             </div>
-            <div id="loading-state" class="p-10 text-center text-slate-400">Cargando...</div>
+
+            <!-- TABLA DE USUARIOS -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden w-full">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm min-w-[750px]">
+                        <thead>
+                            <tr class="bg-indigo-50 text-indigo-900 uppercase text-xs border-b border-indigo-100">
+                                <th class="px-6 py-3.5 text-left font-bold">Usuario</th>
+                                <th class="px-6 py-3.5 text-left font-bold">Rol</th>
+                                <th class="px-6 py-3.5 text-left font-bold">Colegio Asignado</th>
+                                <th class="px-6 py-3.5 text-left font-bold">Estado</th>
+                                <th class="px-6 py-3.5 text-right font-bold">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table-body" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+                <div id="users-loading-state" class="p-10 text-center text-slate-400">Cargando usuarios...</div>
+            </div>
         </div>
     </main>
 
@@ -148,9 +226,113 @@
         </div>
     </div>
 
+    <!-- MODAL NUEVO / EDITAR USUARIO -->
+    <div id="modal-user" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm">
+                        👤
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-900" id="modal-user-title">Nuevo Usuario</h3>
+                </div>
+                <button type="button" onclick="closeUserModal()" class="text-slate-400 hover:text-slate-600 text-lg p-1 transition">✕</button>
+            </div>
+            <form id="user-form" class="p-6 space-y-4">
+                <input type="hidden" id="u-id">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Nombre de Usuario <span class="text-red-500">*</span></label>
+                    <input type="text" id="u-nombre" required placeholder="Ej: j_perez" class="w-full px-4 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 border-slate-200">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">
+                        Contraseña <span id="u-clave-required" class="text-red-500">*</span>
+                        <span id="u-clave-hint" class="text-xs font-normal text-slate-400 lowercase hidden">(dejar en blanco para conservar actual)</span>
+                    </label>
+                    <input type="password" id="u-clave" placeholder="••••••••" class="w-full px-4 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 border-slate-200">
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Rol en el Sistema <span class="text-red-500">*</span></label>
+                        <select id="u-rol" required class="w-full px-4 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 border-slate-200 bg-white"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1.5">Colegio Asignado <span class="text-red-500">*</span></label>
+                        <select id="u-colegio" required class="w-full px-4 py-2 border rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500 border-slate-200 bg-white"></select>
+                    </div>
+                </div>
+                <div id="u-status-container" class="pt-2">
+                    <label class="flex items-center gap-3 cursor-pointer p-3 bg-slate-50 rounded-xl border border-slate-100 hover:bg-slate-100/70 transition">
+                        <input type="checkbox" id="u-estado" checked class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500">
+                        <div>
+                            <span class="text-sm font-semibold text-slate-800 block">Usuario Activo</span>
+                            <span class="text-xs text-slate-500 block">Permite o restringe el acceso al sistema</span>
+                        </div>
+                    </label>
+                </div>
+                <div id="user-form-error" class="hidden p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600 font-medium"></div>
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-6">
+                    <button type="button" onclick="closeUserModal()" class="px-5 py-2.5 text-slate-500 hover:text-slate-800 font-semibold text-sm transition">Cancelar</button>
+                    <button type="submit" id="btn-save-user" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold text-sm transition shadow-lg shadow-indigo-600/20">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         let currentUser = null;
         let studentsData = [];
+        let currentMainTab = 'alumnos';
+        let usersList = [];
+        let rolesList = [];
+        let colegiosList = [];
+
+        function switchMainTab(tab) {
+            const secAlumnos = document.getElementById('section-alumnos');
+            const secUsuarios = document.getElementById('section-usuarios');
+            const btnTabAlumnos = document.getElementById('tab-btn-alumnos');
+            const btnTabUsuarios = document.getElementById('tab-btn-usuarios');
+            const navRegistros = document.getElementById('nav-registros');
+            const navAdmin = document.getElementById('nav-admin');
+
+            if (tab === 'usuarios') {
+                if (!currentUser || currentUser.rol !== 'admin') return;
+                currentMainTab = 'usuarios';
+                if (secAlumnos) secAlumnos.classList.add('hidden');
+                if (secUsuarios) secUsuarios.classList.remove('hidden');
+
+                if (btnTabAlumnos && btnTabUsuarios) {
+                    btnTabAlumnos.className = "flex items-center gap-2 px-5 py-3 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition";
+                    btnTabUsuarios.className = "flex items-center gap-2 px-5 py-3 font-bold text-sm border-b-2 border-indigo-600 text-indigo-600 transition";
+                }
+                if (navRegistros) {
+                    navRegistros.className = "text-slate-500 hover:text-indigo-600 transition cursor-pointer";
+                }
+                if (navAdmin) {
+                    navAdmin.className = "text-indigo-600 font-bold border-b-2 border-indigo-600 pb-1 cursor-pointer";
+                }
+                if (usersList.length === 0) {
+                    loadUsers();
+                }
+                history.replaceState(null, '', '#usuarios');
+            } else {
+                currentMainTab = 'alumnos';
+                if (secUsuarios) secUsuarios.classList.add('hidden');
+                if (secAlumnos) secAlumnos.classList.remove('hidden');
+
+                if (btnTabAlumnos && btnTabUsuarios) {
+                    btnTabAlumnos.className = "flex items-center gap-2 px-5 py-3 font-bold text-sm border-b-2 border-indigo-600 text-indigo-600 transition";
+                    btnTabUsuarios.className = "flex items-center gap-2 px-5 py-3 font-semibold text-sm border-b-2 border-transparent text-slate-500 hover:text-slate-700 transition";
+                }
+                if (navRegistros) {
+                    navRegistros.className = "text-indigo-600 font-bold border-b-2 border-indigo-600 pb-1 cursor-pointer";
+                }
+                if (navAdmin) {
+                    navAdmin.className = "text-slate-500 hover:text-indigo-600 transition cursor-pointer";
+                }
+                history.replaceState(null, '', window.location.pathname);
+            }
+        }
 
         const ALL_COLUMNS = [
             { id: 'rut', label: 'RUT', default: true },
@@ -207,6 +389,15 @@
                 
                 if (currentUser.rol === 'admin') {
                     document.getElementById('nav-admin').classList.remove('hidden');
+                    const adminTabs = document.getElementById('admin-main-tabs');
+                    if (adminTabs) adminTabs.classList.remove('hidden');
+                    
+                    await loadRolesAndColegios();
+                    loadUsers();
+
+                    if (window.location.hash === '#usuarios' || new URLSearchParams(window.location.search).get('tab') === 'usuarios') {
+                        switchMainTab('usuarios');
+                    }
                 }
             } else {
                 if (!localStorage.getItem('visible_columns')) {
@@ -315,6 +506,9 @@
             const resp = await fetch(`${API_URL}/estudiantes`, { headers: { 'Authorization': `Bearer ${token}` }});
             studentsData = await resp.json();
             
+            const badgeAlumnos = document.getElementById('badge-total-alumnos');
+            if (badgeAlumnos) badgeAlumnos.innerText = studentsData.length;
+
             loading.classList.add('hidden');
             applyFilters();
         }
@@ -562,6 +756,300 @@
             document.getElementById('modal-preview').classList.add('hidden');
             document.getElementById('preview-iframe').src = '';
         }
+
+        // ================= GESTIÓN DE USUARIOS =================
+
+        async function loadRolesAndColegios() {
+            try {
+                const [rResp, cResp] = await Promise.all([
+                    fetch(`${API_URL}/roles`),
+                    fetch(`${API_URL}/colegios`)
+                ]);
+                rolesList = await rResp.json();
+                colegiosList = await cResp.json();
+
+                // Poblar selectores del modal de usuario
+                const uRol = document.getElementById('u-rol');
+                if (uRol) {
+                    uRol.innerHTML = rolesList.map(r => {
+                        let desc = r.rol;
+                        if (r.rol === 'admin') desc = '👑 Administrador (Acceso total)';
+                        else if (r.rol === 'lawyer') desc = '⚖️ Abogado (Gestión de alumnos y medidas)';
+                        else if (r.rol === 'super_viewer') desc = '👁️ Super Lector (Todos los colegios)';
+                        else if (r.rol === 'viewer') desc = '📖 Lector (Sólo su colegio)';
+                        return `<option value="${r.id}">${desc}</option>`;
+                    }).join('');
+                }
+
+                const uCol = document.getElementById('u-colegio');
+                if (uCol) {
+                    uCol.innerHTML = colegiosList.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+                }
+
+                // Poblar selectores de filtros de usuario
+                const fRole = document.getElementById('filter-user-role');
+                if (fRole) {
+                    fRole.innerHTML = '<option value="">Todos los roles</option>' + 
+                        rolesList.map(r => `<option value="${r.id}">${r.rol.toUpperCase()}</option>`).join('');
+                }
+
+                const fCol = document.getElementById('filter-user-colegio');
+                if (fCol) {
+                    fCol.innerHTML = '<option value="">Todos los colegios</option>' + 
+                        colegiosList.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+                }
+            } catch (e) {
+                console.error('Error cargando roles y colegios:', e);
+            }
+        }
+
+        async function loadUsers() {
+            const token = localStorage.getItem('token');
+            const loading = document.getElementById('users-loading-state');
+            if (loading) loading.classList.remove('hidden');
+
+            try {
+                const resp = await fetch(`${API_URL}/admin/users`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!resp.ok) throw new Error('Error al cargar usuarios');
+                usersList = await resp.json();
+
+                const badge = document.getElementById('badge-total-usuarios');
+                if (badge) badge.innerText = usersList.length;
+
+                applyUserFilters();
+            } catch (e) {
+                console.error('Error cargando lista de usuarios:', e);
+            } finally {
+                if (loading) loading.classList.add('hidden');
+            }
+        }
+
+        function applyUserFilters() {
+            const search = (document.getElementById('filter-user-search')?.value || '').toLowerCase().trim();
+            const roleId = document.getElementById('filter-user-role')?.value;
+            const colegioId = document.getElementById('filter-user-colegio')?.value;
+            const status = document.getElementById('filter-user-status')?.value;
+
+            const filtered = usersList.filter(u => {
+                const matchSearch = !search || (u.nombre && u.nombre.toLowerCase().includes(search));
+                const matchRole = !roleId || u.id_rol == roleId;
+                const matchColegio = !colegioId || u.id_colegio == colegioId;
+                const matchStatus = !status || (status === 'activo' ? u.estado : !u.estado);
+                return matchSearch && matchRole && matchColegio && matchStatus;
+            });
+
+            renderUsersTable(filtered);
+        }
+
+        function getRoleBadge(roleName) {
+            const r = (roleName || '').toLowerCase();
+            if (r === 'admin') {
+                return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-200 rounded-lg text-xs font-bold uppercase tracking-wider">👑 Administrador</span>';
+            } else if (r === 'lawyer') {
+                return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold uppercase tracking-wider">⚖️ Abogado</span>';
+            } else if (r === 'super_viewer') {
+                return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold uppercase tracking-wider">👁️ Super Lector</span>';
+            } else {
+                return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold uppercase tracking-wider">📖 Lector</span>';
+            }
+        }
+
+        function renderUsersTable(users = usersList) {
+            const tbody = document.getElementById('users-table-body');
+            if (!tbody) return;
+
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-10 text-center text-slate-400 italic">No se encontraron usuarios registrados con los filtros aplicados.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = users.map(u => {
+                const rolObj = rolesList.find(r => r.id === u.id_rol);
+                const rolName = rolObj ? rolObj.rol : 'Desconocido';
+                const colObj = colegiosList.find(c => c.id === u.id_colegio);
+                const colName = colObj ? colObj.nombre : 'Sin colegio asignado';
+                const initial = (u.nombre || 'U').charAt(0).toUpperCase();
+                const isMe = currentUser && currentUser.id === u.id;
+
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700 font-extrabold flex items-center justify-center text-sm shadow-sm">
+                                    ${initial}
+                                </div>
+                                <div class="flex flex-col">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-bold text-slate-900">${u.nombre}</span>
+                                        ${isMe ? '<span class="text-[10px] bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-bold border border-indigo-100 uppercase">Tú</span>' : ''}
+                                    </div>
+                                    <span class="text-xs text-slate-400 font-mono">ID: #${u.id}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            ${getRoleBadge(rolName)}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center gap-2 text-slate-600 font-medium text-xs">
+                                <span class="text-slate-400 text-sm">🏫</span>
+                                <span>${colName}</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${u.estado ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}">
+                                <span class="w-1.5 h-1.5 rounded-full ${u.estado ? 'bg-green-600 animate-pulse' : 'bg-red-500'}"></span>
+                                ${u.estado ? 'Activo' : 'Inactivo'}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex gap-2 justify-end items-center">
+                                <button onclick="editUser(${u.id})" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white rounded-lg font-bold text-xs transition shadow-sm border border-indigo-100">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                    Editar
+                                </button>
+                                ${isMe ? `
+                                    <button disabled title="No puedes eliminar tu propia cuenta en sesión" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-400 cursor-not-allowed rounded-lg font-bold text-xs border border-slate-200 opacity-60">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        Eliminar
+                                    </button>
+                                ` : `
+                                    <button onclick="deleteUser(${u.id}, '${u.nombre.replace(/'/g, "\\'")}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-lg font-bold text-xs transition shadow-sm border border-red-100">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        Eliminar
+                                    </button>
+                                `}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function openUserModal() {
+            document.getElementById('modal-user-title').innerText = 'Nuevo Usuario';
+            document.getElementById('user-form').reset();
+            document.getElementById('u-id').value = '';
+            document.getElementById('u-clave').required = true;
+            document.getElementById('u-clave-required').classList.remove('hidden');
+            document.getElementById('u-clave-hint').classList.add('hidden');
+            document.getElementById('u-estado').checked = true;
+            const errDiv = document.getElementById('user-form-error');
+            if (errDiv) { errDiv.classList.add('hidden'); errDiv.innerText = ''; }
+            document.getElementById('modal-user').classList.remove('hidden');
+        }
+
+        function editUser(id) {
+            const user = usersList.find(u => u.id === id);
+            if (!user) return;
+
+            document.getElementById('modal-user-title').innerText = `Editar Usuario: ${user.nombre}`;
+            document.getElementById('u-id').value = user.id;
+            document.getElementById('u-nombre').value = user.nombre;
+            document.getElementById('u-clave').value = '';
+            document.getElementById('u-clave').required = false;
+            document.getElementById('u-clave-required').classList.add('hidden');
+            document.getElementById('u-clave-hint').classList.remove('hidden');
+            document.getElementById('u-rol').value = user.id_rol;
+            document.getElementById('u-colegio').value = user.id_colegio;
+            document.getElementById('u-estado').checked = !!user.estado;
+            const errDiv = document.getElementById('user-form-error');
+            if (errDiv) { errDiv.classList.add('hidden'); errDiv.innerText = ''; }
+            document.getElementById('modal-user').classList.remove('hidden');
+        }
+
+        function closeUserModal() {
+            document.getElementById('modal-user').classList.add('hidden');
+        }
+
+        async function deleteUser(id, nombre) {
+            if (!confirm(`¿Está seguro de que desea eliminar al usuario "${nombre}"?`)) return;
+
+            const token = localStorage.getItem('token');
+            try {
+                const resp = await fetch(`${API_URL}/admin/users/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const result = await resp.json();
+                if (resp.ok) {
+                    alert(result.message || 'Usuario procesado exitosamente.');
+                    await loadUsers();
+                } else {
+                    alert(result.detail || 'Error al eliminar usuario.');
+                }
+            } catch (err) {
+                alert('Error de conexión al eliminar usuario.');
+            }
+        }
+
+        document.getElementById('user-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const token = localStorage.getItem('token');
+            const id = document.getElementById('u-id').value;
+            const errDiv = document.getElementById('user-form-error');
+            const btnSave = document.getElementById('btn-save-user');
+            
+            if (errDiv) errDiv.classList.add('hidden');
+
+            const payload = {
+                nombre: document.getElementById('u-nombre').value.trim(),
+                id_rol: parseInt(document.getElementById('u-rol').value),
+                id_colegio: parseInt(document.getElementById('u-colegio').value)
+            };
+
+            const clave = document.getElementById('u-clave').value;
+            if (clave) {
+                payload.clave = clave;
+            } else if (!id) {
+                if (errDiv) {
+                    errDiv.innerText = 'La contraseña es obligatoria para nuevos usuarios.';
+                    errDiv.classList.remove('hidden');
+                }
+                return;
+            }
+
+            if (id) {
+                payload.estado = document.getElementById('u-estado').checked;
+            }
+
+            const url = id ? `${API_URL}/admin/users/${id}` : `${API_URL}/admin/users`;
+            const method = id ? 'PUT' : 'POST';
+
+            btnSave.disabled = true;
+            btnSave.innerText = 'Guardando...';
+
+            try {
+                const resp = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
+                });
+
+                if (resp.ok) {
+                    closeUserModal();
+                    await loadUsers();
+                } else {
+                    const err = await resp.json();
+                    if (errDiv) {
+                        errDiv.innerText = err.detail || 'Error al guardar usuario.';
+                        errDiv.classList.remove('hidden');
+                    } else {
+                        alert(err.detail || 'Error al guardar usuario.');
+                    }
+                }
+            } catch (err) {
+                if (errDiv) {
+                    errDiv.innerText = 'Error de conexión con el servidor.';
+                    errDiv.classList.remove('hidden');
+                }
+            } finally {
+                btnSave.disabled = false;
+                btnSave.innerText = 'Guardar';
+            }
+        });
 
         init();
     </script>

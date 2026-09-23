@@ -330,7 +330,7 @@
                 <div class="app-sidebar-menu">
                     <div class="app-sidebar-heading">Navegación Aula Segura</div>
                     
-                    <a href="dashboard.html" title="Listado Alumnos" class="app-sidebar-link ${currentPage === 'dashboard.html' ? 'active' : ''}">
+                    <a href="dashboard.html" onclick="${currentPage === 'dashboard.html' ? 'if(window.switchMainTab) { switchMainTab(\'alumnos\'); return false; }' : ''}" title="Listado Alumnos" class="app-sidebar-link ${currentPage === 'dashboard.html' ? 'active' : ''}">
                         <span class="app-sidebar-icon">📊</span>
                         <span>Listado Alumnos</span>
                     </a>
@@ -386,7 +386,7 @@
                     ` : ''}
 
                     ${isAdmin ? `
-                    <a href="admin.html" title="Usuarios y Permisos" class="app-sidebar-link ${currentPage === 'admin.html' ? 'active' : ''}">
+                    <a href="${currentPage === 'dashboard.html' ? '#usuarios' : 'dashboard.html#usuarios'}" onclick="${currentPage === 'dashboard.html' ? 'if(window.switchMainTab) { switchMainTab(\'usuarios\'); return false; }' : ''}" title="Usuarios y Permisos" class="app-sidebar-link ${currentPage === 'admin.html' ? 'active' : ''}">
                         <span class="app-sidebar-icon">👥</span>
                         <span>Usuarios y Permisos</span>
                     </a>
