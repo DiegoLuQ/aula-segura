@@ -138,6 +138,24 @@
                 </div>
                 <div id="loading-state" class="p-10 text-center text-slate-400">Cargando...</div>
             </div>
+
+            <!-- BARRA FLOTANTE DE ACCIÓN MASIVA -->
+            <div id="bulk-actions-bar" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 bg-slate-900/95 backdrop-blur-md text-white px-6 py-3.5 rounded-2xl shadow-2xl border border-slate-700/60 hidden items-center gap-5 transition-all">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-6 h-6 rounded-full bg-indigo-600 text-white font-black text-xs flex items-center justify-center shadow-sm" id="bulk-selected-count">0</span>
+                    <span class="text-sm font-semibold text-slate-200">alumno(s) seleccionado(s)</span>
+                </div>
+                <div class="h-4 w-[1px] bg-slate-700"></div>
+                <div class="flex items-center gap-2">
+                    <button onclick="bulkDeleteSelectedStudents()" id="btn-bulk-delete" class="bg-red-600 hover:bg-red-700 active:scale-95 text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow-lg shadow-red-600/30 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        Eliminar Seleccionados
+                    </button>
+                    <button onclick="clearStudentSelection()" class="px-3 py-2 text-slate-400 hover:text-white rounded-xl text-xs font-semibold hover:bg-slate-800 transition">
+                        ✕ Cancelar
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- SECCIÓN 2: GESTIÓN DE USUARIOS (Admin) -->
@@ -562,6 +580,11 @@
             const badgeAlumnos = document.getElementById('badge-total-alumnos');
             if (badgeAlumnos) badgeAlumnos.innerText = studentsData.length;
 
+            const existingIds = new Set(studentsData.map(s => s.id));
+            for (const id of selectedStudentIds) {
+                if (!existingIds.has(id)) selectedStudentIds.delete(id);
+            }
+
             loading.classList.add('hidden');
             applyFilters();
         }
@@ -618,24 +641,50 @@
         }
 
 
+        let selectedStudentIds = new Set();
+        let lastRenderedStudents = [];
+
         function renderTable(data = studentsData) {
+            lastRenderedStudents = data;
             const headerRow = document.getElementById('table-header');
             const tbody = document.getElementById('students-table-body');
+            const canDelete = currentUser && (currentUser.rol === 'lawyer' || currentUser.rol === 'admin');
             
             // Render Header
-            headerRow.innerHTML = visibleColumns.map(colId => {
+            let headerHtml = '';
+            if (canDelete) {
+                headerHtml += `
+                    <th class="px-3 py-3 w-10 text-center">
+                        <input type="checkbox" id="check-all-students" onchange="toggleSelectAllStudents(this.checked)" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer" title="Seleccionar o deseleccionar todos los visibles">
+                    </th>
+                `;
+            }
+            headerHtml += visibleColumns.map(colId => {
                 const col = ALL_COLUMNS.find(c => c.id === colId);
                 return `<th class="px-4 py-3 text-left text-[10px] leading-tight font-bold text-indigo-900 uppercase">${col.label}</th>`;
             }).join('');
+            headerRow.innerHTML = headerHtml;
 
             if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="${visibleColumns.length}" class="p-10 text-center text-slate-400 italic">No se encontraron registros con los filtros aplicados.</td></tr>`;
+                const colSpan = visibleColumns.length + (canDelete ? 1 : 0);
+                tbody.innerHTML = `<tr><td colspan="${colSpan}" class="p-10 text-center text-slate-400 italic">No se encontraron registros con los filtros aplicados.</td></tr>`;
+                updateBulkActionsBar();
                 return;
             }
 
             // Render Body
             tbody.innerHTML = data.map(s => {
-                let rowHtml = '<tr class="hover:bg-slate-50 transition">';
+                const isChecked = selectedStudentIds.has(s.id);
+                let rowHtml = `<tr id="student-row-${s.id}" class="${isChecked ? 'bg-indigo-50/70 border-indigo-100' : 'hover:bg-slate-50'} transition">`;
+                
+                if (canDelete) {
+                    rowHtml += `
+                        <td class="px-3 py-4 text-center w-10">
+                            <input type="checkbox" value="${s.id}" ${isChecked ? 'checked' : ''} onchange="toggleStudentSelection(${s.id}, this.checked)" class="student-checkbox w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                        </td>
+                    `;
+                }
+
                 visibleColumns.forEach(colId => {
                     let content = s[colId] || '-';
                     if (typeof content === 'string' && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(content.trim())) {
@@ -652,22 +701,19 @@
                         css += ' min-w-[250px] max-w-md text-xs';
                     }
                     if (colId === 'acciones') {
-                        css = 'px-4 py-4 text-right flex gap-2 justify-end items-center';
+                        css = 'px-4 py-4 text-right flex gap-1.5 justify-end items-center';
                         content = `
-                        <button onclick="openDetallesModal(${s.id})" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 text-slate-700 hover:bg-slate-200 rounded-lg font-bold text-xs transition-all shadow-sm border border-slate-200">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                            Ver
+                        <button onclick="openDetallesModal(${s.id})" title="Ver expediente" class="inline-flex items-center justify-center p-2 bg-slate-50 text-slate-700 hover:bg-slate-200 rounded-lg text-xs transition-all shadow-sm border border-slate-200">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
                         </button>`;
                         
-                        if (currentUser && (currentUser.rol === 'lawyer' || currentUser.rol === 'admin')) {
+                        if (canDelete) {
                             content += `
-                            <a href="registro.html?id=${s.id}" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white rounded-lg font-bold text-xs transition-all shadow-sm border border-indigo-100">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                Editar
+                            <a href="registro.html?id=${s.id}" title="Editar alumno" class="inline-flex items-center justify-center p-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-600 hover:text-white rounded-lg text-xs transition-all shadow-sm border border-indigo-100">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                             </a>
-                            <button onclick="deleteStudent(${s.id})" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-lg font-bold text-xs transition-all shadow-sm border border-red-100">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                Eliminar
+                            <button onclick="deleteStudent(${s.id})" title="Eliminar alumno" class="inline-flex items-center justify-center p-2 bg-red-50 text-red-600 hover:bg-red-600 hover:text-white rounded-lg text-xs transition-all shadow-sm border border-red-100">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                             </button>`;
                         }
                     }
@@ -680,6 +726,154 @@
                 rowHtml += '</tr>';
                 return rowHtml;
             }).join('');
+
+            updateBulkActionsBar();
+        }
+
+        function toggleSelectAllStudents(checked) {
+            lastRenderedStudents.forEach(s => {
+                if (checked) {
+                    selectedStudentIds.add(s.id);
+                } else {
+                    selectedStudentIds.delete(s.id);
+                }
+            });
+            document.querySelectorAll('.student-checkbox').forEach(cb => {
+                cb.checked = checked;
+                const row = document.getElementById(`student-row-${cb.value}`);
+                if (row) {
+                    if (checked) {
+                        row.classList.add('bg-indigo-50/70', 'border-indigo-100');
+                        row.classList.remove('hover:bg-slate-50');
+                    } else {
+                        row.classList.remove('bg-indigo-50/70', 'border-indigo-100');
+                        row.classList.add('hover:bg-slate-50');
+                    }
+                }
+            });
+            updateBulkActionsBar();
+        }
+
+        function toggleStudentSelection(id, checked) {
+            if (checked) {
+                selectedStudentIds.add(id);
+            } else {
+                selectedStudentIds.delete(id);
+            }
+            const row = document.getElementById(`student-row-${id}`);
+            if (row) {
+                if (checked) {
+                    row.classList.add('bg-indigo-50/70', 'border-indigo-100');
+                    row.classList.remove('hover:bg-slate-50');
+                } else {
+                    row.classList.remove('bg-indigo-50/70', 'border-indigo-100');
+                    row.classList.add('hover:bg-slate-50');
+                }
+            }
+            updateBulkActionsBar();
+        }
+
+        function clearStudentSelection() {
+            selectedStudentIds.clear();
+            document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = false);
+            const checkAll = document.getElementById('check-all-students');
+            if (checkAll) {
+                checkAll.checked = false;
+                checkAll.indeterminate = false;
+            }
+            lastRenderedStudents.forEach(s => {
+                const row = document.getElementById(`student-row-${s.id}`);
+                if (row) {
+                    row.classList.remove('bg-indigo-50/70', 'border-indigo-100');
+                    row.classList.add('hover:bg-slate-50');
+                }
+            });
+            updateBulkActionsBar();
+        }
+
+        function updateBulkActionsBar() {
+            const bar = document.getElementById('bulk-actions-bar');
+            const countEl = document.getElementById('bulk-selected-count');
+            const checkAll = document.getElementById('check-all-students');
+            const count = selectedStudentIds.size;
+
+            if (countEl) countEl.innerText = count;
+
+            if (bar) {
+                if (count > 0) {
+                    bar.classList.remove('hidden');
+                    bar.classList.add('flex');
+                } else {
+                    bar.classList.add('hidden');
+                    bar.classList.remove('flex');
+                }
+            }
+
+            if (checkAll && lastRenderedStudents.length > 0) {
+                const visibleCount = lastRenderedStudents.length;
+                let visibleSelected = 0;
+                lastRenderedStudents.forEach(s => {
+                    if (selectedStudentIds.has(s.id)) visibleSelected++;
+                });
+
+                if (visibleSelected === 0) {
+                    checkAll.checked = false;
+                    checkAll.indeterminate = false;
+                } else if (visibleSelected === visibleCount) {
+                    checkAll.checked = true;
+                    checkAll.indeterminate = false;
+                } else {
+                    checkAll.checked = false;
+                    checkAll.indeterminate = true;
+                }
+            }
+        }
+
+        async function bulkDeleteSelectedStudents() {
+            const count = selectedStudentIds.size;
+            if (count === 0) return;
+
+            if (!confirm(`¿Está seguro de que desea eliminar permanentemente los ${count} alumno(s) seleccionado(s)? Esta acción eliminará también sus documentos y registros asociados y no se puede deshacer.`)) {
+                return;
+            }
+
+            const token = localStorage.getItem('token');
+            const btn = document.getElementById('btn-bulk-delete');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = `<span class="animate-spin mr-1">⏳</span> Eliminando...`;
+            }
+
+            try {
+                const resp = await fetch(`${API_URL}/estudiantes/bulk-delete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ ids: Array.from(selectedStudentIds) })
+                });
+
+                const resData = await resp.json();
+                if (resp.ok) {
+                    alert(resData.message || `Se eliminaron ${count} estudiantes exitosamente.`);
+                    selectedStudentIds.clear();
+                    updateBulkActionsBar();
+                    await loadStudents();
+                } else {
+                    alert(resData.detail || 'Error al eliminar estudiantes.');
+                }
+            } catch (e) {
+                alert('Error de conexión al eliminar los registros.');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        Eliminar Seleccionados
+                    `;
+                }
+            }
         }
 
         async function deleteStudent(id) {
@@ -693,6 +887,8 @@
                 });
                 
                 if (resp.ok) {
+                    selectedStudentIds.delete(id);
+                    updateBulkActionsBar();
                     loadStudents();
                 } else {
                     const err = await resp.json();
@@ -702,6 +898,7 @@
                 alert('Error de conexión');
             }
         }
+
 
         function logout() {
             localStorage.removeItem('token');

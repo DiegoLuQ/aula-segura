@@ -361,7 +361,9 @@ class ConfigEmailUpdate(BaseModel):
 class TestEmailPayload(BaseModel):
     email_destino: str
 
-
     class Config:
         from_attributes = True
+
+class BulkDeleteRequest(BaseModel):
+    ids: List[int]
 

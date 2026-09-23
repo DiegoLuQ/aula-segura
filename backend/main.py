@@ -292,21 +292,13 @@ def update_estudiante(
     db.refresh(db_estudiante)
     return db_estudiante
 
-@app.delete("/estudiantes/{id}")
-def delete_estudiante(
-    id: int,
-    db: Session = Depends(database.get_db),
-    current_user: dict = Depends(auth.get_current_user)
-):
-    if current_user["rol"] != "lawyer" and current_user["rol"] != "admin":
-        raise HTTPException(status_code=403, detail="Solo administradores o abogados pueden eliminar registros")
-    
-    db_estudiante = db.query(models.Estudiante).filter(models.Estudiante.id == id).first()
+def _eliminar_estudiante_completo(db: Session, estudiante_id: int) -> bool:
+    db_estudiante = db.query(models.Estudiante).filter(models.Estudiante.id == estudiante_id).first()
     if not db_estudiante:
-        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+        return False
     
     # 1. Eliminar documentos adjuntos del estudiante y borrar archivos de disco
-    documentos = db.query(models.Documento).filter(models.Documento.estudiante_id == id).all()
+    documentos = db.query(models.Documento).filter(models.Documento.estudiante_id == estudiante_id).all()
     for doc in documentos:
         if doc.ruta_archivo and os.path.exists(doc.ruta_archivo):
             try:
@@ -316,19 +308,55 @@ def delete_estudiante(
         db.delete(doc)
 
     # 2. Eliminar logs de notificaciones del estudiante
-    db.query(models.NotificacionLog).filter(models.NotificacionLog.estudiante_id == id).delete(synchronize_session=False)
+    db.query(models.NotificacionLog).filter(models.NotificacionLog.estudiante_id == estudiante_id).delete(synchronize_session=False)
 
     # 3. Eliminar envíos programados del estudiante
-    db.query(models.EnvioProgramado).filter(models.EnvioProgramado.estudiante_id == id).delete(synchronize_session=False)
+    db.query(models.EnvioProgramado).filter(models.EnvioProgramado.estudiante_id == estudiante_id).delete(synchronize_session=False)
 
     # 4. Eliminar notificaciones creadas para el estudiante
-    db.query(models.Notificacion).filter(models.Notificacion.estudiante_id == id).delete(synchronize_session=False)
+    db.query(models.Notificacion).filter(models.Notificacion.estudiante_id == estudiante_id).delete(synchronize_session=False)
 
     # 5. Eliminar el registro del estudiante
     db.delete(db_estudiante)
-    db.commit()
+    return True
 
+@app.delete("/estudiantes/{id}")
+def delete_estudiante(
+    id: int,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    if current_user["rol"] not in ["lawyer", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores o abogados pueden eliminar registros")
+    
+    if not _eliminar_estudiante_completo(db, id):
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    db.commit()
     return {"message": "Estudiante y todos sus registros asociados fueron eliminados exitosamente"}
+
+@app.post("/estudiantes/bulk-delete")
+def bulk_delete_estudiantes(
+    req: schemas.BulkDeleteRequest,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    if current_user["rol"] not in ["lawyer", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores o abogados pueden eliminar registros")
+    
+    if not req.ids:
+        raise HTTPException(status_code=400, detail="Debe proporcionar al menos un ID de estudiante para eliminar")
+    
+    eliminados = 0
+    for est_id in req.ids:
+        if _eliminar_estudiante_completo(db, est_id):
+            eliminados += 1
+            
+    db.commit()
+    return {
+        "message": f"Se eliminaron {eliminados} estudiante(s) exitosamente",
+        "count": eliminados
+    }
 
 # --- GESTIÓN DE DOCUMENTOS ---
 
