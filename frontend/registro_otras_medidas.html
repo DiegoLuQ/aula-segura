@@ -76,8 +76,8 @@
         async function init() {
             const token = localStorage.getItem('token');
             const resp = await fetch(`${API_URL}/me`, { headers: { 'Authorization': `Bearer ${token}` }});
-            const user = await resp.json();
-            document.getElementById('user-info').innerText = user.nombre;
+            const userInfoEl = document.getElementById('user-info');
+            if (userInfoEl) userInfoEl.innerText = user.nombre;
             
             await loadColegios();
             if (omId) {

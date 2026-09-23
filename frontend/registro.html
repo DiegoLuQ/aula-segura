@@ -1073,7 +1073,8 @@
             const user = await resp.json();
             if (user.rol !== 'lawyer' && user.rol !== 'admin') window.location.href = 'dashboard.html';
 
-            document.getElementById('user-info').innerText = user.nombre;
+            const userInfoEl = document.getElementById('user-info');
+            if (userInfoEl) userInfoEl.innerText = user.nombre;
             setProcesoLock(!studentId);
             formPhaseGoto(1);
             await loadColegios();

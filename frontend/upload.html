@@ -100,11 +100,14 @@
             if (!token) window.location.href = 'login.html';
             
             const resp = await fetch(`${API_URL}/me`, { headers: { 'Authorization': `Bearer ${token}` }});
+            if (!resp.ok) { window.location.href = 'index.html'; return; }
             const user = await resp.json();
-            if (user.rol !== 'lawyer' && user.rol !== 'admin') window.location.href = 'dashboard.html';
+            if (user.rol !== 'lawyer' && user.rol !== 'admin') { window.location.href = 'dashboard.html'; return; }
             
-            document.getElementById('user-info').innerText = user.nombre;
-            loadColegios();
+            const userInfoEl = document.getElementById('user-info');
+            if (userInfoEl) userInfoEl.innerText = user.nombre;
+            
+            await loadColegios();
 
             // Auto-select type if present in URL
             const urlParams = new URLSearchParams(window.location.search);
@@ -119,9 +122,18 @@
         }
 
         async function loadColegios() {
-            const resp = await fetch(`${API_URL}/colegios`);
-            const colegios = await resp.json();
-            document.getElementById('f-colegio').innerHTML = colegios.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+            try {
+                const resp = await fetch(`${API_URL}/colegios`);
+                if (!resp.ok) throw new Error('Error al cargar colegios');
+                const colegios = await resp.json();
+                const sel = document.getElementById('f-colegio');
+                if (sel) {
+                    sel.innerHTML = '<option value="">-- Seleccione un colegio --</option>' + 
+                        colegios.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+                }
+            } catch (e) {
+                console.error('Error al cargar colegios:', e);
+            }
         }
 
         async function downloadTemplate() {
