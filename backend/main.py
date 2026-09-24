@@ -490,7 +490,7 @@ def delete_documento(
 
 @app.get("/otras-medidas/template")
 def get_template_om(db: Session = Depends(database.get_db)):
-    cols = ["ID COLEGIO", "RUT", "NOMBRE ESTUDIANTE", "CURSO", "FECHA INICIO", "CAUSA", "MEDIDA"]
+    cols = ["ID COLEGIO", "RUT (OPCIONAL)", "NOMBRE ESTUDIANTE", "CURSO", "FECHA INICIO", "CAUSA", "MEDIDA"]
     df = pd.DataFrame(columns=cols)
     df.loc[0] = [1, "12.345.678-9", "JUAN PEREZ", "1° MEDIO", "2024-05-01", "Faltas reiteradas", "SUSPENSIÓN 5 DÍAS"]
     
@@ -697,13 +697,24 @@ async def upload_otras_medidas(
                 try: return pd.to_datetime(val).date()
                 except: return None
 
+            nombre = get_str_val("NOMBRE ESTUDIANTE") or get_str_val("NOMBRE")
+            if not nombre:
+                continue
+
+            # El RUT es 100% opcional (soporta 'RUT', 'RUT (OPCIONAL)', o ausencia de columna)
+            rut_raw = get_str_val("RUT") or get_str_val("RUT (OPCIONAL)") or None
+            if rut_raw and rut_raw.strip().lower() in ["nan", "none", "-", ""]:
+                rut_raw = None
+
+            fecha = parse_date("FECHA INICIO") or parse_date("FECHA INICIO PROCESO AULA SEGURA") or parse_date("FECHA") or datetime.now().date()
+
             db_item = models.OtraMedida(
-                rut=get_str_val("RUT"),
-                nombre_estudiante=get_str_val("NOMBRE ESTUDIANTE"),
+                rut=rut_raw,
+                nombre_estudiante=nombre,
                 curso=get_str_val("CURSO"),
-                fecha_inicio=parse_date("FECHA INICIO") or parse_date("FECHA INICIO PROCESO AULA SEGURA"),
+                fecha_inicio=fecha,
                 causa=get_str_val("CAUSA"),
-                medida=get_str_val("MEDIDA"),
+                medida=get_str_val("MEDIDA") or "OTRA MEDIDA",
                 id_colegio=int(get_val("ID COLEGIO", id_colegio)),
                 id_usuario=current_user["id"]
             )
