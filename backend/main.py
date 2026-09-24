@@ -582,6 +582,32 @@ def delete_otra_medida(
     db.commit()
     return {"message": "Eliminado exitosamente"}
 
+@app.post("/otras-medidas/bulk-delete")
+def bulk_delete_otras_medidas(
+    req: schemas.BulkDeleteRequest,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(auth.get_current_user)
+):
+    if current_user["rol"] not in ["lawyer", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores o abogados pueden eliminar registros")
+    
+    if not req.ids:
+        raise HTTPException(status_code=400, detail="Debe proporcionar al menos un ID para eliminar")
+    
+    eliminados = 0
+    for om_id in req.ids:
+        db_item = db.query(models.OtraMedida).filter(models.OtraMedida.id == om_id).first()
+        if db_item and db_item.estado:
+            db_item.estado = False
+            eliminados += 1
+            
+    db.commit()
+    return {
+        "message": f"Se eliminaron {eliminados} registro(s) exitosamente",
+        "count": eliminados
+    }
+
+
 @app.post("/otras-medidas/{id}/upload")
 async def upload_documento_otra_medida(
     id: int,
